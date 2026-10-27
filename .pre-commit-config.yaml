@@ -11,6 +11,7 @@ repos:
       - id: check-case-conflict
       - id: check-added-large-files
       - id: detect-private-key
+        exclude: ^(pkcs7|timestamp)/
 
   - repo: https://github.com/tekwizely/pre-commit-golang
     rev: v1.0.0-rc.4
