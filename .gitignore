@@ -1,0 +1,6 @@
+*.local.*
+
+# spec-kit
+specs/
+.specify/
+.agents/
