@@ -14,3 +14,9 @@
 - Do not add `main`-package demo programs under `examples/`; they are not tested and go stale.
 - Examples must write to `os.MkdirTemp` and clean up, never the working directory.
 - Link new examples from the README feature table.
+
+## Generated code
+
+- Never edit `*_gen.go` files by hand. Change the generator or its input and run `go generate`. A PreToolUse hook
+  (`.claude/hooks/block-gen-edits.sh`) blocks Edit/Write on them; it cannot see edits made through Bash, so don't
+  use `sed` or heredocs to get round it.
