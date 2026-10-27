@@ -1,0 +1,156 @@
+// Copyright 2020 FoxyUtils ehf. Licensed under the MIT License.
+// See the LICENSE file in the repository root.
+
+package pdfutil ;import (_ae "bytes";_f "errors";_b "fmt";_aa "github.com/OpenMellon/openpdf/common";_ff "github.com/OpenMellon/openpdf/contentstream";_gd "github.com/OpenMellon/openpdf/contentstream/draw";_gb "github.com/OpenMellon/openpdf/core";_ec "github.com/OpenMellon/openpdf/internal/streamlimits";
+_e "github.com/OpenMellon/openpdf/model";_be "github.com/OpenMellon/openpdf/ps";_a "io";_c "os";);type grayscaleStreamKey struct{_ddb *_gb .PdfObjectStream ;_ac *_e .PdfPageResources ;};func _da (_fbc _e .PdfColorspace )bool {_ ,_de :=_fbc .(*_e .PdfColorspaceSpecialPattern );
+return _de };func (_ge *grayscaleWalk )transformContentStream (_dc string ,_fdfc *_e .PdfPageResources ,_dgc *_gb .PdfObjectStream )([]byte ,error ){_egf :=_ff .NewContentStreamParser (_dc );_eb ,_bg :=_egf .Parse ();if _bg !=nil {return nil ,_bg ;};if _dgc !=nil {_ge ._dba .Charge (_dgc ,len (*_eb ),len (_dc ),0);
+};_ca :=&_ff .ContentStreamOperations {};_bcb :=map[_gb .PdfObjectName ]bool {};_fdb :=map[_gb .PdfObjectName ]bool {};_gc :=_ff .NewContentStreamProcessor (*_eb );_gc .AddHandler (_ff .HandlerConditionEnumAllOperands ,"",func (_bcd *_ff .ContentStreamOperation ,_bdg _ff .GraphicsState ,_ega *_e .PdfPageResources )error {_ecdc :=_bcd .Operand ;
+switch _ecdc {case "\u0043\u0053":if _da (_bdg .ColorspaceStroking ){_ba :=_bcd .Params [0].(*_gb .PdfObjectName );if *_ba !="\u0050a\u0074\u0074\u0065\u0072\u006e"{_af ,_gdc :=_ega .GetColorspaceByName (*_ba );if !_gdc {return _f .New ("\u0063\u006f\u006c\u006frs\u0070\u0061\u0063\u0065\u0020\u006e\u006f\u0074\u0020\u0064\u0065\u0066\u0069\u006ee\u0064");
+};_ffa ,_gdc :=_af .(*_e .PdfColorspaceSpecialPattern );if !_gdc {return _f .New ("\u0074\u0079\u0070\u0065\u0020\u0065\u0072\u0072\u006f\u0072");};if _ffa .UnderlyingCS !=nil {_ffa .UnderlyingCS =_e .NewPdfColorspaceDeviceGray ();};_bg =_ega .SetColorspaceByName (*_ba ,_ffa );
+if _bg !=nil {return _bg ;};};*_ca =append (*_ca ,_bcd );return nil ;};_aaa :=_ff .ContentStreamOperation {};_aaa .Operand =_ecdc ;_aaa .Params =[]_gb .PdfObject {_gb .MakeName ("\u0044\u0065\u0076\u0069\u0063\u0065\u0047\u0072\u0061\u0079")};*_ca =append (*_ca ,&_aaa );
+return nil ;case "\u0063\u0073":if _da (_bdg .ColorspaceNonStroking ){_ebg :=_bcd .Params [0].(*_gb .PdfObjectName );if *_ebg !="\u0050a\u0074\u0074\u0065\u0072\u006e"{_cfa ,_cb :=_ega .GetColorspaceByName (*_ebg );if !_cb {return _f .New ("\u0063\u006f\u006c\u006frs\u0070\u0061\u0063\u0065\u0020\u006e\u006f\u0074\u0020\u0064\u0065\u0066\u0069\u006ee\u0064");
+};_gdca ,_cb :=_cfa .(*_e .PdfColorspaceSpecialPattern );if !_cb {return _f .New ("\u0074\u0079\u0070\u0065\u0020\u0065\u0072\u0072\u006f\u0072");};if _gdca .UnderlyingCS !=nil {_gdca .UnderlyingCS =_e .NewPdfColorspaceDeviceGray ();};if _bcf :=_ega .SetColorspaceByName (*_ebg ,_gdca );
+_bcf !=nil {return _bcf ;};};*_ca =append (*_ca ,_bcd );return nil ;};_bee :=_ff .ContentStreamOperation {};_bee .Operand =_ecdc ;_bee .Params =[]_gb .PdfObject {_gb .MakeName ("\u0044\u0065\u0076\u0069\u0063\u0065\u0047\u0072\u0061\u0079")};*_ca =append (*_ca ,&_bee );
+return nil ;case "\u0053\u0043","\u0053\u0043\u004e":if _da (_bdg .ColorspaceStroking ){_fbe :=_ff .ContentStreamOperation {};_fbe .Operand =_ecdc ;_fbe .Params =[]_gb .PdfObject {};_bf ,_eca :=_bdg .ColorStroking .(*_e .PdfColorPattern );if !_eca {return _f .New ("i\u006e\u0076\u0061\u006c\u0069\u0064 \u0073\u0074\u0072\u006f\u006b\u0069\u006e\u0067\u0020c\u006f\u006c\u006fr\u0020t\u0079\u0070\u0065");
+};if _bf .Color !=nil {_df ,_fa :=_bdg .ColorspaceStroking .ColorToRGB (_bf .Color );if _fa !=nil {return _fa ;};_fag :=_df .(*_e .PdfColorDeviceRGB );_dec :=_fag .ToGray ();_fbe .Params =append (_fbe .Params ,_gb .MakeFloat (_dec .Val ()));};if _ ,_dcb :=_bcb [_bf .PatternName ];
+_dcb {_fbe .Params =append (_fbe .Params ,_gb .MakeName (string (_bf .PatternName )));*_ca =append (*_ca ,&_fbe );return nil ;};_bcb [_bf .PatternName ]=true ;_bcg ,_bed :=_ega .GetPatternByName (_bf .PatternName );if !_bed {return _f .New ("\u0075\u006e\u0064\u0065fi\u006e\u0065\u0064\u0020\u0070\u0061\u0074\u0074\u0065\u0072\u006e\u0020\u006e\u0061m\u0065");
+};_fc ,_cba :=_ge .convertPatternToGray (_bcg );if _cba !=nil {return _cba ;};_cba =_ega .SetPatternByName (_bf .PatternName ,_fc .ToPdfObject ());if _cba !=nil {return _cba ;};_fbe .Params =append (_fbe .Params ,_gb .MakeName (string (_bf .PatternName )));
+*_ca =append (*_ca ,&_fbe );}else {_cc ,_daa :=_bdg .ColorspaceStroking .ColorToRGB (_bdg .ColorStroking );if _daa !=nil {return _daa ;};_dfa :=_cc .(*_e .PdfColorDeviceRGB );_fagf :=_dfa .ToGray ();_ccc :=_ff .ContentStreamOperation {};_ccc .Operand =_ecdc ;
+_ccc .Params =[]_gb .PdfObject {_gb .MakeFloat (_fagf .Val ())};*_ca =append (*_ca ,&_ccc );};return nil ;case "\u0073\u0063","\u0073\u0063\u006e":if _da (_bdg .ColorspaceNonStroking ){_bdd :=_ff .ContentStreamOperation {};_bdd .Operand =_ecdc ;_bdd .Params =[]_gb .PdfObject {};
+_caf ,_ead :=_bdg .ColorNonStroking .(*_e .PdfColorPattern );if !_ead {return _f .New ("i\u006e\u0076\u0061\u006c\u0069\u0064 \u0073\u0074\u0072\u006f\u006b\u0069\u006e\u0067\u0020c\u006f\u006c\u006fr\u0020t\u0079\u0070\u0065");};if _caf .Color !=nil {_ee ,_cdd :=_bdg .ColorspaceNonStroking .ColorToRGB (_caf .Color );
+if _cdd !=nil {return _cdd ;};_bdaa :=_ee .(*_e .PdfColorDeviceRGB );_bgb :=_bdaa .ToGray ();_bdd .Params =append (_bdd .Params ,_gb .MakeFloat (_bgb .Val ()));};if _ ,_bgc :=_bcb [_caf .PatternName ];_bgc {_bdd .Params =append (_bdd .Params ,_gb .MakeName (string (_caf .PatternName )));
+*_ca =append (*_ca ,&_bdd );return nil ;};_bcb [_caf .PatternName ]=true ;_fcd ,_fff :=_ega .GetPatternByName (_caf .PatternName );if !_fff {return _f .New ("\u0075\u006e\u0064\u0065fi\u006e\u0065\u0064\u0020\u0070\u0061\u0074\u0074\u0065\u0072\u006e\u0020\u006e\u0061m\u0065");
+};_gbb ,_fde :=_ge .convertPatternToGray (_fcd );if _fde !=nil {return _fde ;};_fde =_ega .SetPatternByName (_caf .PatternName ,_gbb .ToPdfObject ());if _fde !=nil {return _fde ;};_bdd .Params =append (_bdd .Params ,_gb .MakeName (string (_caf .PatternName )));
+*_ca =append (*_ca ,&_bdd );}else {_daba ,_fbd :=_bdg .ColorspaceNonStroking .ColorToRGB (_bdg .ColorNonStroking );if _fbd !=nil {return _fbd ;};_bcc :=_daba .(*_e .PdfColorDeviceRGB );_bbc :=_bcc .ToGray ();_eee :=_ff .ContentStreamOperation {};_eee .Operand =_ecdc ;
+_eee .Params =[]_gb .PdfObject {_gb .MakeFloat (_bbc .Val ())};*_ca =append (*_ca ,&_eee );};return nil ;case "\u0052\u0047","\u004b":_ede ,_cdc :=_bdg .ColorspaceStroking .ColorToRGB (_bdg .ColorStroking );if _cdc !=nil {return _cdc ;};_eba :=_ede .(*_e .PdfColorDeviceRGB );
+_cdg :=_eba .ToGray ();_bdgc :=_ff .ContentStreamOperation {};_bdgc .Operand ="\u0047";_bdgc .Params =[]_gb .PdfObject {_gb .MakeFloat (_cdg .Val ())};*_ca =append (*_ca ,&_bdgc );return nil ;case "\u0072\u0067","\u006b":_bde ,_ccd :=_bdg .ColorspaceNonStroking .ColorToRGB (_bdg .ColorNonStroking );
+if _ccd !=nil {return _ccd ;};_aef :=_bde .(*_e .PdfColorDeviceRGB );_ddc :=_aef .ToGray ();_dfad :=_ff .ContentStreamOperation {};_dfad .Operand ="\u0067";_dfad .Params =[]_gb .PdfObject {_gb .MakeFloat (_ddc .Val ())};*_ca =append (*_ca ,&_dfad );return nil ;
+case "\u0073\u0068":if len (_bcd .Params )!=1{return _f .New ("\u0070\u0061\u0072\u0061\u006d\u0073 \u0074\u006f\u0020\u0073\u0068\u0020\u006f\u0070\u0065\u0072\u0061\u0074\u006fr\u0020\u0073\u0068\u006f\u0075\u006c\u0064 \u0062\u0065\u0020\u0031");};_ce ,_edec :=_bcd .Params [0].(*_gb .PdfObjectName );
+if !_edec {return _f .New ("\u0073\u0068 \u0070\u0061\u0072\u0061\u006d\u0065\u0074\u0065\u0072\u0020\u0073\u0068\u006f\u0075\u006c\u0064\u0020\u0062\u0065\u0020\u0061\u0020na\u006d\u0065");};if _ ,_beda :=_fdb [*_ce ];_beda {*_ca =append (*_ca ,_bcd );
+return nil ;};_fdb [*_ce ]=true ;_egg ,_dbg :=_ega .GetShadingByName (*_ce );if !_dbg {return _f .New ("\u0073\u0068\u0061\u0064\u0069\u006e\u0067\u0020\u006e\u006f\u0074\u0020\u0064\u0065\u0066i\u006ee\u0064\u0020\u0069\u006e\u0020\u0072\u0065\u0073\u006f\u0075\u0072\u0063\u0065\u0073");
+};_ab ,_cab :=_geed (_egg );if _cab !=nil {return _cab ;};_cab =_ega .SetShadingByName (*_ce ,_ab .GetContext ().ToPdfObject ());if _cab !=nil {return _cab ;};};*_ca =append (*_ca ,_bcd );return nil ;});_gc .AddHandler (_ff .HandlerConditionEnumOperand ,"\u0042\u0049",func (_eda *_ff .ContentStreamOperation ,_fcdc _ff .GraphicsState ,_beg *_e .PdfPageResources )error {if len (_eda .Params )!=1{return _f .New ("\u0069\u006e\u0076\u0061l\u0069\u0064\u0020\u006e\u0075\u006d\u0062\u0065\u0072\u0020o\u0066 \u0070\u0061\u0072\u0061\u006d\u0065\u0074e\u0072\u0073");
+};_fea ,_ef :=_eda .Params [0].(*_ff .ContentStreamInlineImage );if !_ef {return _f .New ("\u0069\u006e\u0076\u0061\u006c\u0069\u0064\u0020\u0069\u006el\u0069\u006e\u0065\u0020\u0069\u006d\u0061g\u0065\u0020\u0070\u0061\u0072\u0061\u006d\u0065\u0074\u0065\u0072");
+};_cfc ,_gba :=_fea .ToImage (_beg );if _gba !=nil {return _gba ;};_eag ,_gba :=_fea .GetColorSpace (_beg );if _gba !=nil {return _gba ;};_cafc ,_gba :=_eag .ImageToRGB (*_cfc );if _gba !=nil {return _gba ;};_eeb :=_e .NewPdfColorspaceDeviceRGB ();_bedb ,_gba :=_eeb .ImageToGray (_cafc );
+if _gba !=nil {return _gba ;};_bbf ,_gba :=_fea .GetEncoder ();if _gba !=nil {return _gba ;};if _gdcg ,_bca :=_bbf .(*_gb .DCTEncoder );_bca {_gdcg .ColorComponents =1;};_ga ,_gba :=_ff .NewInlineImageFromImage (_bedb ,_bbf );if _gba !=nil {if _gba ==_gb .ErrUnsupportedEncodingParameters {_bbf =_gb .NewFlateEncoder ();
+};_ga ,_gba =_ff .NewInlineImageFromImage (_bedb ,_bbf );if _gba !=nil {return _gba ;};};_abe :=_ff .ContentStreamOperation {};_abe .Operand ="\u0042\u0049";_abe .Params =[]_gb .PdfObject {_ga };*_ca =append (*_ca ,&_abe );return nil ;});_ffe :=map[string ]bool {};
+_gc .AddHandler (_ff .HandlerConditionEnumOperand ,"\u0044\u006f",func (_bcgf *_ff .ContentStreamOperation ,_cg _ff .GraphicsState ,_cgc *_e .PdfPageResources )error {if len (_bcgf .Params )< 1{return _f .New ("\u0045\u0052\u0052\u004f\u0052\u003a\u0020\u0049\u006e\u0076\u0061\u006c\u0069\u0064\u0020\u006e\u0075\u006d\u0062\u0065r\u0020\u006f\u0066\u0020\u0070\u0061\u0072\u0061\u006ds\u0020\u0066\u006f\u0072\u0020\u0044\u006f\u0020\u006f\u0062\u006a\u0065\u0063t\u003a\u0020\u0052\u0061\u006e\u0067e\u0020\u0063\u0068e\u0063\u006b");
+};_daad :=_bcgf .Params [0].(*_gb .PdfObjectName );_ ,_adb :=_ffe [string (*_daad )];if _adb {return nil ;};_ffe [string (*_daad )]=true ;_gaa ,_dgb :=_cgc .GetXObjectByName (*_daad );if _dgb ==_e .XObjectTypeImage {_cfb ,_bfg :=_cgc .GetXObjectImageByName (*_daad );
+if _bfg !=nil {return _bfg ;};_cfe ,_bfg :=_cfb .ToImage ();if _bfg !=nil {return _bfg ;};_gcd ,_bfg :=_cfb .ColorSpace .ImageToRGB (*_cfe );if _bfg !=nil {return _bfg ;};_eab :=_e .NewPdfColorspaceDeviceRGB ();_cef ,_bfg :=_eab .ImageToGray (_gcd );if _bfg !=nil {return _bfg ;
+};_fac :=_cfb .Filter ;if _decg ,_gaf :=_fac .(*_gb .DCTEncoder );_gaf {_decg .ColorComponents =1;};_fbf ,_bfg :=_e .NewXObjectImageFromImage (&_cef ,nil ,_fac );if _bfg !=nil {if _bfg ==_gb .ErrUnsupportedEncodingParameters {_fac =_gb .NewFlateEncoder ();
+};_fbf ,_bfg =_e .NewXObjectImageFromImage (&_cef ,nil ,_fac );if _bfg !=nil {return _bfg ;};};_bfg =_cgc .SetXObjectImageByName (*_daad ,_fbf );if _bfg !=nil {return _bfg ;};}else if _dgb ==_e .XObjectTypeForm {_edad ,_gcf :=_cgc .GetXObjectFormByName (*_daad );
+if _gcf !=nil {return _gcf ;};var _afe *_e .PdfPageResources ;if _edad .Resources ==nil {_afe =_cgc ;};if !_ge .enter (_gaa ,_afe ){return nil ;};defer _ge .leave (_gaa );_edb ,_gcf :=_edad .GetContentStream ();if _gcf !=nil {return _gcf ;};_bbg :=_edad .Resources ;
+if _bbg ==nil {_bbg =_cgc ;};_bff ,_gcf :=_ge .transformContentStream (string (_edb ),_bbg ,_gaa );if _gcf !=nil {return _gcf ;};_gcf =_edad .SetContentStream (_bff ,nil );if _gcf !=nil {return _gcf ;};_gcf =_cgc .SetXObjectFormByName (*_daad ,_edad );
+if _gcf !=nil {return _gcf ;};};return nil ;});_bg =_gc .Process (_fdfc );if _bg !=nil {return nil ,_bg ;};return _ca .Bytes (),nil ;};
+
+// NormalizePage performs the following operations on the passed in page:
+//   - Normalize the page rotation.
+//     Rotates the contents of the page according to the Rotate entry, thus
+//     flattening the rotation. The Rotate entry of the page is set to nil.
+//   - Normalize the media box.
+//     If the media box of the page is offsetted (Llx != 0 or Lly != 0),
+//     the contents of the page are translated to (-Llx, -Lly). After
+//     normalization, the media box is updated (Llx and Lly are set to 0 and
+//     Urx and Ury are updated accordingly).
+//   - Normalize the crop box.
+//     The crop box of the page is updated based on the previous operations.
+//
+// After normalization, the page should look the same if openend using a
+// PDF viewer.
+// NOTE: This function does not normalize annotations, outlines other parts
+// that are not part of the basic geometry and page content streams.
+func NormalizePage (page *_e .PdfPage )error {_ddcg ,_dce :=page .GetMediaBox ();if _dce !=nil {return _dce ;};_acb ,_dce :=page .GetRotate ();if _dce !=nil {_aa .Log .Debug ("\u0045\u0052R\u004f\u0052\u003a\u0020\u0025\u0073\u0020\u002d\u0020\u0069\u0067\u006e\u006f\u0072\u0069\u006e\u0067\u0020\u0061\u006e\u0064\u0020\u0061\u0073\u0073\u0075\u006d\u0069\u006e\u0067\u0020\u006e\u006f\u0020\u0072\u006f\u0074\u0061\u0074\u0069\u006f\u006e\u000a",_dce .Error ());
+};_dae :=_acb %360!=0&&_acb %90==0;_ddcg .Normalize ();_bfcb ,_efb ,_eea ,_abag :=_ddcg .Llx ,_ddcg .Lly ,_ddcg .Width (),_ddcg .Height ();_gcef :=_bfcb !=0||_efb !=0;if !_dae &&!_gcef {return nil ;};_baf :=func (_fdc ,_cce ,_cdca float64 )_gd .BoundingBox {return _gd .Path {Points :[]_gd .Point {_gd .NewPoint (0,0).Rotate (_cdca ),_gd .NewPoint (_fdc ,0).Rotate (_cdca ),_gd .NewPoint (0,_cce ).Rotate (_cdca ),_gd .NewPoint (_fdc ,_cce ).Rotate (_cdca )}}.GetBoundingBox ();
+};_feda :=_ff .NewContentCreator ();var _fbb float64 ;if _dae {_fbb =-float64 (_acb );_dbba :=_baf (_eea ,_abag ,_fbb );_feda .Translate ((_dbba .Width -_eea )/2+_eea /2,(_dbba .Height -_abag )/2+_abag /2);_feda .RotateDeg (_fbb );_feda .Translate (-_eea /2,-_abag /2);
+_eea ,_abag =_dbba .Width ,_dbba .Height ;};if _gcef {_feda .Translate (-_bfcb ,-_efb );};_ceg :=_feda .Operations ();_bdf ,_dce :=_gb .MakeStream (_ceg .Bytes (),_gb .NewFlateEncoder ());if _dce !=nil {return _dce ;};_agf :=_gb .MakeArray (_bdf );_agf .Append (page .GetContentStreamObjs ()...);
+*_ddcg =_e .PdfRectangle {Urx :_eea ,Ury :_abag };if _gbd :=page .CropBox ;_gbd !=nil {_gbd .Normalize ();_bagd ,_dfe ,_edcd ,_cec :=_gbd .Llx -_bfcb ,_gbd .Lly -_efb ,_gbd .Width (),_gbd .Height ();if _dae {_bcag :=_baf (_edcd ,_cec ,_fbb );_edcd ,_cec =_bcag .Width ,_bcag .Height ;
+};*_gbd =_e .PdfRectangle {Llx :_bagd ,Lly :_dfe ,Urx :_bagd +_edcd ,Ury :_dfe +_cec };};_aa .Log .Debug ("\u0052\u006f\u0074\u0061\u0074\u0065\u003d\u0025\u0066\u00b0\u0020\u004f\u0070\u0073\u003d%\u0071 \u004d\u0065\u0064\u0069\u0061\u0042\u006f\u0078\u003d\u0025\u002e\u0032\u0066",_fbb ,_ceg ,_ddcg );
+page .Contents =_agf ;page .Rotate =nil ;return nil ;};type grayscaleWalk struct{_dab map[grayscaleStreamKey ]struct{};_dba _ec .Walker ;};func (_ag *grayscaleWalk )convertPatternToGray (_aaaa *_e .PdfPattern )(*_e .PdfPattern ,error ){if _aaaa .IsTiling (){_bbfc :=_aaaa .GetAsTilingPattern ();
+if _bbfc .IsColored (){_gee ,_dabe :=_gb .GetStream (_gb .TraceToDirectObject (_aaaa .GetContainingPdfObject ()));if _dabe {if !_ag .enter (_gee ,nil ){return _aaaa ,nil ;};defer _ag .leave (_gee );};_gce ,_ecc :=_bbfc .GetContentStream ();if _ecc !=nil {return nil ,_ecc ;
+};_gef ,_ecc :=_ag .transformContentStream (string (_gce ),_bbfc .Resources ,_gee );if _ecc !=nil {return nil ,_ecc ;};_ecc =_bbfc .SetContentStream (_gef ,nil );if _ecc !=nil {return nil ,_ecc ;};_ =_bbfc .ToPdfObject ();};}else if _aaaa .IsShading (){_gec :=_aaaa .GetAsShadingPattern ();
+_gaab ,_fba :=_geed (_gec .Shading );if _fba !=nil {return nil ,_fba ;};_gec .Shading =_gaab ;_ =_gec .ToPdfObject ();};return _aaaa ,nil ;};
+
+// MergePdfWithFilePermission merges several PDF files passed as inputPaths to one PDF file, outputPath.
+// isMergingForms controls if it is necessary to merge AcroForms from input files.
+// If you are not sure, you can always set isMergingForms to true.
+// perm sets the file permission for the output file.
+func MergePdfWithFilePermission (inputPaths []string ,outputPath string ,isMergingForms bool ,perm _c .FileMode )error {return MergePdfWithFilePermissionAndOptions (inputPaths ,outputPath ,MergePdfOptions {IsMergingForms :isMergingForms },perm );};
+
+// ConvertPageToGrayscale() replaces color objects on the page with grayscale ones.  Also references XObject Images and Forms
+// to convert those to grayscale.
+func ConvertPageToGrayscale (page *_e .PdfPage )error {_cf ,_ad :=page .GetAllContentStreams ();if _ad !=nil {return _ad ;};_dg ,_ad :=_dea (_cf ,page .Resources );if _ad !=nil {return _ad ;};_ad =page .SetContentStreams ([]string {string (_dg )},_gb .NewFlateEncoder ());
+if _ad !=nil {return _ad ;};return nil ;};
+
+// MergePdfStreamsWithOptions merges several PDF streams and writes the result to output,
+// applying the supplied options. See MergePdfOptions for available knobs.
+// Inputs must implement io.ReaderAt (*os.File, *bytes.Reader, *io.SectionReader all qualify).
+func MergePdfStreamsWithOptions (inputs []_a .ReaderAt ,output _a .Writer ,opts MergePdfOptions )error {if len (inputs )==0{return _b .Errorf ("\u006e\u006f\u0020\u0069np\u0075\u0074\u0020\u0050\u0044\u0046\u0073\u0020\u0070\u0072\u006f\u0076\u0069\u0064e\u0064");
+};_fgc :=_e .NewPdfWriter ();if opts .Optimizer !=nil {_fgc .SetOptimizer (opts .Optimizer );};var _agd *_e .PdfAcroForm ;for _fdg ,_eae :=range inputs {_bfaa ,_aeb :=_e .NewPdfReaderWithOpts (_eae ,nil );if _aeb !=nil {return _aeb ;};_dbe ,_aeb :=_bfaa .GetNumPages ();
+if _aeb !=nil {return _aeb ;};for _fdea :=range _dbe {_abf :=_fdea +1;_cfd ,_eabde :=_bfaa .GetPage (_abf );if _eabde !=nil {return _eabde ;};_eabde =_fgc .AddPage (_cfd );if _eabde !=nil {return _eabde ;};};if opts .IsMergingForms &&_bfaa .AcroForm !=nil {if _agd ==nil {_agd =_bfaa .AcroForm ;
+}else {_agd ,_aeb =_eed (_agd ,_bfaa .AcroForm ,_fdg +1);if _aeb !=nil {return _aeb ;};};};};if _agd !=nil {_fgc .SetForms (_agd );};return _fgc .Write (output );};
+
+// MergePdfStreams merges several PDF streams passed as io.ReaderAt and writes the result to output.
+// isMergingForms controls if it is necessary to merge AcroForms from input streams.
+// If you are not sure, you can always set isMergingForms to true.
+func MergePdfStreams (inputs []_a .ReaderAt ,output _a .Writer ,isMergingForms bool )error {return MergePdfStreamsWithOptions (inputs ,output ,MergePdfOptions {IsMergingForms :isMergingForms });};func (_ed *grayscaleWalk )leave (_dac *_gb .PdfObjectStream ){_ed ._dba .Leave (_dac )};
+
+
+// MergePdfWithFilePermissionAndOptions merges several PDF files passed as inputPaths to one PDF file,
+// outputPath, applying the supplied options and writing the result with the given file permission.
+// See MergePdfOptions for available knobs.
+func MergePdfWithFilePermissionAndOptions (inputPaths []string ,outputPath string ,opts MergePdfOptions ,perm _c .FileMode )error {_dgcf :=make ([]_a .ReaderAt ,0,len (inputPaths ));for _ ,_gbbg :=range inputPaths {_dabb ,_bag :=_c .Open (_gbbg );if _bag !=nil {return _bag ;
+};defer _dabb .Close ();_dgcf =append (_dgcf ,_dabb );};var _bea _ae .Buffer ;if _geea :=MergePdfStreamsWithOptions (_dgcf ,&_bea ,opts );_geea !=nil {return _geea ;};return _c .WriteFile (outputPath ,_bea .Bytes (),perm );};func _ddd (_aaf ,_dcf *_e .PdfPageResources )(*_e .PdfPageResources ,error ){if _aaf .XObject ==nil {_aaf .XObject =_dcf .XObject ;
+}else {_dbea ,_ :=_gb .GetDict (_aaf .XObject );if _dcf .XObject !=nil {_ege ,_ :=_gb .GetDict (_dcf .XObject );for _ ,_dabd :=range _ege .Keys (){_edc :=_ege .Get (_dabd );_dbea .Set (_dabd ,_edc );};};};_ebga ,_gca :=_aaf .GetColorspaces ();if _gca !=nil {return nil ,_gca ;
+};_dda ,_gca :=_dcf .GetColorspaces ();if _gca !=nil {return nil ,_gca ;};if _ebga ==nil {_aaf .SetColorSpace (_dda );}else {if _dda !=nil {for _faf ,_cda :=range _dda .Colorspaces {if _ ,_gceb :=_ebga .Colorspaces [_faf ];!_gceb {_ebga .Names =append (_ebga .Names ,_faf );
+};_aaf .SetColorspaceByName (_gb .PdfObjectName (_faf ),_cda );};};};if _aaf .ExtGState ==nil {_aaf .ExtGState =_dcf .ExtGState ;}else {_bdb ,_ :=_gb .GetDict (_aaf .ExtGState );if _dcf .ExtGState !=nil {_ebf ,_ :=_gb .GetDict (_dcf .ExtGState );for _ ,_abec :=range _ebf .Keys (){_bgce :=_ebf .Get (_abec );
+_bdb .Set (_abec ,_bgce );};};};if _aaf .Shading ==nil {_aaf .Shading =_dcf .Shading ;}else {_fdbe ,_ :=_gb .GetDict (_aaf .Shading );if _dcf .Shading !=nil {_cag ,_ :=_gb .GetDict (_dcf .Shading );for _ ,_bfce :=range _cag .Keys (){_fcf :=_cag .Get (_bfce );
+_fdbe .Set (_bfce ,_fcf );};};};if _aaf .Pattern ==nil {_aaf .Pattern =_dcf .Pattern ;}else {_feg ,_ :=_gb .GetDict (_aaf .Pattern );if _dcf .Pattern !=nil {_fcc ,_ :=_gb .GetDict (_dcf .Pattern );for _ ,_dee :=range _fcc .Keys (){_edba :=_fcc .Get (_dee );
+_feg .Set (_dee ,_edba );};};};if _aaf .Font ==nil {_aaf .Font =_dcf .Font ;}else {_ebab ,_ :=_gb .GetDict (_aaf .Font );if _dcf .Font !=nil {_cccc ,_ :=_gb .GetDict (_dcf .Font );for _ ,_abb :=range _cccc .Keys (){_cafb :=_cccc .Get (_abb );_ebab .Set (_abb ,_cafb );
+};};};if _aaf .ProcSet ==nil {_aaf .ProcSet =_dcf .ProcSet ;}else {_aefd ,_ :=_gb .GetDict (_aaf .ProcSet );if _dcf .ProcSet !=nil {_dcg ,_ :=_gb .GetDict (_dcf .ProcSet );for _ ,_dddc :=range _dcg .Keys (){_eac :=_dcg .Get (_dddc );_aefd .Set (_dddc ,_eac );
+};};};if _aaf .Properties ==nil {_aaf .Properties =_dcf .Properties ;}else {_eagc ,_ :=_gb .GetDict (_aaf .Properties );if _dcf .Properties !=nil {_adgf ,_ :=_gb .GetDict (_dcf .Properties );for _ ,_gbc :=range _adgf .Keys (){_abff :=_adgf .Get (_gbc );
+_eagc .Set (_gbc ,_abff );};};};return _aaf ,nil ;};
+
+// MergePdfOptions configures behaviour of the merge operation.
+type MergePdfOptions struct{
+
+// IsMergingForms controls whether AcroForms from input documents are merged.
+IsMergingForms bool ;
+
+// Optimizer is applied to the merged document on write. When nil (default),
+// the merged output is written without optimization. To deduplicate streams
+// shared across input documents (e.g. embedded font programs, image
+// XObjects, ToUnicode CMaps), pass
+// optimize.New(optimize.Options{CombineDuplicateStreams: true}).
+Optimizer _e .Optimizer ;};func _eed (_deaf ,_bedc *_e .PdfAcroForm ,_bfcg int )(*_e .PdfAcroForm ,error ){if _deaf .NeedAppearances ==nil {_deaf .NeedAppearances =_bedc .NeedAppearances ;};if _deaf .SigFlags ==nil {_deaf .SigFlags =_bedc .SigFlags ;};
+if _deaf .CO ==nil {_deaf .CO =_bedc .CO ;};if _deaf .DR ==nil {_deaf .DR =_bedc .DR ;}else if _bedc .DR !=nil {_bdee ,_fegb :=_ddd (_deaf .DR ,_bedc .DR );if _fegb !=nil {return nil ,_fegb ;};_deaf .DR =_bdee ;};if _deaf .DA ==nil {_deaf .DA =_bedc .DA ;
+};if _deaf .Q ==nil {_deaf .Q =_bedc .Q ;};if _deaf .XFA ==nil {_deaf .XFA =_bedc .XFA ;}else {if _bedc .XFA !=nil {_aa .Log .Debug ("TO\u0044\u004f\u003a\u0020\u0048\u0061\u006edl\u0065\u0020\u0058\u0046\u0041\u0020\u006d\u0065\u0072\u0067\u0069\u006e\u0067\u0020\u002d \u0043\u0075\u0072\u0072\u0065\u006e\u0074\u006c\u0079\u0020\u006a\u0075\u0073\u0074\u0020\u0075\u0073\u0069\u006e\u0067 \u0066\u0069\u0072\u0073\u0074\u0020o\u006e\u0065\u0020\u0074\u0068\u0061\u0074\u0020\u0069s\u0020e\u006e\u0063\u006f\u0075\u006e\u0074\u0065\u0072\u0065\u0064");
+};};if _deaf .Fields ==nil {_deaf .Fields =_bedc .Fields ;}else {_bfca :=_e .NewPdfField ();_bfca .T =_gb .MakeString (_b .Sprintf ("\u0064\u006f\u0063%\u0064",_bfcg ));_bfca .Kids =[]*_e .PdfField {};if _bedc .Fields !=nil {for _ ,_egeb :=range *_bedc .Fields {_egeb .Parent =_bfca ;
+_bfca .Kids =append (_bfca .Kids ,_egeb );};};*_deaf .Fields =append (*_deaf .Fields ,_bfca );};return _deaf ,nil ;};
+
+// MergePdf merges several PDF files passed as inputPaths to one PDF file, outputPath.
+// isMergingForms controls if it is necessary to merge AcroForms from input files.
+// If you are not sure, you can always set isMergingForms to true.
+func MergePdf (inputPaths []string ,outputPath string ,isMergingForms bool )error {return MergePdfWithFilePermissionAndOptions (inputPaths ,outputPath ,MergePdfOptions {IsMergingForms :isMergingForms },_c .FileMode (0644));};func (_acf *grayscaleWalk )enter (_ddbb *_gb .PdfObjectStream ,_fg *_e .PdfPageResources )bool {_egd :=grayscaleStreamKey {_ddb :_ddbb ,_ac :_fg };
+if _ ,_ea :=_acf ._dab [_egd ];_ea {return false ;};if !_acf ._dba .Enter (_ddbb ,"\u0066o\u0072m\u0020\u006f\u0072\u0020\u0070\u0061\u0074\u0074\u0065\u0072\u006e"){return false ;};if _acf ._dab ==nil {_acf ._dab =map[grayscaleStreamKey ]struct{}{};};
+_acf ._dab [_egd ]=struct{}{};return true ;};
+
+// MergePdfWithOptions merges several PDF files passed as inputPaths to one PDF file, outputPath,
+// applying the supplied options. See MergePdfOptions for available knobs.
+func MergePdfWithOptions (inputPaths []string ,outputPath string ,opts MergePdfOptions )error {return MergePdfWithFilePermissionAndOptions (inputPaths ,outputPath ,opts ,_c .FileMode (0644));};func _geed (_eff *_e .PdfShading )(*_e .PdfShading ,error ){_edg :=_eff .ColorSpace ;
+if _edg .GetNumComponents ()==1{return _eff ,nil ;}else if _edg .GetNumComponents ()==3{_eabd :=&_e .PdfFunctionType4 {};_eabd .Domain =[]float64 {0,1,0,1,0,1};_eabd .Range =[]float64 {0,1};_ada :=_be .NewPSProgram ();_ada .Append (_be .MakeReal (0.11));
+_ada .Append (_be .MakeOperand ("\u006d\u0075\u006c"));_ada .Append (_be .MakeOperand ("\u0065\u0078\u0063\u0068"));_ada .Append (_be .MakeReal (0.59));_ada .Append (_be .MakeOperand ("\u006d\u0075\u006c"));_ada .Append (_be .MakeOperand ("\u0061\u0064\u0064"));
+_ada .Append (_be .MakeOperand ("\u0065\u0078\u0063\u0068"));_ada .Append (_be .MakeReal (0.3));_ada .Append (_be .MakeOperand ("\u006d\u0075\u006c"));_ada .Append (_be .MakeOperand ("\u0061\u0064\u0064"));_eabd .Program =_ada ;_fed :=_e .NewPdfColorspaceDeviceN ();
+_fed .AlternateSpace =_e .NewPdfColorspaceDeviceGray ();_fed .ColorantNames =_gb .MakeArray (_gb .MakeName ("\u0052"),_gb .MakeName ("\u0047"),_gb .MakeName ("\u0042"));_fed .TintTransform =_eabd ;_eff .ColorSpace =_fed ;return _eff ,nil ;}else if _edg .GetNumComponents ()==4{_dbb :=&_e .PdfFunctionType4 {};
+_dbb .Domain =[]float64 {0,1,0,1,0,1,0,1};_dbb .Range =[]float64 {0,1};_fdee :=_be .NewPSProgram ();_fdee .Append (_be .MakeOperand ("\u0065\u0078\u0063\u0068"));_fdee .Append (_be .MakeReal (0.11));_fdee .Append (_be .MakeOperand ("\u006d\u0075\u006c"));
+_fdee .Append (_be .MakeOperand ("\u0061\u0064\u0064"));_fdee .Append (_be .MakeOperand ("\u0065\u0078\u0063\u0068"));_fdee .Append (_be .MakeReal (0.59));_fdee .Append (_be .MakeOperand ("\u006d\u0075\u006c"));_fdee .Append (_be .MakeOperand ("\u0061\u0064\u0064"));
+_fdee .Append (_be .MakeOperand ("\u0065\u0078\u0063\u0068"));_fdee .Append (_be .MakeReal (0.30));_fdee .Append (_be .MakeOperand ("\u006d\u0075\u006c"));_fdee .Append (_be .MakeOperand ("\u0061\u0064\u0064"));_fdee .Append (_be .MakeOperand ("\u0064\u0075\u0070"));
+_fdee .Append (_be .MakeReal (1.0));_fdee .Append (_be .MakeOperand ("\u0067\u0065"));_dbae :=_be .NewPSProgram ();_dbae .Append (_be .MakeOperand ("\u0070\u006f\u0070"));_dbae .Append (_be .MakeReal (1.0));_fdee .Append (_dbae );_fdee .Append (_be .MakeOperand ("\u0069\u0066"));
+_dbb .Program =_fdee ;_gcfg :=_e .NewPdfColorspaceDeviceN ();_gcfg .AlternateSpace =_e .NewPdfColorspaceDeviceGray ();_gcfg .ColorantNames =_gb .MakeArray (_gb .MakeName ("\u0043"),_gb .MakeName ("\u004d"),_gb .MakeName ("\u0059"),_gb .MakeName ("\u004b"));
+_gcfg .TintTransform =_dbb ;_eff .ColorSpace =_gcfg ;return _eff ,nil ;}else {return nil ,_f .New ("\u0075\u006e\u0073\u0075\u0070\u0070\u006fr\u0074\u0065\u0064 \u0070\u0061\u0074t\u0065\u0072n\u0020\u0063\u006f\u006c\u006f\u0072s\u0070ac\u0065\u0020\u0066\u006f\u0072\u0020\u0067\u0072\u0061\u0079\u0073\u0063\u0061\u006c\u0065\u0020\u0063\u006f\u006e\u0076\u0065\u0072\u0073\u0069\u006f\u006e");
+};};func _dea (_aee string ,_ecd *_e .PdfPageResources )([]byte ,error ){return (&grayscaleWalk {}).transformContentStream (_aee ,_ecd ,nil );};
+
+// ExtractPageRange extracts a range of pages from inputPath PDF file and saves it as outputPath PDF file.
+// keepOptionalContent controls if we need to process OC properties (rarely needed).
+func ExtractPageRange (inputPath string ,outputPath string ,pageFrom int ,pageTo int ,keepOptionalContent bool )error {_fd :=_e .NewPdfWriter ();_fb ,_d ,_cd :=_e .NewPdfReaderFromFile (inputPath ,nil );if _cd !=nil {return _cd ;};defer _d .Close ();_fdf ,_cd :=_fb .GetNumPages ();
+if _cd !=nil {return _cd ;};if _fdf < pageTo {return _b .Errorf ("n\u0075\u006d\u0050\u0061\u0067\u0065s\u0020\u0028\u0025\u0064\u0029\u0020\u003c\u0020\u0070a\u0067\u0065\u0054o\u0020(\u0025\u0064\u0029",_fdf ,pageTo );};if keepOptionalContent {_bb ,_fe :=_fb .GetOCProperties ();
+if _fe !=nil {return _fe ;};_fd .SetOCProperties (_bb );};for _dd :=pageFrom ;_dd <=pageTo ;_dd ++{_eg :=_dd ;_bd ,_bc :=_fb .GetPage (_eg );if _bc !=nil {return _bc ;};_bc =_fd .AddPage (_bd );if _bc !=nil {return _bc ;};};_egb ,_cd :=_c .Create (outputPath );
+if _cd !=nil {return _cd ;};defer _egb .Close ();_cd =_fd .Write (_egb );if _cd !=nil {return _cd ;};return nil ;};
