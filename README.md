@@ -151,5 +151,7 @@ described in [SECURITY.md](SECURITY.md). Everyone taking part is expected to fol
 
 ## License
 
-MIT - see [LICENSE](LICENSE). Packages derived from other projects (`freetype`, `garabic`, `go-xmp`, `pkcs7`, `timestamp`, `typesetting`, `unichart`, `unitype`) keep their own licences; see
+MIT - see [LICENSE](LICENSE). OpenPDF is a derivative of UniPDF, Copyright 2020 FoxyUtils ehf., which was released
+under the MIT licence; the original copyright notices are retained in the source files and must stay with any copy.
+Packages derived from other projects (`freetype`, `garabic`, `go-xmp`, `pkcs7`, `timestamp`, `typesetting`, `unichart`, `unitype`) keep their own licences; see
 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
