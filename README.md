@@ -111,13 +111,13 @@ Each feature links to a runnable example, or to the package that provides it whe
 | Password protection and unlocking | [example](model/example_test.go), [model](model) |
 | Create, fill and flatten forms | [example](annotator/example_test.go), [annotator](annotator) |
 | FDF and JSON form data | [fdf](fdf), [fjson](fjson) |
-| Digital signing and signature validation | [example](model/sighandler/example_test.go), [model/sighandler](model/sighandler), [timestamp](timestamp) |
+| Digital signing and signature validation | [example](model/sighandler/example_test.go), [model/sighandler](model/sighandler), [timestamp](https://github.com/OpenMellon/timestamp) |
 | Redaction | [example](redactor/example_test.go), [redactor](redactor) |
 | Sanitisation | [sanitize](sanitize) |
 | PDF/A and PDF/UA | [model/pdfa](model/pdfa), [model/pdfua](model/pdfua) |
 | Render pages to images | [render](render) |
 | OCR integration | [ocr](ocr) |
-| Charts, Arabic shaping and complex text layout | [unichart](unichart), [garabic](garabic), [textshaping](textshaping), [typesetting](typesetting) |
+| Charts, Arabic shaping and complex text layout | [unichart](https://github.com/OpenMellon/unichart), [garabic](https://github.com/OpenMellon/garabic), [textshaping](textshaping), [typesetting](https://github.com/OpenMellon/typesetting) |
 
 ## Packages
 
@@ -153,5 +153,5 @@ described in [SECURITY.md](SECURITY.md). Everyone taking part is expected to fol
 
 MIT - see [LICENSE](LICENSE). OpenPDF is a derivative of UniPDF, Copyright 2020 FoxyUtils ehf., which was released
 under the MIT licence; the original copyright notices are retained in the source files and must stay with any copy.
-Packages derived from other projects (`freetype`, `garabic`, `go-xmp`, `pkcs7`, `timestamp`, `typesetting`, `unichart`, `unitype`) keep their own licences; see
+Packages derived from other projects, now separate modules under `github.com/OpenMellon/` (`freetype`, `garabic`, `go-xmp`, `pkcs7`, `timestamp`, `typesetting`, `unichart`, `unitype`) keep their own licences; see
 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
