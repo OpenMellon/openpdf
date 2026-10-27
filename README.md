@@ -1,3 +1,16 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="OpenPDF - create, read and process PDFs in Go" width="480">
+</p>
+
+<p align="center">
+  <a href="https://pkg.go.dev/github.com/OpenMellon/openpdf"><img src="https://pkg.go.dev/badge/github.com/OpenMellon/openpdf.svg" alt="Go Reference"></a>
+  <a href="https://goreportcard.com/report/github.com/OpenMellon/openpdf"><img src="https://goreportcard.com/badge/github.com/OpenMellon/openpdf" alt="Go Report Card"></a>
+  <a href="go.mod"><img src="https://img.shields.io/github/go-mod/go-version/OpenMellon/openpdf" alt="Go version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/OpenMellon/openpdf" alt="MIT licence"></a>
+  <a href="https://github.com/OpenMellon/openpdf/stargazers"><img src="https://img.shields.io/github/stars/OpenMellon/openpdf?style=flat" alt="GitHub stars"></a>
+  <a href="https://github.com/OpenMellon/openpdf/issues"><img src="https://img.shields.io/github/issues/OpenMellon/openpdf" alt="Open issues"></a>
+</p>
+
 # OpenPDF - PDF for Go
 
 OpenPDF is an MIT-licensed PDF library for Go (golang) for creating, reading and processing PDF files.
