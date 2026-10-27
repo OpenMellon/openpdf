@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/OpenMellon/openpdf/actions/workflows/ci.yml"><img src="https://github.com/OpenMellon/openpdf/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://pkg.go.dev/github.com/OpenMellon/openpdf"><img src="https://pkg.go.dev/badge/github.com/OpenMellon/openpdf.svg" alt="Go Reference"></a>
   <a href="https://goreportcard.com/report/github.com/OpenMellon/openpdf"><img src="https://goreportcard.com/badge/github.com/OpenMellon/openpdf" alt="Go Report Card"></a>
   <a href="go.mod"><img src="https://img.shields.io/github/go-mod/go-version/OpenMellon/openpdf" alt="Go version"></a>
