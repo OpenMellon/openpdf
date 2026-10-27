@@ -144,8 +144,10 @@ go test ./... -run Example -v
 
 ## Contributing
 
-Bug reports and feature requests are welcome via [GitHub issues](https://github.com/OpenMellon/openpdf/issues).
-New user-facing behaviour should come with an `Example` function; see [CLAUDE.md](CLAUDE.md).
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and how to open a pull
+request, and [SUPPORT.md](SUPPORT.md) for where to ask questions. Report security vulnerabilities privately as
+described in [SECURITY.md](SECURITY.md). Everyone taking part is expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
