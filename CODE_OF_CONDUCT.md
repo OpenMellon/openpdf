@@ -54,15 +54,14 @@ channel run by the project - and to anyone representing the project elsewhere.
 
 ## Reporting
 
-If you see or experience behaviour that breaks this code, tell the maintainers privately:
+If you see or experience behaviour that breaks this code, report it privately to GitHub:
 
-- On a specific comment, issue, pull request or discussion, use GitHub's **Report content** option and choose
-  **Report to repository admins**. Only the maintainers see the report.
-- For anything else, or if the problem involves a maintainer, report it to GitHub directly at
-  <https://github.com/contact/report-abuse>.
+- On a specific comment, issue, pull request or discussion, use the **...** menu and choose **Report content**.
+- For anything else, use <https://github.com/contact/report-abuse>.
 
-Reports are handled in confidence. The maintainers will review every report and respond in a way they judge
-appropriate to the circumstances, which may include a warning, removing content, or a temporary or permanent ban
+GitHub's Trust & Safety team reviews these reports in confidence, and the maintainers moderate project spaces
+directly. The maintainers will respond to breaches of this code in a way they judge appropriate
+to the circumstances, which may include a warning, removing content, or a temporary or permanent ban
 from the project. Anyone who does not follow this code in good faith may face such consequences.
 
 ## Attribution
