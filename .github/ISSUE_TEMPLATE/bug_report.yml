@@ -1,0 +1,60 @@
+name: Bug report
+description: Something in OpenPDF does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. A minimal Go program and the PDF that triggers it are the
+        fastest way to a fix. For questions, use [Discussions](https://github.com/OpenMellon/openpdf/discussions)
+        instead. Do not report security vulnerabilities here; see [SECURITY.md](https://github.com/OpenMellon/openpdf/blob/main/SECURITY.md).
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: A self-contained Go program that shows the problem.
+      render: go
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include any error message or panic output.
+    validations:
+      required: true
+  - type: textarea
+    id: pdf
+    attributes:
+      label: PDF file
+      description: >-
+        Drag and drop the PDF that triggers the problem (zip it if GitHub rejects the file). If you cannot share
+        it, describe how it was produced (which tool or library created it).
+  - type: input
+    id: openpdf-version
+    attributes:
+      label: OpenPDF version
+      description: Module version or commit, from `go list -m github.com/OpenMellon/openpdf`.
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version and OS
+      description: Output of `go version`.
+      placeholder: go version go1.27.3 darwin/arm64
+    validations:
+      required: true
