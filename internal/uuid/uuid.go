@@ -1,0 +1,6 @@
+// Copyright 2020 FoxyUtils ehf. Licensed under the MIT License.
+// See the LICENSE file in the repository root.
+
+package uuid ;import (_e "crypto/rand";_ef "encoding/hex";_f "io";);func _gc (_da []byte ,_c UUID ){_ef .Encode (_da ,_c [:4]);_da [8]='-';_ef .Encode (_da [9:13],_c [4:6]);_da [13]='-';_ef .Encode (_da [14:18],_c [6:8]);_da [18]='-';_ef .Encode (_da [19:23],_c [8:10]);
+_da [23]='-';_ef .Encode (_da [24:],_c [10:]);};var Nil =_ba ;var _d =_e .Reader ;func MustUUID ()UUID {uuid ,_ec :=NewUUID ();if _ec !=nil {panic (_ec );};return uuid ;};func (_gd UUID )String ()string {var _bg [36]byte ;_gc (_bg [:],_gd );return string (_bg [:])};
+var _ba UUID ;func NewUUID ()(UUID ,error ){var uuid UUID ;_ ,_fc :=_f .ReadFull (_d ,uuid [:]);if _fc !=nil {return _ba ,_fc ;};uuid [6]=(uuid [6]&0x0f)|0x40;uuid [8]=(uuid [8]&0x3f)|0x80;return uuid ,nil ;};type UUID [16]byte ;

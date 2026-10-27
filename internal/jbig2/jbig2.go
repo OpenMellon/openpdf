@@ -1,0 +1,9 @@
+// Copyright 2020 FoxyUtils ehf. Licensed under the MIT License.
+// See the LICENSE file in the repository root.
+
+package jbig2 ;import (_a "github.com/OpenMellon/openpdf/internal/bitwise";_d "github.com/OpenMellon/openpdf/internal/jbig2/decoder";_f "github.com/OpenMellon/openpdf/internal/jbig2/document";_g "github.com/OpenMellon/openpdf/internal/jbig2/document/segments";
+_e "github.com/OpenMellon/openpdf/internal/jbig2/errors";_c "sort";);func DecodeGlobals (encoded []byte )(Globals ,error ){const _fg ="\u0044\u0065\u0063\u006f\u0064\u0065\u0047\u006c\u006f\u0062\u0061\u006c\u0073";_be :=_a .NewReader (encoded );_eg ,_ag :=_f .DecodeDocument (_be ,nil );
+if _ag !=nil {return nil ,_e .Wrap (_ag ,_fg ,"");};if _eg .GlobalSegments ==nil ||(_eg .GlobalSegments .Segments ==nil ){return nil ,_e .Error (_fg ,"\u006eo\u0020\u0067\u006c\u006f\u0062\u0061\u006c\u0020\u0073\u0065\u0067m\u0065\u006e\u0074\u0073\u0020\u0066\u006f\u0075\u006e\u0064");
+};_ad :=Globals {};for _ ,_bf :=range _eg .GlobalSegments .Segments {_ad [int (_bf .SegmentNumber )]=_bf ;};return _ad ,nil ;};func (_bd Globals )ToDocumentGlobals ()*_f .Globals {if _bd ==nil {return nil ;};_ge :=[]*_g .Header {};for _ ,_ac :=range _bd {_ge =append (_ge ,_ac );
+};_c .Slice (_ge ,func (_fb ,_gg int )bool {return _ge [_fb ].SegmentNumber < _ge [_gg ].SegmentNumber });return &_f .Globals {Segments :_ge };};type Globals map[int ]*_g .Header ;func DecodeBytes (encoded []byte ,parameters _d .Parameters ,globals ...Globals )([]byte ,error ){var _cb Globals ;
+if len (globals )> 0{_cb =globals [0];};_cd ,_cf :=_d .Decode (encoded ,parameters ,_cb .ToDocumentGlobals ());if _cf !=nil {return nil ,_cf ;};return _cd .DecodeNextPage ();};
