@@ -1,0 +1,50 @@
+unichart
+========
+
+unichart is a native Golang charting library. Its primary purpose is to
+integrate with OpenPDF in order to provide charting capabilities.
+
+# Installation
+
+```bash
+go get -u github.com/OpenMellon/openpdf/unichart
+```
+
+# Examples
+
+For usage and output samples, see the [examples](examples) directory.
+
+# Supported chart types
+
+### Line chart
+
+![Sample chart output](examples/request_timing/preview.png)
+
+### Bar chart
+
+![Sample bar chart output](examples/bar_chart/preview.png)
+
+### Stacked bar chart
+
+![Sample stacked bar chart output](examples/stacked_bar/preview.png)
+
+### Pie chart
+
+![Sample pie chart output](examples/pie_chart/preview.png)
+
+### Donut chart
+
+![Sample donut chart output](examples/donut_chart/preview.png)
+
+### Progress Bar
+
+![Sample progress bar](examples/progress_bar/preview.png)
+
+# License
+
+This project is licensed under the [MIT license](https://opensource.org/licenses/MIT).
+See [LICENSE](LICENSE) for more details.
+
+# Credits
+
+This is a modified fork of [wcharczuk/go-chart](https://github.com/wcharczuk/go-chart).
