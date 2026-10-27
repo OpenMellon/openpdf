@@ -16,23 +16,136 @@
 
 OpenPDF is an MIT-licensed PDF library for Go (golang) for creating, reading and processing PDF files.
 
-## Features
+## Contents
 
-- Create PDF reports, tables, invoices and styled paragraphs
-- Merge, split, rotate and reorder pages
-- Extract text (with size, position and formatting) and images
-- Add images and watermarks to pages
-- Compress and optimise PDF files
-- Create, fill and flatten forms; FDF merging
-- Password protection and unlocking
-- Digital signing and signature validation
-- PDF/A and PDF/UA support, redaction, rendering and OCR integration
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Features](#features)
+- [Packages](#packages)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation
+
+Requires Go 1.27 or later.
 
 ~~~
 go get github.com/OpenMellon/openpdf
 ~~~
+
+## Quick start
+
+### Create a PDF
+
+~~~go
+package main
+
+import (
+	"log"
+
+	"github.com/OpenMellon/openpdf/creator"
+)
+
+func main() {
+	c := creator.New()
+	c.NewPage()
+
+	p := c.NewStyledParagraph()
+	p.SetText("Hello, OpenPDF")
+	p.SetFontSize(20)
+	if err := c.Draw(p); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := c.WriteToFile("hello.pdf"); err != nil {
+		log.Fatal(err)
+	}
+}
+~~~
+
+### Extract text
+
+~~~go
+reader, f, err := model.NewPdfReaderFromFile("in.pdf", nil)
+if err != nil {
+	log.Fatal(err)
+}
+defer f.Close()
+
+page, err := reader.GetPage(1)
+if err != nil {
+	log.Fatal(err)
+}
+ex, err := extractor.New(page)
+if err != nil {
+	log.Fatal(err)
+}
+text, err := ex.ExtractText()
+~~~
+
+### Merge and split
+
+~~~go
+// Merge in1.pdf and in2.pdf into out.pdf (last argument: merge form fields too).
+err := pdfutil.MergePdf([]string{"in1.pdf", "in2.pdf"}, "out.pdf", false)
+
+// Keep pages 2-4 only.
+err = pdfutil.ExtractPageRange("in.pdf", "pages.pdf", 2, 4, false)
+~~~
+
+Imports used above: `github.com/OpenMellon/openpdf/{creator,extractor,model,pdfutil}`.
+
+## Features
+
+Each feature links to a runnable example, or to the package that provides it where there is no example yet.
+
+| Feature | Example / package |
+|---|---|
+| Create reports, tables, invoices and styled paragraphs | [example](creator/example_test.go), [creator](creator) |
+| Add images and watermarks to pages | [example](creator/example_test.go), [creator](creator) |
+| Merge PDFs | [example](pdfutil/example_test.go), [pdfutil](pdfutil) |
+| Split, rotate and reorder pages | [example](pdfutil/example_test.go), [pdfutil](pdfutil), [model](model) |
+| Extract text (with size, position and formatting) and images | [example](extractor/example_test.go), [extractor](extractor) |
+| Compress and optimise PDF files | [example](model/optimize/example_test.go), [model/optimize](model/optimize) |
+| Password protection and unlocking | [example](model/example_test.go), [model](model) |
+| Create, fill and flatten forms | [example](annotator/example_test.go), [annotator](annotator) |
+| FDF and JSON form data | [fdf](fdf), [fjson](fjson) |
+| Digital signing and signature validation | [example](model/sighandler/example_test.go), [model/sighandler](model/sighandler), [timestamp](timestamp) |
+| Redaction | [example](redactor/example_test.go), [redactor](redactor) |
+| Sanitisation | [sanitize](sanitize) |
+| PDF/A and PDF/UA | [model/pdfa](model/pdfa), [model/pdfua](model/pdfua) |
+| Render pages to images | [render](render) |
+| OCR integration | [ocr](ocr) |
+| Charts, Arabic shaping and complex text layout | [unichart](unichart), [garabic](garabic), [textshaping](textshaping), [typesetting](typesetting) |
+
+## Packages
+
+| Package | Use it to |
+|---|---|
+| [`creator`](creator) | Build documents: pages, text, tables, images, headers, footers, TOC |
+| [`model`](model) | Read and write PDFs at page level; encryption, forms, signatures |
+| [`extractor`](extractor) | Pull text, images and fonts out of pages |
+| [`pdfutil`](pdfutil) | One-call merge, page-range extraction, grayscale |
+| [`annotator`](annotator) | Form fields, signature fields and annotation appearances |
+| [`core`](core) | Low-level PDF objects and parsing |
+| [`contentstream`](contentstream) | Parse and generate page content streams |
+
+Full API reference: [pkg.go.dev/github.com/OpenMellon/openpdf](https://pkg.go.dev/github.com/OpenMellon/openpdf).
+
+## Examples
+
+Examples are Go [testable examples](https://go.dev/blog/examples): `Example` functions in `example_test.go` files
+that appear beside the API on pkg.go.dev and are compiled and run by `go test`, so they cannot go stale.
+
+~~~
+go test ./... -run Example -v
+~~~
+
+## Contributing
+
+Bug reports and feature requests are welcome via [GitHub issues](https://github.com/OpenMellon/openpdf/issues).
+New user-facing behaviour should come with an `Example` function; see [CLAUDE.md](CLAUDE.md).
 
 ## License
 
