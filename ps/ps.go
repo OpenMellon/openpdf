@@ -13,10 +13,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/core"
 	"io"
 	"math"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/core"
 )
 
 var ErrUndefinedResult = errors.New("undefined result error")
@@ -59,6 +60,7 @@ func (op *PSOperand) mul(stack *PSStack) error {
 	err = stack.Push(MakeReal(result))
 	return err
 }
+
 func (op *PSOperand) lt(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -111,6 +113,7 @@ func (prog *PSProgram) Exec(stack *PSStack) error {
 	}
 	return nil
 }
+
 func (p *PSParser) skipComments() error {
 	if _, err := p.skipSpaces(); err != nil {
 		return err
@@ -134,6 +137,7 @@ func (p *PSParser) skipComments() error {
 	}
 	return p.skipComments()
 }
+
 func (op *PSOperand) sub(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -185,6 +189,7 @@ func (prog *PSProgram) DebugString() string {
 	s += "}"
 	return s
 }
+
 func (op *PSOperand) ifCondition(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -208,6 +213,7 @@ func (op *PSOperand) ifCondition(stack *PSStack) error {
 	}
 	return nil
 }
+
 func (op *PSOperand) not(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -223,6 +229,7 @@ func (op *PSOperand) not(stack *PSStack) error {
 		return ErrTypeCheck
 	}
 }
+
 func (op *PSOperand) floor(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -237,6 +244,7 @@ func (op *PSOperand) floor(stack *PSStack) error {
 	}
 	return err
 }
+
 func (op *PSOperand) atan(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -260,6 +268,7 @@ func (op *PSOperand) atan(stack *PSStack) error {
 	err = stack.Push(MakeReal(degrees))
 	return err
 }
+
 func (op *PSOperand) exp(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -304,6 +313,7 @@ func (op *PSOperand) abs(stack *PSStack) error {
 	}
 	return err
 }
+
 func (op *PSOperand) ifelse(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -336,11 +346,13 @@ func (op *PSOperand) ifelse(stack *PSStack) error {
 	err = topProg.Exec(stack)
 	return err
 }
+
 func (b *PSBoolean) Duplicate() PSObject {
 	dup := PSBoolean{}
 	dup.Val = b.Val
 	return &dup
 }
+
 func (op *PSOperand) sin(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -350,6 +362,7 @@ func (op *PSOperand) sin(stack *PSStack) error {
 	err = stack.Push(MakeReal(result))
 	return err
 }
+
 func (op *PSOperand) ge(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -401,6 +414,7 @@ func (stack *PSStack) PopNumberAsFloat64() (float64, error) {
 		return 0, ErrTypeCheck
 	}
 }
+
 func (prog *PSProgram) Duplicate() PSObject {
 	dup := &PSProgram{}
 	for _, obj := range *prog {
@@ -408,6 +422,7 @@ func (prog *PSProgram) Duplicate() PSObject {
 	}
 	return dup
 }
+
 func (op *PSOperand) or(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -435,6 +450,7 @@ func (op *PSOperand) or(stack *PSStack) error {
 	}
 	return ErrTypeCheck
 }
+
 func (op *PSOperand) add(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -508,6 +524,7 @@ func (op *PSOperand) exch(stack *PSStack) error {
 	err = stack.Push(below)
 	return err
 }
+
 func (prog *PSProgram) String() string {
 	s := "{ "
 	for _, obj := range *prog {
@@ -635,6 +652,7 @@ func (op *PSOperand) Exec(stack *PSStack) error {
 	}
 	return err
 }
+
 func (op *PSOperand) pop(stack *PSStack) error {
 	_, err := stack.Pop()
 	if err != nil {
@@ -650,6 +668,7 @@ func NewPSExecutor(program *PSProgram) *PSExecutor {
 	ex.program = program
 	return ex
 }
+
 func (p *PSParser) parseOperand() (*PSOperand, error) {
 	var operand []byte
 	for {
@@ -674,6 +693,7 @@ func (p *PSParser) parseOperand() (*PSOperand, error) {
 	}
 	return MakeOperand(string(operand)), nil
 }
+
 func (p *PSParser) parseNumber() (PSObject, error) {
 	num, err := core.ParseNumber(p.reader)
 	if err != nil {
@@ -687,6 +707,7 @@ func (p *PSParser) parseNumber() (PSObject, error) {
 	}
 	return nil, fmt.Errorf("unhandled number type %T", num)
 }
+
 func (op *PSOperand) div(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -726,6 +747,7 @@ func (op *PSOperand) div(stack *PSStack) error {
 	err = stack.Push(MakeReal(result))
 	return err
 }
+
 func (op *PSOperand) idiv(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -849,6 +871,7 @@ func (p *PSParser) Parse() (*PSProgram, error) {
 	}
 	return prog, err
 }
+
 func (op *PSOperand) mod(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -873,6 +896,7 @@ func (op *PSOperand) mod(stack *PSStack) error {
 	err = stack.Push(MakeInteger(result))
 	return err
 }
+
 func (op *PSOperand) roll(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -901,7 +925,7 @@ func (op *PSOperand) roll(stack *PSStack) error {
 	}
 	for i := 0; i < absInt(shift.Val); i++ {
 		var window []PSObject
-		window = (*stack)[len(*stack)-(count.Val) : len(*stack)]
+		window = (*stack)[len(*stack)-count.Val : len(*stack)]
 		if shift.Val > 0 {
 			last := window[len(window)-1]
 			window = append([]PSObject{last}, window[0:len(window)-1]...)
@@ -914,6 +938,7 @@ func (op *PSOperand) roll(stack *PSStack) error {
 	}
 	return nil
 }
+
 func (op *PSOperand) copy(stack *PSStack) error {
 	n, err := stack.PopInteger()
 	if err != nil {
@@ -940,6 +965,7 @@ func (stack *PSStack) PopInteger() (int, error) {
 	}
 	return 0, ErrTypeCheck
 }
+
 func (op *PSOperand) xor(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -986,6 +1012,7 @@ func (op *PSOperand) neg(stack *PSStack) error {
 		return ErrTypeCheck
 	}
 }
+
 func (op *PSOperand) dup(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -998,6 +1025,7 @@ func (op *PSOperand) dup(stack *PSStack) error {
 	err = stack.Push(top.Duplicate())
 	return err
 }
+
 func (op *PSOperand) ceiling(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -1012,6 +1040,7 @@ func (op *PSOperand) ceiling(stack *PSStack) error {
 	}
 	return err
 }
+
 func (op *PSOperand) cvr(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -1040,6 +1069,7 @@ func absInt(v int) int {
 	}
 	return v
 }
+
 func (op *PSOperand) ne(stack *PSStack) error {
 	err := op.eq(stack)
 	if err != nil {
@@ -1051,6 +1081,7 @@ func (op *PSOperand) ne(stack *PSStack) error {
 
 // MakeOperand returns a new PSOperand object based on string `val`.
 func MakeOperand(val string) *PSOperand { op := PSOperand(val); return &op }
+
 func (op *PSOperand) log(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -1060,6 +1091,7 @@ func (op *PSOperand) log(stack *PSStack) error {
 	err = stack.Push(MakeReal(result))
 	return err
 }
+
 func (op *PSOperand) gt(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -1080,6 +1112,7 @@ func (op *PSOperand) gt(stack *PSStack) error {
 		return err
 	}
 }
+
 func (op *PSOperand) round(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -1176,6 +1209,7 @@ func (p *PSParser) parseFunction() (*PSProgram, error) {
 	}
 	return prog, nil
 }
+
 func (op *PSOperand) cos(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -1188,6 +1222,7 @@ func (op *PSOperand) cos(stack *PSStack) error {
 
 // MakeReal returns a new PSReal object initialized with `val`.
 func MakeReal(val float64) *PSReal { r := PSReal{}; r.Val = val; return &r }
+
 func (op *PSOperand) truncate(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -1212,7 +1247,6 @@ type PSExecutor struct {
 
 // PSObject represents a postscript object.
 type PSObject interface {
-
 	// Duplicate makes a fresh copy of the PSObject.
 	Duplicate() PSObject
 
@@ -1238,6 +1272,7 @@ func (stack *PSStack) String() string {
 	s += "]"
 	return s
 }
+
 func (op *PSOperand) sqrt(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -1250,9 +1285,11 @@ func (op *PSOperand) sqrt(stack *PSStack) error {
 	err = stack.Push(MakeReal(result))
 	return err
 }
+
 func (i *PSInteger) DebugString() string {
 	return fmt.Sprintf("int:%d", i.Val)
 }
+
 func (op *PSOperand) eq(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -1306,9 +1343,11 @@ func (stack *PSStack) Pop() (PSObject, error) {
 	*stack = (*stack)[0 : len(*stack)-1]
 	return top, nil
 }
+
 func (op *PSOperand) DebugString() string {
 	return fmt.Sprintf("op:'%s'", *op)
 }
+
 func (op *PSOperand) cvi(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {
@@ -1345,6 +1384,7 @@ func (p *PSParser) parseBool() (*PSBoolean, error) {
 	}
 	return MakeBool(false), errors.New("unexpected boolean string")
 }
+
 func (op *PSOperand) ln(stack *PSStack) error {
 	top, err := stack.PopNumberAsFloat64()
 	if err != nil {
@@ -1354,6 +1394,7 @@ func (op *PSOperand) ln(stack *PSStack) error {
 	err = stack.Push(MakeReal(result))
 	return err
 }
+
 func (op *PSOperand) index(stack *PSStack) error {
 	top, err := stack.Pop()
 	if err != nil {

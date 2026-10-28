@@ -6,11 +6,12 @@ package huffman
 import (
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/internal/bitwise"
-	jbig2internal "github.com/OpenMellon/openpdf/internal/jbig2/internal"
 	"math"
 	"strings"
 	"sync"
+
+	"github.com/OpenMellon/openpdf/internal/bitwise"
+	jbig2internal "github.com/OpenMellon/openpdf/internal/jbig2/internal"
 )
 
 func newStandardTable(defs [][]int32) (*StandardTable, error) {
@@ -31,6 +32,7 @@ func newStandardTable(defs [][]int32) (*StandardTable, error) {
 	}
 	return table, nil
 }
+
 func NewEncodedTable(table BasicTabler) (*EncodedTable, error) {
 	t := &EncodedTable{root: &InternalNode{}, BasicTabler: table}
 	if err := t.parseTable(); err != nil {
@@ -38,6 +40,7 @@ func NewEncodedTable(table BasicTabler) (*EncodedTable, error) {
 	}
 	return t, nil
 }
+
 func (t *EncodedTable) InitTree(codeTable []*Code) error {
 	assignPrefixCodes(codeTable)
 	for _, code := range codeTable {
@@ -47,9 +50,11 @@ func (t *EncodedTable) InitTree(codeTable []*Code) error {
 	}
 	return nil
 }
+
 func (n *ValueNode) String() string {
 	return fmt.Sprintf("%d/%d", n.rangeLen, n.rangeLow)
 }
+
 func newInternalNode(depth int32) *InternalNode                 { return &InternalNode{depth: depth} }
 func (t *EncodedTable) Decode(r *bitwise.Reader) (int64, error) { return t.root.Decode(r) }
 func maxInt32(a, b int32) int32 {
@@ -58,6 +63,7 @@ func maxInt32(a, b int32) int32 {
 	}
 	return b
 }
+
 func (n *InternalNode) append(code *Code) (err error) {
 	if code.prefixLen == 0 {
 		return nil
@@ -163,9 +169,11 @@ func NewFixedSizeTable(codeTable []*Code) (*FixedSizeTable, error) {
 	}
 	return t, nil
 }
+
 func newValueNode(code *Code) *ValueNode {
 	return &ValueNode{rangeLen: code.rangeLen, rangeLow: code.rangeLow, isLowerRange: code.isLowerRange}
 }
+
 func (n *ValueNode) Decode(r *bitwise.Reader) (int64, error) {
 	bits, err := r.ReadBits(byte(n.rangeLen))
 	if err != nil {
@@ -176,6 +184,7 @@ func (n *ValueNode) Decode(r *bitwise.Reader) (int64, error) {
 	}
 	return int64(n.rangeLow) + int64(bits), nil
 }
+
 func (c *Code) String() string {
 	var bitString string
 	if c.code != -1 {
@@ -215,6 +224,7 @@ type FixedSizeTable struct{ root *InternalNode }
 func NewCode(prefixLength, rangeLength, rangeLow int32, isLowerRange bool) *Code {
 	return &Code{prefixLen: prefixLength, rangeLen: rangeLength, rangeLow: rangeLow, isLowerRange: isLowerRange, code: -1}
 }
+
 func (t *StandardTable) InitTree(codeTable []*Code) error {
 	assignPrefixCodes(codeTable)
 	for _, code := range codeTable {
@@ -228,6 +238,7 @@ func (n *OutOfBandNode) Decode(r *bitwise.Reader) (int64, error) { return 0, jbi
 func (n *OutOfBandNode) String() string {
 	return fmt.Sprintf("%064b", int64(math.MaxInt64))
 }
+
 func codeBitString(code, length int32) string {
 	var bit int32
 	runes := make([]rune, length)
@@ -241,6 +252,7 @@ func codeBitString(code, length int32) string {
 	}
 	return string(runes)
 }
+
 func (t *EncodedTable) parseTable() error {
 	var (
 		codes                         []*Code
@@ -293,6 +305,7 @@ func (t *EncodedTable) parseTable() error {
 	}
 	return nil
 }
+
 func GetStandardTable(number int) (Tabler, error) {
 	if number <= 0 || number > len(standardTables) {
 		return nil, errors.New("index out of range")
@@ -335,7 +348,7 @@ func assignPrefixCodes(codes []*Code) {
 	firstCode := make([]int32, len(lenCount)+1)
 	lenCount[0] = 0
 	for curLen := int32(1); curLen <= int32(len(lenCount)); curLen++ {
-		firstCode[curLen] = (firstCode[curLen-1] + (lenCount[curLen-1])) << 1
+		firstCode[curLen] = (firstCode[curLen-1] + lenCount[curLen-1]) << 1
 		curCode = firstCode[curLen]
 		for _, c := range codes {
 			if c.prefixLen == curLen {
@@ -345,6 +358,7 @@ func assignPrefixCodes(codes []*Code) {
 		}
 	}
 }
+
 func (n *InternalNode) String() string {
 	sb := &strings.Builder{}
 	sb.WriteString("\n")

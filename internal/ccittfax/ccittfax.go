@@ -5,9 +5,10 @@ package ccittfax
 
 import (
 	"errors"
-	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"io"
 	"math"
+
+	"github.com/OpenMellon/openpdf/internal/bitwise"
 )
 
 func (e *Encoder) appendEncodedRow(dst, row []byte, bitPos int) []byte {
@@ -19,6 +20,7 @@ func (e *Encoder) appendEncodedRow(dst, row []byte, bitPos int) []byte {
 	}
 	return dst
 }
+
 func init() {
 	eolNode = &treeNode{isLeaf: true, value: eolValue}
 	fillNode = &treeNode{value: fillValue, one: eolNode}
@@ -87,6 +89,7 @@ func init() {
 		panic(err.Error())
 	}
 }
+
 func (d *Decoder) decodeRowType4() error {
 	if !d.mixed2D {
 		return d.decoderRowType41D()
@@ -168,6 +171,7 @@ func (d *Decoder) decode1D() error {
 	}
 	return nil
 }
+
 func (d *Decoder) tryFetchRTC2D() (err error) {
 	d.reader.Mark()
 	var foundEOL bool
@@ -195,6 +199,7 @@ func (d *Decoder) tryFetchRTC2D() (err error) {
 	d.reader.Reset()
 	return err
 }
+
 func (d *Decoder) looseFetchEOL() (bool, error) {
 	bits, err := d.reader.ReadBits(12)
 	if err != nil {
@@ -217,6 +222,7 @@ func (d *Decoder) looseFetchEOL() (bool, error) {
 		return false, nil
 	}
 }
+
 func init() {
 	blackTermCodes = make(map[int]code)
 	blackTermCodes[0] = code{Code: 13<<8 | 3<<6, BitsWritten: 10}
@@ -429,6 +435,7 @@ func init() {
 	bitMasks[7] = 0x80
 	bitMasks[8] = 0x00
 }
+
 func countRun(row []byte, white bool, pos int) (int, int) {
 	n := 0
 	for pos < len(row) {
@@ -516,6 +523,7 @@ func (d *Decoder) decodeRow() (err error) {
 	d.decodedRows++
 	return nil
 }
+
 func (e *Encoder) encodeG32D(rows [][]byte) []byte {
 	var out []byte
 	var bitPos int
@@ -565,6 +573,7 @@ func (e *Encoder) encodeG32D(rows [][]byte) []byte {
 	}
 	return out
 }
+
 func (d *Decoder) decoderRowType41D() error {
 	if d.byteAligned {
 		d.reader.Align()
@@ -621,7 +630,9 @@ func (d *Decoder) decoderRowType41D() error {
 	}
 	return nil
 }
+
 func appendPassCode(buf []byte, bitPos int) ([]byte, int) { return appendBits(buf, bitPos, passCode) }
+
 func findB1(cur, ref []byte, a0 int) int {
 	b1 := nextChange(ref, a0)
 	if b1 < len(ref) && (a0 == -1 && ref[b1] == whitePixel || a0 >= 0 && a0 < len(cur) && cur[a0] == ref[b1] || a0 >= len(cur) && cur[a0-1] != ref[b1]) {
@@ -629,6 +640,7 @@ func findB1(cur, ref []byte, a0 int) int {
 	}
 	return b1
 }
+
 func (d *Decoder) tryFetchEOL() (bool, error) {
 	bits, err := d.reader.ReadBits(12)
 	if err != nil {
@@ -698,6 +710,7 @@ func (e *Encoder) Encode(pixels [][]byte) []byte {
 	}
 	return nil
 }
+
 func (d *Decoder) decodeRun(t *tree) (int, error) {
 	var total int
 	node := t.root
@@ -723,11 +736,13 @@ func (d *Decoder) decodeRun(t *tree) (int, error) {
 		}
 	}
 }
+
 func appendVerticalCode(buf []byte, bitPos, a1, b1 int) ([]byte, int) {
 	c := verticalModeCode(a1, b1)
 	buf, bitPos = appendBits(buf, bitPos, c)
 	return buf, bitPos
 }
+
 func (d *Decoder) decodeRowType2() error {
 	if d.byteAligned {
 		d.reader.Align()
@@ -737,6 +752,7 @@ func (d *Decoder) decodeRowType2() error {
 	}
 	return nil
 }
+
 func nextChange(row []byte, pos int) int {
 	if pos >= len(row) {
 		return pos
@@ -759,6 +775,7 @@ func nextChange(row []byte, pos int) int {
 	}
 	return i
 }
+
 func NewDecoder(data []byte, options DecodeOptions) (*Decoder, error) {
 	d := &Decoder{reader: bitwise.NewReader(data), columns: options.Columns, rows: options.Rows, damagedRowsBeforeError: options.DamagedRowsBeforeError, rowBuf: make([]byte, (options.Columns+7)/8), refChanges: make([]int, options.Columns+2), curChanges: make([]int, options.Columns+2), byteAligned: options.EncodedByteAligned, blackIsOne: options.BlackIsOne, endOfLine: options.EndOfLine, endOfBlock: options.EndOfBlock}
 	switch {
@@ -956,17 +973,19 @@ nextCode:
 	return nil
 }
 
-type tree struct{ root *treeNode }
-type Encoder struct {
-	K                      int
-	EndOfLine              bool
-	EncodedByteAlign       bool
-	Columns                int
-	Rows                   int
-	EndOfBlock             bool
-	BlackIs1               bool
-	DamagedRowsBeforeError int
-}
+type (
+	tree    struct{ root *treeNode }
+	Encoder struct {
+		K                      int
+		EndOfLine              bool
+		EncodedByteAlign       bool
+		Columns                int
+		Rows                   int
+		EndOfBlock             bool
+		BlackIs1               bool
+		DamagedRowsBeforeError int
+	}
+)
 
 func (e *Encoder) encodeG4(pixels [][]byte) []byte {
 	rows := make([][]byte, len(pixels))
@@ -1010,6 +1029,7 @@ func (e *Encoder) encodeG4(pixels [][]byte) []byte {
 	}
 	return out
 }
+
 func findB1Colored(cur, ref []byte, a0 int, white bool) int {
 	b1 := nextChange(ref, a0)
 	if b1 < len(ref) && (a0 == -1 && ref[b1] == whitePixel || a0 >= 0 && a0 < len(cur) && cur[a0] == ref[b1] || a0 >= len(cur) && white && ref[b1] == whitePixel || a0 >= len(cur) && !white && ref[b1] == blackPixel) {
@@ -1017,6 +1037,7 @@ func findB1Colored(cur, ref []byte, a0 int, white bool) int {
 	}
 	return b1
 }
+
 func runCode(length int, white bool) (code, int, bool) {
 	if length < 64 {
 		if white {
@@ -1036,6 +1057,7 @@ func runCode(length int, white bool) (code, int, bool) {
 	}
 	return blackMakeupCodes[n*64], length - n*64, false
 }
+
 func prependWhiteRow(rows [][]byte) [][]byte {
 	blank := make([]byte, len(rows[0]))
 	for i := range blank {
@@ -1048,6 +1070,7 @@ func prependWhiteRow(rows [][]byte) [][]byte {
 	rows[0] = blank
 	return rows
 }
+
 func (d *Decoder) Read(in []byte) (int, error) {
 	if d.err != nil {
 		return 0, d.err
@@ -1096,6 +1119,7 @@ func (d *Decoder) Read(in []byte) (int, error) {
 	}
 	return n, nil
 }
+
 func (d *Decoder) decodeRowType6() error {
 	if d.byteAligned {
 		d.reader.Align()
@@ -1119,6 +1143,7 @@ func (d *Decoder) decodeRowType6() error {
 	}
 	return d.decode2D()
 }
+
 func verticalModeCode(a1, b1 int) code {
 	var c code
 	switch b1 - a1 {
@@ -1139,6 +1164,7 @@ func verticalModeCode(a1, b1 int) code {
 	}
 	return c
 }
+
 func (t tiffType) String() string {
 	switch t {
 	case tiffTypeModifiedHuffmanRle:
@@ -1151,6 +1177,7 @@ func (t tiffType) String() string {
 		return "undefined"
 	}
 }
+
 func encodeRow1D(row []byte, bitPos int, tag code) ([]byte, int) {
 	white := true
 	var out []byte
@@ -1164,6 +1191,7 @@ func encodeRow1D(row []byte, bitPos int, tag code) ([]byte, int) {
 	}
 	return out, bitPos % 8
 }
+
 func eofbG4(bitPos int) ([]byte, int) {
 	var out []byte
 	for i := 0; i < 2; i++ {
@@ -1171,6 +1199,7 @@ func eofbG4(bitPos int) ([]byte, int) {
 	}
 	return out, bitPos % 8
 }
+
 func (d *Decoder) fetch() error {
 	if d.rowBytes == -1 {
 		return nil
@@ -1192,6 +1221,7 @@ func (d *Decoder) fetch() error {
 	d.readPos = 0
 	return nil
 }
+
 func (d *Decoder) decode2D() error {
 	d.refCount = d.curCount
 	d.curChanges, d.refChanges = d.refChanges, d.curChanges
@@ -1281,6 +1311,7 @@ func rtcG32D(bitPos int) ([]byte, int) {
 	}
 	return out, bitPos % 8
 }
+
 func appendBits(buf []byte, bitPos int, c code) ([]byte, int) {
 	written := 0
 	for written < c.BitsWritten {
@@ -1304,6 +1335,7 @@ func appendBits(buf []byte, bitPos int, c code) ([]byte, int) {
 	}
 	return buf, bitPos
 }
+
 func (n *treeNode) set(bit bool, child *treeNode) {
 	if !bit {
 		n.zero = child
@@ -1321,6 +1353,7 @@ func (d *Decoder) tryFetchEOL1() (bool, error) {
 	}
 	return bits == 0x3, nil
 }
+
 func appendHorizontalMode(cur, buf []byte, bitPos, a0, a1 int) ([]byte, int, int) {
 	a2 := nextChange(cur, a1)
 	white := a0 >= 0 && cur[a0] == whitePixel || a0 == -1
@@ -1338,6 +1371,7 @@ func appendHorizontalMode(cur, buf []byte, bitPos, a0, a1 int) ([]byte, int, int
 	a0 = a2
 	return buf, bitPos, a0
 }
+
 func (n *treeNode) walk(bit bool) *treeNode {
 	if bit {
 		return n.one
@@ -1380,6 +1414,7 @@ func (d *Decoder) getNextChangingElement(col int, white bool) int {
 	}
 	return -1
 }
+
 func (t *tree) fill(length, bits, value int) error {
 	cur := t.root
 	for i := 0; i < length; i++ {
@@ -1406,6 +1441,7 @@ func (t *tree) fill(length, bits, value int) error {
 	}
 	return nil
 }
+
 func rtcG31D(bitPos int) ([]byte, int) {
 	var out []byte
 	for i := 0; i < 6; i++ {

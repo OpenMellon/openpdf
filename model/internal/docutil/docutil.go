@@ -6,6 +6,7 @@ package docutil
 import (
 	"errors"
 	"fmt"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
 )
@@ -33,6 +34,7 @@ func (c *Catalog) SetMarkInfo(mi core.PdfObject) {
 	c.Object.Set("MarkInfo", ind)
 	c.doc.Objects = append(c.doc.Objects, ind)
 }
+
 func (p Page) GetResourcesXObject() (*core.PdfObjectDictionary, bool) {
 	res, ok := p.GetResources()
 	if !ok {
@@ -40,6 +42,7 @@ func (p Page) GetResourcesXObject() (*core.PdfObjectDictionary, bool) {
 	}
 	return core.GetDict(res.Get("XObject"))
 }
+
 func (p Page) FindXObjectImages() ([]*Image, error) {
 	xobjects, ok := p.GetResourcesXObject()
 	if !ok {
@@ -117,6 +120,7 @@ outer:
 	}
 	return images, nil
 }
+
 func (c *Catalog) SetOutputIntents(outputIntents *OutputIntents) {
 	if existing := c.Object.Get("OutputIntents"); existing != nil {
 		for i, o := range c.doc.Objects {
@@ -136,6 +140,7 @@ func (c *Catalog) SetOutputIntents(outputIntents *OutputIntents) {
 	c.Object.Set("OutputIntents", ind)
 	c.doc.Objects = append(c.doc.Objects, ind)
 }
+
 func (c *Catalog) HasMetadata() bool {
 	md := c.Object.Get("Metadata")
 	return md != nil
@@ -174,6 +179,7 @@ func (c *Catalog) SetMetadata(data []byte) error {
 	c.doc.Objects = append(c.doc.Objects, stream)
 	return nil
 }
+
 func (c *Catalog) GetOutputIntents() (*OutputIntents, bool) {
 	obj := c.Object.Get("OutputIntents")
 	if obj == nil {
@@ -259,9 +265,11 @@ func (c *Content) SetData(data []byte) error {
 	c.page.doc.Objects = append(c.page.doc.Objects, stream)
 	return nil
 }
+
 func (c *Catalog) GetStructTreeRoot() (*core.PdfObjectDictionary, bool) {
 	return core.GetDict(c.Object.Get("StructTreeRoot"))
 }
+
 func colorSpaceName(obj core.PdfObject) (core.PdfObjectName, error) {
 	var name *core.PdfObjectName
 	var arr *core.PdfObjectArray
@@ -302,6 +310,7 @@ func colorSpaceName(obj core.PdfObject) (core.PdfObjectName, error) {
 	}
 	return "", nil
 }
+
 func (d *Document) AddIndirectObject(indirect *core.PdfIndirectObject) {
 	for _, o := range d.Objects {
 		if o == indirect {
@@ -310,6 +319,7 @@ func (d *Document) AddIndirectObject(indirect *core.PdfIndirectObject) {
 	}
 	d.Objects = append(d.Objects, indirect)
 }
+
 func (c Content) GetData() ([]byte, error) {
 	enc, err := core.NewEncoderFromStream(c.Stream)
 	if err != nil {
@@ -359,6 +369,7 @@ func (o *OutputIntents) Add(oi core.PdfObject) error {
 	o.doc.Objects = append(o.doc.Objects, ind)
 	return nil
 }
+
 func (p Page) FindXObjectForms() []*core.PdfObjectStream {
 	xobjects, ok := p.GetResourcesXObject()
 	if !ok {
@@ -397,6 +408,7 @@ func (p Page) FindXObjectForms() []*core.PdfObjectStream {
 	}
 	return result
 }
+
 func (o *OutputIntents) Get(i int) (OutputIntent, bool) {
 	if o.array == nil {
 		return OutputIntent{}, false
@@ -413,9 +425,11 @@ func (o *OutputIntents) Get(i int) (OutputIntent, bool) {
 	dict, ok := core.GetDict(ind.PdfObject)
 	return OutputIntent{Object: dict}, ok
 }
+
 func (c *Catalog) GetMetadata() (*core.PdfObjectStream, bool) {
 	return core.GetStream(c.Object.Get("Metadata"))
 }
+
 func (c *Catalog) SetStructTreeRoot(structTreeRoot core.PdfObject) {
 	if structTreeRoot == nil {
 		c.Object.Remove("StructTreeRoot")
@@ -439,9 +453,11 @@ func (c *Catalog) GetMarkInfo() (*core.PdfObjectDictionary, bool) {
 	d, ok := core.GetDict(c.Object.Get("MarkInfo"))
 	return d, ok
 }
+
 func (p Page) GetResources() (*core.PdfObjectDictionary, bool) {
 	return core.GetDict(p.Object.Get("Resources"))
 }
+
 func (d *Document) AddStream(stream *core.PdfObjectStream) {
 	for _, o := range d.Objects {
 		if o == stream {
@@ -450,6 +466,7 @@ func (d *Document) AddStream(stream *core.PdfObjectStream) {
 	}
 	d.Objects = append(d.Objects, stream)
 }
+
 func (c *Catalog) SetVersion() {
 	c.Object.Set("Version", core.MakeName(fmt.Sprintf("%d.%d", c.doc.Version.Major, c.doc.Version.Minor)))
 }

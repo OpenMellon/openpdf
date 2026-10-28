@@ -7,6 +7,14 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"image"
+	color2 "image/color"
+	draw2 "image/draw"
+	"math"
+	"os"
+	"sort"
+	"strings"
+
 	"github.com/OpenMellon/freetype/raster"
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
@@ -17,13 +25,6 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/f64"
 	"golang.org/x/image/math/fixed"
-	"image"
-	color2 "image/color"
-	draw2 "image/draw"
-	"math"
-	"os"
-	"sort"
-	"strings"
 )
 
 func (dc *Context) BlendMode() context.BlendMode { return dc.blendMode }
@@ -32,9 +33,11 @@ func (dc *Context) MeasureString(s string, face font.Face) (width, height float6
 	advance := drawer.MeasureString(s)
 	return float64(advance >> 6), dc.textState.Tf.Size
 }
+
 func lerpChannel(from, to uint32, t float64) uint8 {
 	return uint8(int32(float64(from)*(1.0-t)+float64(to)*t) >> 8)
 }
+
 func patchCurvatureSamples(patch *MeshPatch) int {
 	p00, p03 := patch.P[0][0], patch.P[0][3]
 	p30, p33 := patch.P[3][0], patch.P[3][3]
@@ -56,6 +59,7 @@ func lerpColor(c0, c1 color2.Color, t float64) color2.Color {
 	r1, g1, b1, a1 := c1.RGBA()
 	return color2.RGBA{lerpChannel(r0, r1, t), lerpChannel(g0, g1, t), lerpChannel(b0, b1, t), lerpChannel(a0, a1, t)}
 }
+
 func quadraticPoint(x0, y0, x1, y1, x2, y2, t float64) (x, y float64) {
 	mt := 1 - t
 	w0 := mt * mt
@@ -83,6 +87,7 @@ func flattenQuadratic(x0, y0, x1, y1, x2, y2 float64) []transform.Point {
 	}
 	return pts
 }
+
 func dashPolylines(paths [][]transform.Point, dashes []float64, offset float64) [][]transform.Point {
 	var result [][]transform.Point
 	if len(dashes) == 0 {
@@ -149,7 +154,9 @@ func dashPolylines(paths [][]transform.Point, dashes []float64, offset float64) 
 	}
 	return result
 }
+
 func (dc *Context) SetInterpolator(interpolator draw.Interpolator) { dc.interpolator = interpolator }
+
 func (dc *Context) BeginTransparencyGroup(group context.TransparencyGroup) {
 	saved := &groupState{img: dc.img, mask: dc.mask, ownsMask: dc.ownsMask, clipBounds: dc.clipBounds, clipBoundsValid: dc.clipBoundsValid, blendMode: dc.blendMode, fillAlpha: dc.fillAlpha, strokeAlpha: dc.strokeAlpha, color: dc.color, fillPattern: dc.fillPattern, strokePattern: dc.strokePattern, softMask: dc.softMask, convert: group.Convert, backdrop: dc.backdrop, knockout: dc.knockout}
 	dc.groupStack = append(dc.groupStack, saved)
@@ -175,6 +182,7 @@ func (dc *Context) BeginTransparencyGroup(group context.TransparencyGroup) {
 	dc.fillPattern = newSolidPattern(col)
 	dc.strokePattern = newSolidPattern(col)
 }
+
 func blendPixel(dst, backdrop []uint8, mode context.BlendMode, sr, sg, sb, alpha float64) {
 	if alpha <= 0 {
 		return
@@ -257,6 +265,7 @@ func tileRepeatCount(size, step float64) int {
 	}
 	return int(n) - 1
 }
+
 func (dc *Context) ClipPreserve() {
 	if dc.clipScratch == nil || dc.clipScratch.Bounds().Size() != image.Pt(dc.width, dc.height) {
 		if dc.clipScratch != nil {
@@ -293,9 +302,11 @@ func (dc *Context) ClipPreserve() {
 	}
 	dc.clipBoundsValid = false
 }
+
 func dashPath(path raster.Path, dashes []float64, offset float64) raster.Path {
 	return polylinesToPath(dashPolylines(pathToPolylines(path), dashes, offset))
 }
+
 func (dc *Context) DrawRectangle(x, y, w, h float64) {
 	dc.NewSubPath()
 	dc.MoveTo(x, y)
@@ -304,6 +315,7 @@ func (dc *Context) DrawRectangle(x, y, w, h float64) {
 	dc.LineTo(x, y+h)
 	dc.ClosePath()
 }
+
 func (dc *Context) AsMask() *image.Alpha {
 	mask := image.NewAlpha(dc.img.Bounds())
 	draw.Draw(mask, dc.img.Bounds(), dc.img, image.Point{}, draw.Src)
@@ -325,6 +337,7 @@ func setLum(c [3]float64, l float64) [3]float64 {
 	c[2] += d
 	return clipColor(c)
 }
+
 func (dc *Context) ReleaseBuffers() {
 	if dc.ownsMask {
 		releaseAlpha(dc.mask)
@@ -349,6 +362,7 @@ func clampSampleCount(v float64, maxN int) int {
 	}
 	return int(math.Ceil(v))
 }
+
 func (gc *GlyphCache) lookup(fontID uint64, face font.Face, pos fixed.Point26_6, r rune) (image.Rectangle, *image.Alpha, image.Point, fixed.Int26_6, bool) {
 	frac := int(pos.X) & 63
 	subpixel := uint8(frac * glyphSubpixelSteps >> 6)
@@ -382,6 +396,7 @@ func (gc *GlyphCache) lookup(fontID uint64, face font.Face, pos fixed.Point26_6,
 	}
 	return bounds.Add(origin), mask, image.Point{}, advance, true
 }
+
 func (dc *Context) InvertMask() {
 	if dc.mask == nil {
 		dc.mask = newAlpha(dc.img.Bounds().Dx(), dc.img.Bounds().Dy())
@@ -400,6 +415,7 @@ func (dc *Context) InvertMask() {
 	dc.clipBounds = dc.img.Bounds()
 	dc.clipBoundsValid = true
 }
+
 func (dc *Context) SetMask(mask *image.Alpha) error {
 	if mask.Bounds().Size() != dc.img.Bounds().Size() {
 		return errors.New("mask size must match context size")
@@ -412,6 +428,7 @@ func (dc *Context) SetMask(mask *image.Alpha) error {
 	dc.clipBoundsValid = false
 	return nil
 }
+
 func (dc *Context) StrokePreserve() {
 	var painter raster.Painter
 	alpha := paintAlpha16(dc.strokePattern, dc.strokeAlpha, dc.colorLocked)
@@ -454,6 +471,7 @@ func (dc *Context) SetStrokeRGBA(r, g, b, a float64) {
 	col := color2.NRGBA{uint8(r * 255), uint8(g * 255), uint8(b * 255), uint8(a * 255)}
 	dc.strokePattern = newSolidPattern(col)
 }
+
 func meshTrianglesBounds(tris []MeshTriangle) image.Rectangle {
 	var bounds image.Rectangle
 	for i := range tris {
@@ -472,6 +490,7 @@ func (dc *Context) ShearAbout(sx, sy, x, y float64) {
 	dc.Shear(sx, sy)
 	dc.Translate(-x, -y)
 }
+
 func (dc *Context) Pop() {
 	cur := *dc
 	stack := dc.stack
@@ -534,6 +553,7 @@ func softLight(cb, cs float64) float64 {
 	}
 	return cb + (2*cs-1)*(d-cb)
 }
+
 func patchSampleCount(patch *MeshPatch) int {
 	n := patchSizeSamples(patch)
 	if curvature := patchCurvatureSamples(patch); curvature > n {
@@ -544,6 +564,7 @@ func patchSampleCount(patch *MeshPatch) int {
 	}
 	return n
 }
+
 func (e *patchEdge) sampleCount() int {
 	minX, minY := math.Inf(1), math.Inf(1)
 	maxX, maxY := math.Inf(-1), math.Inf(-1)
@@ -659,6 +680,7 @@ func TessellatePatch(patch *MeshPatch, out []MeshTriangle) []MeshTriangle {
 	}
 	return out
 }
+
 func floorMod(x, m float64) float64 {
 	x = math.Mod(x, m)
 	if x < 0 {
@@ -669,6 +691,7 @@ func floorMod(x, m float64) float64 {
 	}
 	return x
 }
+
 func (dc *Context) DrawStringAnchored(s string, face font.Face, x, y, ax, ay float64) {
 	w, h := dc.MeasureString(s, face)
 	dc.drawString(s, face, x-ax*w, y+ay*h)
@@ -737,6 +760,7 @@ func (dc *Context) DrawEllipticalArc(x, y, rx, ry, angle1, angle2 float64) {
 		dc.QuadraticTo(cx, cy, x2, y2)
 	}
 }
+
 func (dc *Context) DrawString(s string, face font.Face, x, y float64) {
 	dc.DrawStringAnchored(s, face, x, y, 0, 0)
 }
@@ -747,6 +771,7 @@ func toFixed(v float64) fixed.Int26_6 {
 	v = precision.RoundDefault(v)
 	return fixed.Int26_6(v * 64)
 }
+
 func nextPowerOfTwo(n int) int {
 	p := 1
 	for p < n {
@@ -782,6 +807,7 @@ func (dc *Context) DrawCircle(x, y, r float64) {
 	dc.DrawEllipticalArc(x, y, r, r, 0, 2*math.Pi)
 	dc.ClosePath()
 }
+
 func (dc *Context) drawStringFast(s string, face font.Face, pos fixed.Point26_6) {
 	m := dc.matrix
 	flipped := m[4] < 0
@@ -822,6 +848,7 @@ func (dc *Context) RestorePath() {
 	dc.current = snap.current
 	dc.hasCurrent = snap.hasCurrent
 }
+
 func (dc *Context) setFillAndStrokeColor(col color2.Color) {
 	if dc.colorLocked {
 		return
@@ -830,6 +857,7 @@ func (dc *Context) setFillAndStrokeColor(col color2.Color) {
 	dc.fillPattern = newSolidPattern(col)
 	dc.strokePattern = newSolidPattern(col)
 }
+
 func (p *surfacePattern) ColorAt(x, y int) color2.Color {
 	bounds := p.im.Bounds()
 	switch p.repeat {
@@ -850,6 +878,7 @@ func (p *surfacePattern) ColorAt(x, y int) color2.Color {
 	y = y%bounds.Dy() + bounds.Min.Y
 	return p.im.At(x, y)
 }
+
 func (dc *Context) DrawImageAnchored(im image.Image, x, y int, ax, ay float64) {
 	size := im.Bounds().Size()
 	x -= int(ax * float64(size.X))
@@ -878,6 +907,7 @@ func (dc *Context) DrawImageAnchored(im image.Image, x, y int, ax, ay float64) {
 	}
 	dc.interpolator.Transform(dc.img, aff, im, im.Bounds(), draw.Over, opts)
 }
+
 func (dc *Context) SetFillStyle(pattern context.Pattern) {
 	if dc.colorLocked {
 		return
@@ -887,6 +917,7 @@ func (dc *Context) SetFillStyle(pattern context.Pattern) {
 	}
 	dc.fillPattern = pattern
 }
+
 func triangleBounds(tri *MeshTriangle) image.Rectangle {
 	minX, minY := math.Inf(1), math.Inf(1)
 	maxX, maxY := math.Inf(-1), math.Inf(-1)
@@ -896,6 +927,7 @@ func triangleBounds(tri *MeshTriangle) image.Rectangle {
 	}
 	return image.Rect(int(math.Floor(minX)), int(math.Floor(minY)), int(math.Ceil(maxX)), int(math.Ceil(maxY)))
 }
+
 func (dc *Context) stroke(painter raster.Painter) {
 	path := dc.path
 	if len(dc.dashes) > 0 {
@@ -910,6 +942,7 @@ func (dc *Context) stroke(painter raster.Painter) {
 	rast.AddStroke(path, toFixed(dc.lineWidth*scale), dc.capper(), dc.joiner())
 	rast.Rasterize(painter)
 }
+
 func (dc *Context) QuadraticTo(x1, y1, x2, y2 float64) {
 	if !dc.hasCurrent {
 		dc.MoveTo(x1, y1)
@@ -956,6 +989,7 @@ func NewContextForRGBA(im *image.RGBA) *Context {
 	h := im.Bounds().Size().Y
 	return &Context{width: w, height: h, rasterizer: raster.NewRasterizer(w, h), img: im, baseImg: im, color: color2.Transparent, fillPattern: whitePattern, strokePattern: blackPattern, lineWidth: 1, fillRule: context.FillRuleWinding, matrix: transform.IdentityMatrix(), textState: context.NewTextState(), interpolator: draw.BiLinear, blendMode: context.BlendModeNormal, fillAlpha: 1, strokeAlpha: 1}
 }
+
 func dot3(ax, ay, az, bx, by, bz float64) float64 {
 	return ax*bx + ay*by + az*bz
 }
@@ -973,6 +1007,7 @@ func (e *patchEdge) at(t float64) (x, y float64) {
 	x1, y1 := e.point(float64(i+1) / float64(e.samples))
 	return x0 + frac*(x1-x0), y0 + frac*(y1-y0)
 }
+
 func fromFixed(v fixed.Int26_6) float64 {
 	const fracBits, fracMask = 6, 1<<6 - 1
 	if v >= 0 {
@@ -984,6 +1019,7 @@ func fromFixed(v fixed.Int26_6) float64 {
 	}
 	return 0
 }
+
 func (dc *Context) joiner() raster.Joiner {
 	switch dc.lineJoin {
 	case context.LineJoinBevel:
@@ -1023,12 +1059,14 @@ func patchExtent(patch *MeshPatch) float64 {
 	}
 	return math.Max(maxX-minX, maxY-minY)
 }
+
 func newPatternPainter(dst *image.RGBA, mask, softMask *image.Alpha, pattern context.Pattern, alpha uint32, mode context.BlendMode, backdrop *image.RGBA, knockout bool) *patternPainter {
 	if backdrop != nil && (!backdrop.Bounds().Eq(dst.Bounds()) || backdrop.Stride != dst.Stride) {
 		backdrop = nil
 	}
 	return &patternPainter{dst, mask, softMask, pattern, alpha, mode, backdrop, knockout}
 }
+
 func (p *patternPainter) Paint(ss []raster.Span, done bool) {
 	bounds := p.dst.Bounds()
 	for _, span := range ss {
@@ -1140,9 +1178,11 @@ func (dc *Context) SetStrokeAlpha(a float64) { dc.strokeAlpha = clamp01(a) }
 func NewGlyphCache() *GlyphCache {
 	return &GlyphCache{enabled: glyphCacheEnabled, maxBytes: defaultGlyphCacheBytes, lru: list.New(), entries: make(map[glyphKey]*list.Element)}
 }
+
 func sat(c [3]float64) float64 {
 	return math.Max(c[0], math.Max(c[1], c[2])) - math.Min(c[0], math.Min(c[1], c[2]))
 }
+
 func (dc *Context) LineTo(x, y float64) {
 	if !dc.hasCurrent {
 		dc.MoveTo(x, y)
@@ -1155,6 +1195,7 @@ func (dc *Context) LineTo(x, y float64) {
 		dc.current = p
 	}
 }
+
 func sampleCell(cell *image.RGBA, x, y, height, sx, sy float64) color2.RGBA {
 	bounds := cell.Bounds()
 	px := bounds.Min.X + int(x*sx)
@@ -1184,6 +1225,7 @@ func newAlpha(w, h int) *image.Alpha {
 	pix := core.AcquireBytesZeroed(w * h)
 	return &image.Alpha{Pix: pix, Stride: w, Rect: image.Rect(0, 0, w, h)}
 }
+
 func blendNonSeparable(mode context.BlendMode, cb, cs [3]float64) [3]float64 {
 	switch mode {
 	case context.BlendModeHue:
@@ -1198,6 +1240,7 @@ func blendNonSeparable(mode context.BlendMode, cb, cs [3]float64) [3]float64 {
 		return cs
 	}
 }
+
 func blendSeparable(mode context.BlendMode, cb, cs float64) float64 {
 	switch mode {
 	case context.BlendModeMultiply:
@@ -1238,6 +1281,7 @@ func blendSeparable(mode context.BlendMode, cb, cs float64) float64 {
 		return cs
 	}
 }
+
 func compositeBlend(dst, src, backdrop *image.RGBA, mode context.BlendMode, alpha float64, mask *image.Alpha, knockout bool) {
 	alpha = clamp01(alpha)
 	if alpha == 0 {
@@ -1291,6 +1335,7 @@ func compositeBlend(dst, src, backdrop *image.RGBA, mode context.BlendMode, alph
 		}
 	}
 }
+
 func (dc *Context) ClosePath() {
 	if dc.hasCurrent {
 		fp := toFixedPoint(dc.start)
@@ -1299,6 +1344,7 @@ func (dc *Context) ClosePath() {
 		dc.current = dc.start
 	}
 }
+
 func convertColors(img *image.RGBA, convert context.ColorConverter) {
 	bounds := img.Bounds()
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
@@ -1324,6 +1370,7 @@ func convertColors(img *image.RGBA, convert context.ColorConverter) {
 		}
 	}
 }
+
 func gradientColorAt(t float64, s stops) color2.Color {
 	if t <= 0.0 || len(s) == 1 {
 		return s[0].color
@@ -1340,15 +1387,18 @@ func gradientColorAt(t float64, s stops) color2.Color {
 	}
 	return last.color
 }
+
 func toRGBA(im image.Image) *image.RGBA {
 	bounds := im.Bounds()
 	dst := image.NewRGBA(bounds)
 	draw2.Draw(dst, bounds, im, bounds.Min, draw2.Src)
 	return dst
 }
+
 func (dc *Context) DrawArc(x, y, r, angle1, angle2 float64) {
 	dc.DrawEllipticalArc(x, y, r, r, angle1, angle2)
 }
+
 func NewRadialGradient(x0, y0, r0, x1, y1, r1 float64, extendStart, extendEnd bool) context.Gradient {
 	c0 := circle{x0, y0, r0}
 	c1 := circle{x1, y1, r1}
@@ -1442,15 +1492,18 @@ func pathToPolylines(path raster.Path) [][]transform.Point {
 	}
 	return polys
 }
+
 func (g *radialGradient) AddColorStop(offset float64, color color2.Color) {
 	g.stops = append(g.stops, stop{offset: offset, color: color})
 	sort.Sort(g.stops)
 }
+
 func (dc *Context) DrawEllipse(x, y, rx, ry float64) {
 	dc.NewSubPath()
 	dc.DrawEllipticalArc(x, y, rx, ry, 0, 2*math.Pi)
 	dc.ClosePath()
 }
+
 func (e *patchEdge) point(t float64) (x, y float64) {
 	mt := 1 - t
 	bern := [4]float64{mt * mt * mt, 3 * mt * mt * t, 3 * mt * t * t, t * t * t}
@@ -1460,6 +1513,7 @@ func (e *patchEdge) point(t float64) (x, y float64) {
 	}
 	return x, y
 }
+
 func clamp01(v float64) float64 {
 	if v < 0 {
 		return 0
@@ -1482,6 +1536,7 @@ func (dc *Context) StrokePattern() context.Pattern { return dc.strokePattern }
 func NewContext(width, height int) *Context {
 	return NewContextForRGBA(image.NewRGBA(image.Rect(0, 0, width, height)))
 }
+
 func (dc *Context) FillPreserve() {
 	var painter raster.Painter
 	alpha := paintAlpha16(dc.fillPattern, dc.fillAlpha, dc.colorLocked)
@@ -1497,6 +1552,7 @@ func (dc *Context) FillPreserve() {
 	}
 	dc.fill(painter)
 }
+
 func (dc *Context) DrawRoundedRectangle(x, y, w, h, r float64) {
 	x0, x1, x2, x3 := x, x+r, x+w-r, x+w
 	y0, y1, y2, y3 := y, y+r, y+h-r, y+h
@@ -1512,6 +1568,7 @@ func (dc *Context) DrawRoundedRectangle(x, y, w, h, r float64) {
 	dc.DrawArc(x1, y1, r, degreesToRadians(180), degreesToRadians(270))
 	dc.ClosePath()
 }
+
 func (dc *Context) drawString(s string, face font.Face, x, y float64) {
 	pos := toFixedPoint(transform.NewPoint(x, y))
 	if dc.softMask == nil && dc.blendMode == context.BlendModeNormal && !dc.knockout && canUseFastGlyphPath(dc.matrix) {
@@ -1520,6 +1577,7 @@ func (dc *Context) drawString(s string, face font.Face, x, y float64) {
 	}
 	dc.drawStringSlow(s, face, pos)
 }
+
 func cubicPoint(x0, y0, x1, y1, x2, y2, x3, y3, t float64) (x, y float64) {
 	mt := 1 - t
 	w0 := mt * mt * mt
@@ -1530,6 +1588,7 @@ func cubicPoint(x0, y0, x1, y1, x2, y2, x3, y3, t float64) (x, y float64) {
 	y = w0*y0 + w1*y1 + w2*y2 + w3*y3
 	return
 }
+
 func (dc *Context) SetRGBA255(r, g, b, a int) {
 	if dc.colorLocked {
 		return
@@ -1537,6 +1596,7 @@ func (dc *Context) SetRGBA255(r, g, b, a int) {
 	dc.color = color2.NRGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
 	dc.setFillAndStrokeColor(dc.color)
 }
+
 func bernsteinTable(n int) [][4]float64 {
 	table := make([][4]float64, n+1)
 	for i := range table {
@@ -1546,6 +1606,7 @@ func bernsteinTable(n int) [][4]float64 {
 	}
 	return table
 }
+
 func toByte(v float64) uint8 {
 	v = v*255 + 0.5
 	if v <= 0 {
@@ -1585,6 +1646,7 @@ func parseHexColor(s string) (r, g, b, a int) {
 	}
 	return
 }
+
 func NewFunctionShading(deviceToShading transform.Matrix, domain [4]float64, sample FunctionShadingSampler) context.Pattern {
 	return &functionShading{deviceToShading: deviceToShading, domain: domain, sample: sample}
 }
@@ -1626,6 +1688,7 @@ func polylinesToPath(polys [][]transform.Point) raster.Path {
 	}
 	return path
 }
+
 func flattenCubic(x0, y0, x1, y1, x2, y2, x3, y3 float64) []transform.Point {
 	length := (math.Hypot(x1-x0, y1-y0) + math.Hypot(x2-x1, y2-y1) + math.Hypot(x3-x2, y3-y2))
 	n := int(length + 0.5)
@@ -1641,6 +1704,7 @@ func flattenCubic(x0, y0, x1, y1, x2, y2, x3, y3 float64) []transform.Point {
 	}
 	return pts
 }
+
 func (dc *Context) fastGlyph(cached bool, fontID uint64, face font.Face, pos fixed.Point26_6, r rune) (image.Rectangle, *image.Alpha, image.Point, fixed.Int26_6, bool) {
 	if cached {
 		return dc.glyphCache.lookup(fontID, face, pos, r)
@@ -1654,6 +1718,7 @@ func (dc *Context) fastGlyph(cached bool, fontID uint64, face font.Face, pos fix
 	}
 	return bounds, copyToAlpha(glyphMask, maskPt, bounds), image.Point{}, advance, true
 }
+
 func (p *tilingPattern) buildTile() {
 	nx := tileRepeatCount(p.width, p.xStep)
 	ny := tileRepeatCount(p.height, p.yStep)
@@ -1678,6 +1743,7 @@ func (p *tilingPattern) buildTile() {
 	p.tile = tile
 	p.cell = nil
 }
+
 func (dc *Context) SetStrokeStyle(pattern context.Pattern) {
 	if dc.colorLocked {
 		return
@@ -1715,6 +1781,7 @@ func alphaBounds(mask *image.Alpha) image.Rectangle {
 	}
 	return image.Rect(minX, minY, maxX, maxY)
 }
+
 func (dc *Context) SetRGBA(r, g, b, a float64) {
 	if dc.colorLocked {
 		return
@@ -1806,12 +1873,14 @@ func (p *tilingPattern) ColorAt(px, py int) color2.Color {
 	}
 	return color2.Transparent
 }
+
 func (dc *Context) SetSoftMask(mask *image.Alpha) {
 	if mask != nil && mask.Bounds().Size() != dc.img.Bounds().Size() {
 		return
 	}
 	dc.softMask = mask
 }
+
 func (dc *Context) SavePath() {
 	dc.pathStack = append(dc.pathStack, pathSnapshot{path: append(raster.Path(nil), dc.path...), fillPath: append(raster.Path(nil), dc.fillPath...), start: dc.start, current: dc.current, hasCurrent: dc.hasCurrent})
 }
@@ -1840,6 +1909,7 @@ func (g *linearGradient) AddColorStop(offset float64, color color2.Color) {
 	g.stops = append(g.stops, stop{offset: offset, color: color})
 	sort.Sort(g.stops)
 }
+
 func copyToAlpha(src image.Image, pt image.Point, r image.Rectangle) *image.Alpha {
 	w, h := r.Dx(), r.Dy()
 	dst := image.NewAlpha(image.Rect(0, 0, w, h))
@@ -1854,10 +1924,12 @@ func copyToAlpha(src image.Image, pt image.Point, r image.Rectangle) *image.Alph
 	draw.Draw(dst, dst.Rect, src, pt, draw.Src)
 	return dst
 }
+
 func NewLinearGradient(x0, y0, x1, y1 float64, extendStart, extendEnd bool) context.Gradient {
 	g := &linearGradient{x0: x0, y0: y0, x1: x1, y1: y1, extendStart: extendStart, extendEnd: extendEnd}
 	return g
 }
+
 func (dc *Context) MoveTo(x, y float64) {
 	if dc.hasCurrent {
 		dc.fillPath.Add1(toFixedPoint(dc.start))
@@ -1897,6 +1969,7 @@ func (dc *Context) effectiveMask() *image.Alpha {
 	}
 	return out
 }
+
 func (dc *Context) ClipBounds() image.Rectangle {
 	if dc.mask == nil {
 		return dc.img.Bounds()
@@ -1918,6 +1991,7 @@ func (dc *Context) RotateAbout(angle, x, y float64) {
 	dc.Rotate(angle)
 	dc.Translate(-x, -y)
 }
+
 func (dc *Context) Push() {
 	saved := *dc
 	dc.stack = append(dc.stack, &saved)
@@ -1946,6 +2020,7 @@ func setSat(c [3]float64, s float64) [3]float64 {
 	c[imin] = 0
 	return c
 }
+
 func (dc *Context) ResetClip() {
 	if dc.ownsMask {
 		releaseAlpha(dc.mask)
@@ -1959,6 +2034,7 @@ const maxTileRepeats = 4096
 func newSurfacePattern(im image.Image, repeat repeatOp) context.Pattern {
 	return &surfacePattern{im: im, repeat: repeat}
 }
+
 func NewTilingPattern(cell *image.RGBA, deviceToPattern transform.Matrix, bbox [4]float64, xStep, yStep, sx, sy float64) context.Pattern {
 	p := &tilingPattern{deviceToPattern: deviceToPattern, originX: bbox[0], originY: bbox[1], width: bbox[2] - bbox[0], height: bbox[3] - bbox[1], xStep: math.Abs(xStep), yStep: math.Abs(yStep), scaleX: sx, scaleY: sy}
 	if p.xStep == 0 {
@@ -1971,6 +2047,7 @@ func NewTilingPattern(cell *image.RGBA, deviceToPattern transform.Matrix, bbox [
 	p.buildTile()
 	return p
 }
+
 func clipColor(c [3]float64) [3]float64 {
 	l := lum(c)
 	lo := math.Min(c[0], math.Min(c[1], c[2]))
@@ -2019,6 +2096,7 @@ func (dc *Context) glyphFontID(face font.Face) (id uint64, ok bool) {
 	}
 	return tf.FaceID(face)
 }
+
 func releaseAlpha(a *image.Alpha) {
 	if a == nil {
 		return
@@ -2026,6 +2104,7 @@ func releaseAlpha(a *image.Alpha) {
 	core.ReleaseBytes(a.Pix)
 	a.Pix = nil
 }
+
 func (p *tilingPattern) resolve(fx, fy float64, nx, ny int) color2.RGBA {
 	for i := 0; i <= nx; i++ {
 		cx := fx + float64(i)*p.xStep
@@ -2049,6 +2128,7 @@ func (dc *Context) Clear() {
 	src := image.NewUniform(dc.color)
 	draw.Draw(dc.img, dc.img.Bounds(), src, image.Point{}, draw.Src)
 }
+
 func lum(c [3]float64) float64                              { return 0.3*c[0] + 0.59*c[1] + 0.11*c[2] }
 func (dc *Context) Transform(x, y float64) (tx, ty float64) { return dc.matrix.Transform(x, y) }
 func NewMeshShading(triangles []MeshTriangle, bounds image.Rectangle, sample MeshShadingSampler) context.Pattern {
@@ -2070,6 +2150,7 @@ func NewMeshShading(triangles []MeshTriangle, bounds image.Rectangle, sample Mes
 	}
 	return &meshShading{img: img}
 }
+
 func (dc *Context) capper() raster.Capper {
 	switch dc.lineCap {
 	case context.LineCapButt:
@@ -2081,6 +2162,7 @@ func (dc *Context) capper() raster.Capper {
 	}
 	return nil
 }
+
 func (dc *Context) EndTransparencyGroup() {
 	if len(dc.groupStack) == 0 {
 		return
@@ -2111,11 +2193,13 @@ func (dc *Context) EndTransparencyGroup() {
 	}
 	compositeBlend(dc.img, groupImg, dc.backdrop, saved.blendMode, saved.fillAlpha, saved.softMask, dc.knockout)
 }
+
 func (dc *Context) ScaleAbout(sx, sy, x, y float64) {
 	dc.Translate(x, y)
 	dc.Scale(sx, sy)
 	dc.Translate(-x, -y)
 }
+
 func (dc *Context) DrawPoint(x, y, r float64) {
 	dc.Push()
 	tx, ty := dc.Transform(x, y)
@@ -2127,6 +2211,7 @@ func (dc *Context) Translate(x, y float64) { dc.matrix = dc.matrix.Translate(x, 
 func canUseFastGlyphPath(m transform.Matrix) bool {
 	return m[1] == 0 && m[3] == 0 && math.Abs(m[0]-1) < epsilon && math.Abs(math.Abs(m[4])-1) < epsilon
 }
+
 func lerpPixel(dst []uint8, src []uint8, w, maxW uint32) {
 	inv := maxW - w
 	for i := 0; i < 4; i++ {
@@ -2162,6 +2247,7 @@ type meshShading struct{ img *image.RGBA }
 func patchSizeSamples(patch *MeshPatch) int {
 	return clampSampleCount(patchExtent(patch)/pixelsPerSample, maxSamples)
 }
+
 func (dc *Context) SetHexColor(x string) {
 	r, g, b, a := parseHexColor(x)
 	dc.SetRGBA255(r, g, b, a)
@@ -2182,6 +2268,7 @@ func (dc *Context) SetFillRGBA(r, g, b, a float64) {
 	dc.color = col
 	dc.fillPattern = newSolidPattern(col)
 }
+
 func (dc *Context) blitGlyphMask(mask *image.Alpha, maskPt image.Point, w, h, dx, dy int, r, g, b, a uint32, flip bool) {
 	const max16 = 0xffff
 	dst := dc.img
@@ -2232,6 +2319,7 @@ func (dc *Context) DrawLine(x1, y1, x2, y2 float64) {
 	dc.MoveTo(x1, y1)
 	dc.LineTo(x2, y2)
 }
+
 func (g *radialGradient) colorForExtend(t float64) color2.Color {
 	if t < 0 {
 		return g.stops[0].color
@@ -2241,12 +2329,14 @@ func (g *radialGradient) colorForExtend(t float64) color2.Color {
 	}
 	return gradientColorAt(t, g.stops)
 }
+
 func hardLight(cb, cs float64) float64 {
 	if cs <= 0.5 {
 		return cb * (2 * cs)
 	}
 	return cb + (2*cs - 1) - cb*(2*cs-1)
 }
+
 func unpremultiply(c, a uint8) uint8 {
 	v := (uint32(c)*255 + uint32(a)/2) / uint32(a)
 	if v > 255 {
@@ -2254,6 +2344,7 @@ func unpremultiply(c, a uint8) uint8 {
 	}
 	return uint8(v)
 }
+
 func (dc *Context) drawStringSlow(s string, face font.Face, pos fixed.Point26_6) {
 	src := image.NewUniform(dc.color)
 	var mask, softMask *image.Alpha

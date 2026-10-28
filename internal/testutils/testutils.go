@@ -16,10 +16,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/core"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/ocsp"
 	"image"
 	"image/png"
 	"io"
@@ -32,6 +28,11 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/core"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ocsp"
 )
 
 func (p *PKI) makeCRL() ([]byte, error) {
@@ -83,6 +84,7 @@ func (p *PKI) makeOCSP(reqBytes []byte) ([]byte, error) {
 	}
 	return ocsp.CreateResponse(p.caCert, p.caCert, resp, p.caKey)
 }
+
 func ParseIndirectObjects(rawpdf string) (map[int64]core.PdfObject, error) {
 	parser := core.NewParserFromString(rawpdf)
 	objects := map[int64]core.PdfObject{}
@@ -103,6 +105,7 @@ func ParseIndirectObjects(rawpdf string) (map[int64]core.PdfObject, error) {
 	}
 	return objects, nil
 }
+
 func RunRenderTest(t *testing.T, pdfPath, outputDir, baselineRenderPath string, saveBaseline bool) {
 	name := strings.TrimSuffix(filepath.Base(pdfPath), filepath.Ext(pdfPath))
 	t.Run("render", func(sub *testing.T) {
@@ -138,6 +141,7 @@ func RunRenderTest(t *testing.T, pdfPath, outputDir, baselineRenderPath string, 
 		}
 	})
 }
+
 func (p *PKI) CRL(t testing.TB, tmpl *x509.RevocationList) []byte {
 	t.Helper()
 	crl, err := x509.CreateRevocationList(rand.Reader, tmpl, p.caCert, p.caKey)
@@ -146,15 +150,14 @@ func (p *PKI) CRL(t testing.TB, tmpl *x509.RevocationList) []byte {
 	}
 	return crl
 }
+
 func (r *retryT) Errorf(format string, args ...interface{}) {
 	r.failures = append(r.failures, fmt.Sprintf(format, args...))
 }
 func (p *PKI) ECDSALeaf() (*ecdsa.PrivateKey, *x509.Certificate) { return p.ecdsaKey, p.ecdsaCert }
 func (p *PKI) CACert() *x509.Certificate                         { return p.caCert }
 
-var (
-	ErrRenderNotSupported = errors.New("rendering PDF files is not supported on this system")
-)
+var ErrRenderNotSupported = errors.New("rendering PDF files is not supported on this system")
 
 type PKI struct {
 	caCert     *x509.Certificate
@@ -182,6 +185,7 @@ func HashFile(file string) (string, error) {
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
+
 func CopyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
@@ -196,6 +200,7 @@ func CopyFile(src, dst string) error {
 	_, err = io.Copy(out, in)
 	return err
 }
+
 func resolveReferences(obj core.PdfObject, objects map[int64]core.PdfObject) error {
 	switch typed := obj.(type) {
 	case *core.PdfIndirectObject:
@@ -231,6 +236,7 @@ func resolveReferences(obj core.PdfObject, objects map[int64]core.PdfObject) err
 	}
 	return nil
 }
+
 func ReadPNG(file string) (image.Image, error) {
 	f, err := os.Open(file)
 	if err != nil {
@@ -240,19 +246,21 @@ func ReadPNG(file string) (image.Image, error) {
 	return png.Decode(f)
 }
 
-type pkiTransport struct{ pki *PKI }
-type LeafOpts struct {
-	CommonName            string
-	SelfSigned            bool
-	NotBefore             time.Time
-	NotAfter              time.Time
-	KeyUsage              x509.KeyUsage
-	ExtKeyUsage           []x509.ExtKeyUsage
-	CRLDistributionPoints []string
-	OCSPServer            []string
-	Issuer                *x509.Certificate
-	IssuerKey             crypto.Signer
-}
+type (
+	pkiTransport struct{ pki *PKI }
+	LeafOpts     struct {
+		CommonName            string
+		SelfSigned            bool
+		NotBefore             time.Time
+		NotAfter              time.Time
+		KeyUsage              x509.KeyUsage
+		ExtKeyUsage           []x509.ExtKeyUsage
+		CRLDistributionPoints []string
+		OCSPServer            []string
+		Issuer                *x509.Certificate
+		IssuerKey             crypto.Signer
+	}
+)
 
 func CompareDictionariesDeep(d1, d2 *core.PdfObjectDictionary) bool {
 	if len(d1.Keys()) != len(d2.Keys()) {
@@ -375,6 +383,7 @@ func RetryHelper(t *testing.T, maxAttempts int, delay time.Duration, fn func(et 
 	}
 	return fmt.Errorf("max attempts reached: %d, err: %v", maxAttempts, lastErr)
 }
+
 func ComparePNGFiles(file1, file2 string) (bool, error) {
 	hash1, err := HashFile(file1)
 	if err != nil {
@@ -400,6 +409,7 @@ func ComparePNGFiles(file1, file2 string) (bool, error) {
 	}
 	return CompareImages(img1, img2)
 }
+
 func SinglePagePDF(resources string, contents []byte, extra ...FlateStream) ([]byte, error) {
 	streams := append([]FlateStream{{Data: contents}}, extra...)
 	var buf bytes.Buffer
@@ -431,6 +441,7 @@ func SinglePagePDF(resources string, contents []byte, extra ...FlateStream) ([]b
 	fmt.Fprintf(&buf, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(offsets), xrefOffset)
 	return buf.Bytes(), nil
 }
+
 func (tr *pkiTransport) route(req *http.Request) ([]byte, string, error) {
 	switch req.URL.String() {
 	case caIssuerURL:
@@ -504,6 +515,7 @@ func (p *PKI) NewLeaf(t testing.TB, opts LeafOpts) (*rsa.PrivateKey, *x509.Certi
 	}
 	return key, cert
 }
+
 func RenderPDFToPNGs(pdfPath string, dpi int, outpathTpl string) error {
 	if dpi <= 0 {
 		dpi = 100
@@ -513,6 +525,7 @@ func RenderPDFToPNGs(pdfPath string, dpi int, outpathTpl string) error {
 	}
 	return exec.Command("gs", "-sDEVICE=pngalpha", "-o", outpathTpl, fmt.Sprintf("-r%d", dpi), pdfPath).Run()
 }
+
 func (p *PKI) NewIntermediate(t testing.TB, commonName string, extKeyUsage []x509.ExtKeyUsage) (*rsa.PrivateKey, *x509.Certificate) {
 	t.Helper()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -534,6 +547,7 @@ func (p *PKI) NewIntermediate(t testing.TB, commonName string, extKeyUsage []x50
 	}
 	return key, cert
 }
+
 func CompareImages(img1, img2 image.Image) (bool, error) {
 	bounds := img1.Bounds()
 	diff := 0
@@ -553,11 +567,13 @@ func CompareImages(img1, img2 image.Image) (bool, error) {
 	}
 	return true, nil
 }
+
 func CommentPadding(n int) []byte {
 	line := []byte("% decoded size limit padding\n")
 	padded := bytes.Repeat(line, n/len(line)+1)
 	return padded[:n]
 }
+
 func (p *PKI) OCSPResponse(t testing.TB, tmpl ocsp.Response) []byte {
 	t.Helper()
 	der, err := ocsp.CreateResponse(p.caCert, p.caCert, tmpl, p.caKey)
@@ -566,6 +582,7 @@ func (p *PKI) OCSPResponse(t testing.TB, tmpl ocsp.Response) []byte {
 	}
 	return der
 }
+
 func PDFFromObjects(objects map[int]string) []byte {
 	var buf bytes.Buffer
 	buf.WriteString("%PDF-1.7\n")
@@ -594,6 +611,7 @@ func PDFFromObjects(objects map[int]string) []byte {
 	fmt.Fprintf(&buf, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF", maxNum+1, xrefOffset)
 	return buf.Bytes()
 }
+
 func newPKI() (*PKI, error) {
 	notBefore := time.Now().Add(-time.Hour)
 	notAfter := notBefore.AddDate(100, 0, 0)
@@ -640,6 +658,7 @@ func newPKI() (*PKI, error) {
 	}
 	return &PKI{caCert: caCert, caKey: caKey, rsaCert: rsaCert, rsaKey: rsaKey, ecdsaCert: ecCert, ecdsaKey: ecKey, notBefore: notBefore, notAfter: notAfter, nextSerial: 100}, nil
 }
+
 func (tr *pkiTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.Body != nil {
 		defer req.Body.Close()
@@ -658,6 +677,7 @@ func (tr *pkiTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	return resp, nil
 }
+
 func (p *PKI) revokedEntries() []revokedSerial {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -667,6 +687,7 @@ func (p *PKI) revokedEntries() []revokedSerial {
 	}
 	return entries
 }
+
 func TestPKI(t testing.TB) *PKI {
 	t.Helper()
 	pkiOnce.Do(func() { sharedPKI, pkiErr = newPKI() })
@@ -692,6 +713,7 @@ func applyLeafDefaults(cert *x509.Certificate, notBefore, notAfter time.Time) {
 	cert.IssuingCertificateURL = []string{caIssuerURL}
 	cert.CRLDistributionPoints = []string{crlURL}
 }
+
 func (r *retryT) Logf(format string, args ...interface{}) {
 	r.logs = append(r.logs, fmt.Sprintf(format, args...))
 }

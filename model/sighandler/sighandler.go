@@ -22,6 +22,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
@@ -30,10 +35,6 @@ import (
 	"github.com/OpenMellon/openpdf/model/sigutil"
 	"github.com/OpenMellon/pkcs7"
 	"github.com/OpenMellon/timestamp"
-	"hash"
-	"math/big"
-	"strings"
-	"time"
 )
 
 // GetTimestampServerURL returns the URL of the timestamp server.
@@ -103,6 +104,7 @@ func (ts *docTimeStamp) InitSignature(sig *model.PdfSignature) error {
 	}
 	return nil
 }
+
 func (h *adobeX509RSASHA1) getHashAlgorithm(sig *model.PdfSignature) (crypto.Hash, error) {
 	cert, err := h.getCertificate(sig)
 	if err != nil {
@@ -135,6 +137,7 @@ func NewEtsiPAdESLevelB(privateKey *rsa.PrivateKey, certificate *x509.Certificat
 // NewEtsiPAdES creates a new PAdES signature handler with the specified algorithm and level.
 // The handler should be further configured using the available setter methods.
 func NewEtsiPAdES(level EtsiPAdESLevel) *etsiPAdES { return &etsiPAdES{level: level} }
+
 func (h *etsiPAdES) GetCerts(chain []*x509.Certificate) ([][]byte, error) {
 	certs := make([][]byte, 0, len(chain))
 	for _, cert := range chain {
@@ -270,6 +273,7 @@ func (h *DocMDPHandler) ValidateWithOpts(sig *model.PdfSignature, digest model.H
 
 // GetOCSPClient returns the client for retrieving OCSP responses.
 func (h *etsiPAdES) GetOCSPClient() *sigutil.OCSPClient { return h.OCSPClient }
+
 func (h *etsiPAdES) makeTimestampRequest(data []byte) (asn1.RawValue, error) {
 	hasher := crypto.SHA512.New()
 	hasher.Write(data)
@@ -287,6 +291,7 @@ func (h *etsiPAdES) makeTimestampRequest(data []byte) (asn1.RawValue, error) {
 	}
 	return asn1.RawValue{FullBytes: token}, nil
 }
+
 func (h *adobeX509RSASHA1) getCertificate(sig *model.PdfSignature) (*x509.Certificate, error) {
 	certs, err := h.getCertificates(sig)
 	if err != nil {
@@ -340,6 +345,7 @@ func (h *adobePKCS7Detached) Sign(sig *model.PdfSignature, digest model.Hasher) 
 
 // GetDSS returns the Document Security Store (DSS) for the signature handler.
 func (h *etsiPAdES) GetDSS() *model.DSS { return h.dss }
+
 func (h *etsiPAdES) GetOCSPs(chain []*x509.Certificate, chainMap map[string]*x509.Certificate) ([][]byte, error) {
 	ocsps := make([][]byte, 0, len(chain))
 	if h.OCSPClient == nil {
@@ -476,6 +482,7 @@ func (h *etsiPAdES) Sign(sig *model.PdfSignature, digest model.Hasher) error {
 func NewEtsiPAdESLevelT(privateKey *rsa.PrivateKey, certificate *x509.Certificate, caCert *x509.Certificate, certificateTimestampServerURL string) (model.SignatureHandler, error) {
 	return &etsiPAdES{level: LevelT, certificate: certificate, privateKey: privateKey, caCert: caCert, timestampServerURL: certificateTimestampServerURL}, nil
 }
+
 func (h *adobeX509RSASHA1) sign(sig *model.PdfSignature, digest model.Hasher, estimateSize bool) error {
 	if !estimateSize {
 		return h.Sign(sig, digest)
@@ -494,7 +501,6 @@ func (h *adobeX509RSASHA1) sign(sig *model.PdfSignature, digest model.Hasher, es
 
 // DocTimeStampOpts defines options for configuring the timestamp handler.
 type DocTimeStampOpts struct {
-
 	// SignatureSize is the estimated size of the signature contents in bytes.
 	// If not provided, a default signature size of 4192 is used.
 	// The signing process will report the model.ErrSignNotEnoughSpace error
@@ -599,6 +605,7 @@ func leftPad(data []byte, size int) (padded []byte) {
 	copy(padded[len(padded)-n:], data)
 	return
 }
+
 func (h *etsiPAdES) addDss(sigCerts, extraCerts []*x509.Certificate, revInfo *RevocationInfoArchival) (int, error) {
 	chain, chainMap, err := h.BuildCertChain(sigCerts, extraCerts)
 	if err != nil {
@@ -697,6 +704,7 @@ func (h *etsiPAdES) SetDSS(dss *model.DSS) { h.dss = dss }
 func NewAdobeX509RSASHA1Custom(certificate *x509.Certificate, signFunc SignFunc) (model.SignatureHandler, error) {
 	return &adobeX509RSASHA1{certificate: certificate, signFunc: signFunc}, nil
 }
+
 func (h *etsiPAdES) BuildCertChain(sigCerts, extraCerts []*x509.Certificate) ([]*x509.Certificate, map[string]*x509.Certificate, error) {
 	if h.CertClient == nil {
 		common.Log.Error("ERROR: no CertClient set")
@@ -770,6 +778,7 @@ func NewEtsiPAdESLevelLTEcdsa(privateKey *ecdsa.PrivateKey, certificate *x509.Ce
 	}
 	return &etsiPAdES{level: LevelLT, certificate: certificate, privateKey: privateKey, caCert: caCert, timestampServerURL: certificateTimestampServerURL, CertClient: sigutil.NewCertClient(), OCSPClient: sigutil.NewOCSPClient(), CRLClient: sigutil.NewCRLClient(), appender: appender, dss: dss}, nil
 }
+
 func certsFromPKCS7(p7 *pkcs7.PKCS7) []*x509.Certificate {
 	signer := p7.GetOnlySigner()
 	if signer == nil {
@@ -864,7 +873,6 @@ func NewEtsiPAdESLevelLT(privateKey *rsa.PrivateKey, certificate *x509.Certifica
 // AdobeX509RSASHA1Opts defines options for configuring the adbe.x509.rsa_sha1
 // signature handler.
 type AdobeX509RSASHA1Opts struct {
-
 	// EstimateSize specifies whether the size of the signature contents
 	// should be estimated based on the modulus size of the public key
 	// extracted from the signing certificate. If set to false, a mock Sign
@@ -916,6 +924,7 @@ func (ts *docTimeStamp) Validate(sig *model.PdfSignature, digest model.Hasher) (
 func (h *adobePKCS7Detached) NewDigest(sig *model.PdfSignature) (model.Hasher, error) {
 	return bytes.NewBuffer(nil), nil
 }
+
 func (h *etsiPAdES) GetCRLs(chain []*x509.Certificate) ([][]byte, error) {
 	crls := make([][]byte, 0, len(chain))
 	if h.CRLClient == nil {
@@ -945,6 +954,7 @@ func (ts *docTimeStamp) IsApplicable(sig *model.PdfSignature) bool {
 	}
 	return (*sig.Filter == "Adobe.PPKMS" || *sig.Filter == "Adobe.PPKLite") && *sig.SubFilter == "ETSI.RFC3161"
 }
+
 func detectRSAHash(pub *rsa.PublicKey, sig []byte) crypto.Hash {
 	keySize := pub.Size()
 	if keySize != len(sig) {
@@ -1080,6 +1090,7 @@ func (h *etsiPAdES) SetCertClient(certClient *sigutil.CertClient) { h.CertClient
 func (h *etsiPAdES) NewDigest(_ *model.PdfSignature) (model.Hasher, error) {
 	return bytes.NewBuffer(nil), nil
 }
+
 func (ts *docTimeStamp) getCertificate(sig *model.PdfSignature) (*x509.Certificate, error) {
 	certs, err := sig.GetCerts()
 	if err != nil {
@@ -1194,6 +1205,7 @@ func (h *etsiPAdES) InitSignature(sig *model.PdfSignature) error {
 	clone.estimatingSize = false
 	return err
 }
+
 func hashFromOID(oid asn1.ObjectIdentifier) (crypto.Hash, error) {
 	switch {
 	case oid.Equal(pkcs7.OIDDigestAlgorithmSHA1), oid.Equal(pkcs7.OIDDigestAlgorithmECDSASHA1), oid.Equal(pkcs7.OIDDigestAlgorithmDSA), oid.Equal(pkcs7.OIDDigestAlgorithmDSASHA1), oid.Equal(pkcs7.OIDEncryptionAlgorithmRSA):

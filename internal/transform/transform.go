@@ -5,9 +5,10 @@ package transform
 
 import (
 	"fmt"
+	"math"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
-	"math"
 )
 
 func (m Matrix) Unrealistic() bool {
@@ -16,9 +17,11 @@ func (m Matrix) Unrealistic() bool {
 	offDiagonal := xy > minimumScale && yx > minimumScale
 	return !(diagonal || offDiagonal)
 }
+
 func (p Point) Interpolate(b Point, t float64) Point {
 	return Point{X: (1-t)*p.X + t*b.X, Y: (1-t)*p.Y + t*b.Y}
 }
+
 func (m *Matrix) Concat(b Matrix) {
 	*m = Matrix{b[0]*m[0] + b[1]*m[3], b[0]*m[1] + b[1]*m[4], 0, b[3]*m[0] + b[4]*m[3], b[3]*m[1] + b[4]*m[4], 0, b[6]*m[0] + b[7]*m[3] + m[6], b[6]*m[1] + b[7]*m[4] + m[7], 1}
 	m.clampRange()
@@ -31,6 +34,7 @@ func (m Matrix) Angle() float64 {
 	}
 	return angle / math.Pi * 180.0
 }
+
 func (m Matrix) String() string {
 	a, b, c, d, tx, ty := m[0], m[1], m[3], m[4], m[6], m[7]
 	return fmt.Sprintf("[%7.4f,%7.4f,%7.4f,%7.4f:%7.4f,%7.4f]", a, b, c, d, tx, ty)
@@ -79,6 +83,7 @@ func (m *Matrix) Set(a, b, c, d, tx, ty float64) {
 	m[6], m[7] = tx, ty
 	m.clampRange()
 }
+
 func (m *Matrix) Clone() Matrix {
 	return NewMatrix(m[0], m[1], m[3], m[4], m[6], m[7])
 }
@@ -94,6 +99,7 @@ func (p *Point) Transform(a, b, c, d, tx, ty float64) {
 	m := NewMatrix(a, b, c, d, tx, ty)
 	p.transformByMatrix(m)
 }
+
 func (m Matrix) Identity() bool {
 	return m[0] == 1 && m[1] == 0 && m[2] == 0 && m[3] == 0 && m[4] == 1 && m[5] == 0 && m[6] == 0 && m[7] == 0 && m[8] == 1
 }
@@ -146,6 +152,7 @@ func (m Matrix) Transform(x, y float64) (float64, float64) {
 	transformedY := x*m[1] + y*m[4] + m[7]
 	return transformedX, transformedY
 }
+
 func MatrixFromPdfObject(obj core.PdfObject) (Matrix, error) {
 	if obj == nil {
 		return IdentityMatrix(), nil

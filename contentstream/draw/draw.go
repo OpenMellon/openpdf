@@ -10,12 +10,13 @@ package draw
 
 import (
 	"fmt"
+	"math"
+
 	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/precision"
 	"github.com/OpenMellon/openpdf/internal/transform"
 	"github.com/OpenMellon/openpdf/model"
-	"math"
 )
 
 // Draw draws the composite curve polygon. A graphics state name can be
@@ -926,7 +927,6 @@ func (p Polyline) Draw(gsName string) ([]byte, *model.PdfRectangle, error) {
 // drawn to a PDF content stream.  The rectangle can optionally have a border and a filling color.
 // The Width/Height includes the border (if any specified), i.e. is positioned inside.
 type Rectangle struct {
-
 	// Position and size properties.
 	X      float64
 	Y      float64

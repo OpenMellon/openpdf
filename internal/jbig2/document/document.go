@@ -6,6 +6,10 @@ package document
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
+	"math"
+	"runtime/debug"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"github.com/OpenMellon/openpdf/internal/jbig2/basic"
@@ -13,9 +17,6 @@ import (
 	"github.com/OpenMellon/openpdf/internal/jbig2/document/segments"
 	"github.com/OpenMellon/openpdf/internal/jbig2/encoder/classer"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
-	"io"
-	"math"
-	"runtime/debug"
 )
 
 func (p *Page) clearSegmentData() {
@@ -23,6 +24,7 @@ func (p *Page) clearSegmentData() {
 		p.Segments[i].CleanSegmentData()
 	}
 }
+
 func (d *Document) addSymbolDictionary(pageNumber int, symbols *bitmap.Bitmaps, symbolList []int, symbolMap map[int]int, unborderSymbols bool) (*segments.Header, error) {
 	const funcName = "addSymbolDictionary"
 	dict := &segments.SymbolDictionary{}
@@ -56,6 +58,7 @@ func (d *Document) addSymbolDictionary(pageNumber int, symbols *bitmap.Bitmaps, 
 	page.Segments[idx] = header
 	return header, nil
 }
+
 func (d *Document) GetGlobalSegment(i int) (*segments.Header, error) {
 	seg, err := d.GlobalSegments.GetSegment(i)
 	if err != nil {
@@ -63,6 +66,7 @@ func (d *Document) GetGlobalSegment(i int) (*segments.Header, error) {
 	}
 	return seg, nil
 }
+
 func (g *Globals) GetSegmentByIndex(index int) (*segments.Header, error) {
 	const funcName = "Globals.GetSegmentByIndex"
 	if g == nil {
@@ -131,6 +135,7 @@ func (p *Page) AddEndOfPageSegment() {
 	header := &segments.Header{Type: segments.TEndOfPage, PageAssociation: p.PageNumber}
 	p.Segments = append(p.Segments, header)
 }
+
 func (p *Page) getResolutionY() (int, error) {
 	const funcName = "getResolutionY"
 	if p.ResolutionY != 0 {
@@ -151,9 +156,11 @@ func (p *Page) getResolutionY() (int, error) {
 	p.ResolutionY = pageInfo.ResolutionY
 	return p.ResolutionY, nil
 }
+
 func (p *Page) fitsPage(pageInfo *segments.PageInformationSegment, bm *bitmap.Bitmap) bool {
 	return p.countRegions() == 1 && pageInfo.DefaultPixelValue == 0 && pageInfo.PageBMWidth == bm.Width && pageInfo.PageBMHeight == bm.Height
 }
+
 func (d *Document) parseFileHeader() error {
 	const funcName = "parseFileHeader"
 	_, err := d.InputStream.Seek(8, io.SeekStart)
@@ -192,6 +199,7 @@ func (d *Document) parseFileHeader() error {
 	}
 	return nil
 }
+
 func (g *Globals) GetSymbolDictionary() (*segments.Header, error) {
 	const funcName = "Globals.GetSymbolDictionary"
 	if g == nil {
@@ -207,6 +215,7 @@ func (g *Globals) GetSymbolDictionary() (*segments.Header, error) {
 	}
 	return nil, jbig2errors.Error(funcName, "global symbol dictionary not found")
 }
+
 func (d *Document) produceClassifiedPage(page *Page, globalDict *segments.Header) (err error) {
 	const funcName = "produceClassifiedPage"
 	var localSymbolMap map[int]int
@@ -226,6 +235,7 @@ func (d *Document) produceClassifiedPage(page *Page, globalDict *segments.Header
 	page.addTextRegionSegment(dictSegments, d.globalSymbolMap, localSymbolMap, d.pageComponents[page.PageNumber], d.Classer.PtaLL, d.Classer.UndilatedTemplates, d.Classer.ClassIDs, nil, bitsForSymbolCount(symbolCount), len(d.pageComponents[page.PageNumber]))
 	return nil
 }
+
 func InitEncodeDocument(fullHeaders bool) *Document {
 	return &Document{FullHeaders: fullHeaders, writer: bitwise.BufferedMSB(), Pages: map[int]*Page{}, pageUniqueSymbols: map[int][]int{}, globalSymbolMap: map[int]int{}, pageComponents: map[int][]int{}}
 }
@@ -318,6 +328,7 @@ func (d *Document) mapData() error {
 	d.determineRandomDataOffsets(headers, uint64(offset))
 	return nil
 }
+
 func (d *Document) encodeFileHeader(w bitwise.BinaryWriter) (n int, err error) {
 	const funcName = "encodeFileHeader"
 	n, err = w.Write(fileHeaderID)
@@ -337,6 +348,7 @@ func (d *Document) encodeFileHeader(w bitwise.BinaryWriter) (n int, err error) {
 	n += written
 	return n, nil
 }
+
 func (p *Page) AddGenericRegion(bm *bitmap.Bitmap, xloc, yloc, template int, tp segments.Type, duplicateLineRemoval bool) error {
 	const funcName = "Page.AddGenericRegion"
 	region := &segments.GenericRegion{}
@@ -347,6 +359,7 @@ func (p *Page) AddGenericRegion(bm *bitmap.Bitmap, xloc, yloc, template int, tp 
 	p.Segments = append(p.Segments, header)
 	return nil
 }
+
 func (d *Document) reachedEOF(offset int64) (bool, error) {
 	const funcName = "reachedEOF"
 	_, err := d.InputStream.Seek(offset, io.SeekStart)
@@ -436,6 +449,7 @@ func (d *Document) completeSymbols() (err error) {
 	}
 	return nil
 }
+
 func (d *Document) GetNumberOfPages() (uint32, error) {
 	if d.NumberOfPagesUnknown || d.NumberOfPages == 0 {
 		if len(d.Pages) == 0 {
@@ -447,6 +461,7 @@ func (d *Document) GetNumberOfPages() (uint32, error) {
 	}
 	return d.NumberOfPages, nil
 }
+
 func bitsForSymbolCount(n int) int {
 	bits := 0
 	isPowerOfTwo := (n & (n - 1)) == 0
@@ -459,6 +474,7 @@ func bitsForSymbolCount(n int) int {
 	}
 	return bits + 1
 }
+
 func (d *Document) Encode() (data []byte, err error) {
 	const funcName = "Document.Encode"
 	var n, eofLen int
@@ -507,9 +523,11 @@ func (d *Document) Encode() (data []byte, err error) {
 	}
 	return data, nil
 }
+
 func newPage(doc *Document, pageNumber int) *Page {
 	return &Page{Document: doc, PageNumber: pageNumber, Segments: []*segments.Header{}}
 }
+
 func (d *Document) AddClassifiedPage(bm *bitmap.Bitmap, method classer.Method) (err error) {
 	const funcName = "Document.AddClassifiedPage"
 	if !d.FullHeaders && d.NumberOfPages != 0 {
@@ -538,6 +556,7 @@ func (d *Document) AddClassifiedPage(bm *bitmap.Bitmap, method classer.Method) (
 	}
 	return nil
 }
+
 func (p *Page) createNormalPage(pageInfo *segments.PageInformationSegment) error {
 	const funcName = "createNormalPage"
 	var err error
@@ -581,6 +600,7 @@ func (p *Page) createNormalPage(pageInfo *segments.PageInformationSegment) error
 	}
 	return nil
 }
+
 func (p *Page) getResolutionX() (int, error) {
 	const funcName = "getResolutionX"
 	if p.ResolutionX != 0 {
@@ -601,6 +621,7 @@ func (p *Page) getResolutionX() (int, error) {
 	p.ResolutionX = pageInfo.ResolutionX
 	return p.ResolutionX, nil
 }
+
 func (d *Document) encodeSegment(seg *segments.Header, total *int) error {
 	const funcName = "encodeSegment"
 	seg.SegmentNumber = d.nextSegmentNumber()
@@ -611,6 +632,7 @@ func (d *Document) encodeSegment(seg *segments.Header, total *int) error {
 	*total += n
 	return nil
 }
+
 func (p *Page) GetBitmap() (bm *bitmap.Bitmap, err error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace(fmt.Sprintf("[PAGE][#%d] GetBitmap begins...", p.PageNumber))
@@ -670,6 +692,7 @@ func (p *Page) GetResolutionY() (int, error) { return p.getResolutionY() }
 func (g *Globals) AddSegment(segment *segments.Header) {
 	g.Segments = append(g.Segments, segment)
 }
+
 func (p *Page) collectPageStripes() (stripes []segments.Segmenter, err error) {
 	const funcName = "collectPageStripes"
 	var data segments.Segmenter
@@ -696,6 +719,7 @@ func (p *Page) collectPageStripes() (stripes []segments.Segmenter, err error) {
 	}
 	return stripes, nil
 }
+
 func (p *Page) createPage(pageInfo *segments.PageInformationSegment) error {
 	var err error
 	if !pageInfo.IsStripe || pageInfo.PageBMHeight != -1 {
@@ -705,6 +729,7 @@ func (p *Page) createPage(pageInfo *segments.PageInformationSegment) error {
 	}
 	return err
 }
+
 func (p *Page) countRegions() int {
 	var n int
 	for _, seg := range p.Segments {
@@ -736,6 +761,7 @@ func (p *Page) getWidth() (int, error) {
 	p.FinalWidth = pageInfo.PageBMWidth
 	return p.FinalWidth, nil
 }
+
 func (p *Page) GetSegment(number int) (*segments.Header, error) {
 	const funcName = "Page.GetSegment"
 	for _, seg := range p.Segments {
@@ -749,11 +775,13 @@ func (p *Page) GetSegment(number int) (*segments.Header, error) {
 	}
 	return nil, jbig2errors.Errorf(funcName, "segment with number: '%d' not found in the page: '%d'. Known segment numbers: %v", number, p.PageNumber, numbers)
 }
+
 func (d *Document) nextSegmentNumber() uint32 {
 	n := d.CurrentSegmentNumber
 	d.CurrentSegmentNumber++
 	return n
 }
+
 func (d *Document) completeClassifiedPages() (err error) {
 	const funcName = "completeClassifiedPages"
 	if d.Classer == nil {
@@ -803,6 +831,7 @@ func (d *Document) completeClassifiedPages() (err error) {
 	}
 	return nil
 }
+
 func (p *Page) Encode(w bitwise.BinaryWriter) (total int, err error) {
 	const funcName = "Page.Encode"
 	var n int
@@ -814,6 +843,7 @@ func (p *Page) Encode(w bitwise.BinaryWriter) (total int, err error) {
 	}
 	return total, nil
 }
+
 func (g *Globals) GetSegment(segmentNumber int) (*segments.Header, error) {
 	const funcName = "Globals.GetSegment"
 	if g == nil {
@@ -833,6 +863,7 @@ func (g *Globals) GetSegment(segmentNumber int) (*segments.Header, error) {
 	}
 	return seg, nil
 }
+
 func (d *Document) isFileHeaderPresent() (bool, error) {
 	d.InputStream.Mark()
 	for _, want := range fileHeaderID {
@@ -848,6 +879,7 @@ func (d *Document) isFileHeaderPresent() (bool, error) {
 	d.InputStream.Reset()
 	return true, nil
 }
+
 func (p *Page) createStripedPage(pageInfo *segments.PageInformationSegment) error {
 	const funcName = "createStripedPage"
 	stripes, err := p.collectPageStripes()
@@ -890,6 +922,7 @@ func (p *Page) lastSegmentNumber() (n uint32, err error) {
 	}
 	return p.Segments[len(p.Segments)-1].SegmentNumber, nil
 }
+
 func (d *Document) encodeEOFHeader(w bitwise.BinaryWriter) (n int, err error) {
 	header := &segments.Header{SegmentNumber: d.nextSegmentNumber(), Type: segments.TEndOfFile}
 	if n, err = header.Encode(w); err != nil {
@@ -897,6 +930,7 @@ func (d *Document) encodeEOFHeader(w bitwise.BinaryWriter) (n int, err error) {
 	}
 	return n, nil
 }
+
 func (d *Document) determineRandomDataOffsets(headers []*segments.Header, offset uint64) {
 	if d.OrganizationType != segments.ORandom {
 		return
@@ -906,6 +940,7 @@ func (d *Document) determineRandomDataOffsets(headers []*segments.Header, offset
 		offset += seg.SegmentDataLength
 	}
 }
+
 func (p *Page) addTextRegionSegment(dictSegments []*segments.Header, globalSymbolMap, localSymbolMap map[int]int, comps []int, inLL *bitmap.Points, symbols *bitmap.Bitmaps, classIDs *basic.IntSlice, boxes *bitmap.Boxes, symBits, numSymbols int) {
 	region := &segments.TextRegion{NumberOfSymbols: uint32(numSymbols)}
 	region.InitEncode(globalSymbolMap, localSymbolMap, comps, inLL, symbols, classIDs, boxes, p.FinalWidth, p.FinalHeight, symBits)
@@ -925,6 +960,7 @@ func (p *Page) addTextRegionSegment(dictSegments []*segments.Header, globalSymbo
 	copy(p.Segments[idx+1:], p.Segments[idx:])
 	p.Segments[idx] = header
 }
+
 func (p *Page) AddPageInformationSegment() {
 	pageInfo := &segments.PageInformationSegment{PageBMWidth: p.FinalWidth, PageBMHeight: p.FinalHeight, ResolutionX: p.ResolutionX, ResolutionY: p.ResolutionY, IsLossless: p.IsLossless}
 	if p.BlackIsOne {
@@ -933,6 +969,7 @@ func (p *Page) AddPageInformationSegment() {
 	header := &segments.Header{PageAssociation: p.PageNumber, SegmentDataLength: uint64(pageInfo.Size()), SegmentData: pageInfo, Type: segments.TPageInformation}
 	p.Segments = append(p.Segments, header)
 }
+
 func decodeDocument(r *bitwise.Reader, globals *Globals) (*Document, error) {
 	d := &Document{Pages: make(map[int]*Page), InputStream: r, OrganizationType: segments.OSequential, NumberOfPagesUnknown: true, GlobalSegments: globals, headerLength: 9}
 	if d.GlobalSegments == nil {
@@ -949,6 +986,7 @@ type EncodingMethod int
 func DecodeDocument(input *bitwise.Reader, globals *Globals) (*Document, error) {
 	return decodeDocument(input, globals)
 }
+
 func (d *Document) GetPage(pageNumber int) (segments.Pager, error) {
 	const funcName = "Document.GetPage"
 	if pageNumber < 0 {
@@ -966,6 +1004,7 @@ func (d *Document) GetPage(pageNumber int) (segments.Pager, error) {
 	}
 	return page, nil
 }
+
 func (d *Document) AddGenericPage(bm *bitmap.Bitmap, duplicateLineRemoval bool) (err error) {
 	const funcName = "Document.AddGenericPage"
 	if !d.FullHeaders && d.NumberOfPages != 0 {
@@ -984,6 +1023,7 @@ func (d *Document) AddGenericPage(bm *bitmap.Bitmap, duplicateLineRemoval bool) 
 	}
 	return nil
 }
+
 func (p *Page) getPageInformationSegment() *segments.Header {
 	for _, seg := range p.Segments {
 		if seg.Type == segments.TPageInformation {

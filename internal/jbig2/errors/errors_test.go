@@ -2,9 +2,10 @@ package errors_test
 
 import (
 	"errors"
-	jerrors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
 	"strings"
 	"testing"
+
+	jerrors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
 )
 
 func TestWrapRetainsCause(t *testing.T) {

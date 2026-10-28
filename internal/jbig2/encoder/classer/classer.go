@@ -4,16 +4,19 @@
 package classer
 
 import (
+	"image"
+	"math"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/jbig2/basic"
 	"github.com/OpenMellon/openpdf/internal/jbig2/bitmap"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
-	"image"
-	"math"
 )
 
-var TwoByTwoWalk = []int{0, 0, 0, 1, -1, 0, 0, -1, 1, 0, -1, 1, 1, 1, -1, -1, 1, -1, 0, -2, 2, 0, 0, 2, -2, 0, -1, -2, 1, -2, 2, -1, 2, 1, 1, 2, -1, 2, -2, 1, -2, -1, -2, -2, 2, -2, 2, 2, -2, 2}
-var debugCorrelation bool
+var (
+	TwoByTwoWalk     = []int{0, 0, 0, 1, -1, 0, 0, -1, 1, 0, -1, 1, 1, 1, -1, -1, 1, -1, 0, -2, 2, 0, 0, 2, -2, 0, -1, -2, 1, -2, 2, -1, 2, 1, 1, 2, -1, 2, -2, 1, -2, -1, -2, -2, 2, -2, 2, 2, -2, 2}
+	debugCorrelation bool
+)
 
 const (
 	MaxDiffWidth  = 2
@@ -106,6 +109,7 @@ func (c *Classer) classifyRankHaus(boxes *bitmap.Boxes, comps *bitmap.Bitmaps, p
 	}
 	return nil
 }
+
 func finalAlignmentPositioning(src *bitmap.Bitmap, x, y, shiftX, shiftY int, tmpl *bitmap.Bitmap) (pt image.Point, err error) {
 	const funcName = "finalAlignmentPositioning"
 	if src == nil {
@@ -154,6 +158,7 @@ func finalAlignmentPositioning(src *bitmap.Bitmap, x, y, shiftX, shiftY int, tmp
 	pt.Y = bestDy
 	return pt, nil
 }
+
 func newSimilarTemplatesFinder(c *Classer, bm *bitmap.Bitmap) *similarTemplatesFinder {
 	return &similarTemplatesFinder{Width: bm.Width, Height: bm.Height, Classer: c}
 }
@@ -180,6 +185,7 @@ func (c *Classer) AddPage(inputPage *bitmap.Bitmap, pageNumber int, method Metho
 	}
 	return nil
 }
+
 func (c *Classer) classifyCorrelation(boxes *bitmap.Boxes, comps *bitmap.Bitmaps, pageNumber int) error {
 	const funcName = "classifyCorrelation"
 	if boxes == nil {
@@ -439,6 +445,7 @@ func (f *similarTemplatesFinder) Next() int {
 		f.CurrentNumbers = nil
 	}
 }
+
 func (c *Classer) addPageComponents(page *bitmap.Bitmap, boxes *bitmap.Boxes, comps *bitmap.Bitmaps, pageNumber int, method Method) error {
 	const funcName = "Classer.AddPageComponents"
 	if page == nil {
@@ -600,6 +607,7 @@ func (s Settings) Validate() error {
 	}
 	return nil
 }
+
 func (c *Classer) classifyRankHouseNonOne(boxes *bitmap.Boxes, comps, borderedComps, dilatedComps *bitmap.Bitmaps, centroids *bitmap.Points, fgCounts *basic.NumSlice, pageNumber int) (err error) {
 	const funcName = "Classer.classifyRankHouseOne"
 	var (
@@ -699,6 +707,7 @@ func (c *Classer) classifyRankHouseNonOne(boxes *bitmap.Boxes, comps, borderedCo
 	c.NumberOfClasses = len(c.UndilatedTemplates.Values)
 	return nil
 }
+
 func Init(settings Settings) (*Classer, error) {
 	const funcName = "classer.Init"
 	c := &Classer{Settings: settings, Widths: map[int]int{}, Heights: map[int]int{}, TemplatesSize: basic.IntsMap{}, TemplateAreas: &basic.IntSlice{}, ComponentPageNumbers: &basic.IntSlice{}, ClassIDs: &basic.IntSlice{}, ComponentsNumber: &basic.IntSlice{}, CentroidPoints: &bitmap.Points{}, CentroidPointsTemplates: &bitmap.Points{}, UndilatedTemplates: &bitmap.Bitmaps{}, DilatedTemplates: &bitmap.Bitmaps{}, ClassInstances: &bitmap.BitmapsArray{}, FgTemplates: &basic.NumSlice{}}
@@ -707,12 +716,14 @@ func Init(settings Settings) (*Classer, error) {
 	}
 	return c, nil
 }
+
 func (c *Classer) verifyMethod(method Method) error {
 	if method != RankHaus && method != Correlation {
 		return jbig2errors.Error("verifyMethod", "invalid classer method")
 	}
 	return nil
 }
+
 func (c *Classer) getULCorners(page *bitmap.Bitmap, boxes *bitmap.Boxes) error {
 	const funcName = "getULCorners"
 	if page == nil {

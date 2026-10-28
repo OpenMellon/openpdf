@@ -1,8 +1,9 @@
 package precision_test
 
 import (
-	"github.com/OpenMellon/openpdf/internal/precision"
 	"testing"
+
+	"github.com/OpenMellon/openpdf/internal/precision"
 )
 
 func TestRoundFloat(t *testing.T) {

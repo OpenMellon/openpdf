@@ -9,6 +9,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"math"
+	"strings"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/core"
@@ -18,8 +21,6 @@ import (
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/unitype"
 	"golang.org/x/image/draw"
-	"math"
-	"strings"
 )
 
 // Optimize optimizes PDF objects to decrease PDF size.
@@ -228,6 +229,7 @@ type Chain struct{ optimizers []model.Optimizer }
 // an object list, while linearization is a write-strategy decision), so
 // this function does not implement that interface.
 func Linearize(w *model.PdfWriter) { w.SetLinearized(true) }
+
 func collectUnusedResources(objects []core.PdfObject) (map[core.PdfObject]struct{}, error) {
 	structure := findObjectStructure(objects)
 	pages := structure.pageObjects
@@ -401,6 +403,7 @@ func contentStreamString(obj core.PdfObject) (string, error) {
 
 // GetOptimizers gets the list of optimizers in chain `c`.
 func (c *Chain) GetOptimizers() []model.Optimizer { return c.optimizers }
+
 func scaleImage(img *model.Image, scale float64) (*model.Image, error) {
 	goImg, err := img.ToGoImage()
 	if err != nil {
@@ -434,7 +437,6 @@ func scaleImage(img *model.Image, scale float64) (*model.Image, error) {
 
 // CleanFonts cleans up embedded fonts, reducing font sizes.
 type CleanFonts struct {
-
 	// Subset embedded fonts if encountered (if true).
 	// Otherwise attempts to reduce the font program.
 	Subset bool
@@ -510,6 +512,7 @@ func (c *Chain) Optimize(objects []core.PdfObject) (result []core.PdfObject, err
 	}
 	return current, nil
 }
+
 func pageResourceNames(pages []*core.PdfIndirectObject) map[string][]string {
 	used := map[string][]string{}
 	for _, page := range pages {
@@ -573,6 +576,7 @@ func pageResourceNames(pages []*core.PdfIndirectObject) map[string][]string {
 	}
 	return used
 }
+
 func cleanContentStream(stream *core.PdfObjectStream) error {
 	data, err := core.DecodeStream(stream)
 	if err != nil {
@@ -665,6 +669,7 @@ func (o *CleanFonts) Optimize(objects []core.PdfObject) (result []core.PdfObject
 	}
 	return objects, nil
 }
+
 func applyImageModifications(xobj *model.XObjectImage, mods imageModifications) error {
 	img, err := xobj.ToImage()
 	if err != nil {
@@ -844,6 +849,7 @@ func cleanOperations(ops *contentstream.ContentStreamOperations) *contentstream.
 	}
 	return &result
 }
+
 func findObjectStructure(objects []core.PdfObject) objectStructure {
 	structure := objectStructure{}
 	found := false
@@ -1058,6 +1064,7 @@ func (o *CleanUnusedResources) Optimize(objects []core.PdfObject) (result []core
 	}
 	return kept, nil
 }
+
 func markReachable(obj core.PdfObject, visited map[core.PdfObject]struct{}) error {
 	if ind, ok := obj.(*core.PdfIndirectObject); ok {
 		visited[obj] = struct{}{}
@@ -1108,6 +1115,7 @@ func markReachable(obj core.PdfObject, visited map[core.PdfObject]struct{}) erro
 	}
 	return nil
 }
+
 func decodeContents(obj core.PdfObject) (text string, objs []core.PdfObject) {
 	var buf bytes.Buffer
 	switch typed := obj.(type) {
@@ -1134,6 +1142,7 @@ func decodeContents(obj core.PdfObject) (text string, objs []core.PdfObject) {
 	}
 	return buf.String(), objs
 }
+
 func subsetFont(stream *core.PdfObjectStream, runes []rune, glyphs []unitype.GlyphIndex) error {
 	stream, ok := core.GetStream(stream)
 	if !ok {
@@ -1405,6 +1414,7 @@ func (o *CombineIdenticalIndirectObjects) Optimize(objects []core.PdfObject) (re
 func (c *Chain) Append(optimizers ...model.Optimizer) {
 	c.optimizers = append(c.optimizers, optimizers...)
 }
+
 func dictKeyStrings(dict *core.PdfObjectDictionary) []string {
 	keys := []string{}
 	for _, key := range dict.Keys() {
@@ -1445,6 +1455,7 @@ func (o *CompressStreams) Optimize(objects []core.PdfObject) (result []core.PdfO
 	}
 	return result, nil
 }
+
 func renumberObjects(objects []core.PdfObject) {
 	for i, obj := range objects {
 		switch typed := obj.(type) {

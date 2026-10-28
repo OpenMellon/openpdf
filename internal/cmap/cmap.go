@@ -9,15 +9,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/cmap/bcmaps"
 	"io"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"unicode/utf16"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/internal/cmap/bcmaps"
 )
 
 func (cmap *CMap) parseName() error {
@@ -188,6 +189,7 @@ func (cmap *CMap) parseSystemInfo() error {
 	cmap.systemInfo = info
 	return nil
 }
+
 func (p *cMapParser) parseHexString() (cmapHexString, error) {
 	p.reader.ReadByte()
 	hexChars := []byte("0123456789abcdefABCDEF")
@@ -286,6 +288,7 @@ func (cmap *CMap) BytesToCharcodes(data []byte) ([]CharCode, bool) {
 	}
 	return codes, true
 }
+
 func newCMap(isSimple bool) *CMap {
 	nbits := 16
 	if isSimple {
@@ -293,6 +296,7 @@ func newCMap(isSimple bool) *CMap {
 	}
 	return &CMap{nbits: nbits, codeToCID: make(map[CharCode]CharCode), cidToCode: make(map[CharCode]CharCode), codeToUnicode: make(map[CharCode]string), unicodeToCode: make(map[string]CharCode)}
 }
+
 func (p *cMapParser) parseName() (cmapName, error) {
 	name := ""
 	started := false
@@ -336,6 +340,7 @@ func (p *cMapParser) parseName() (cmapName, error) {
 	}
 	return cmapName{name}, nil
 }
+
 func encodeHexString(s string) string {
 	runes := []rune(s)
 	parts := make([]string, len(runes))
@@ -381,6 +386,7 @@ func (p *cMapParser) parseNumber() (cmapObject, error) {
 	}
 	return nil, fmt.Errorf("unhandled number type %T", obj)
 }
+
 func (cmap *CMap) parseBfchar() error {
 	for {
 		o, err := cmap.parseObject()
@@ -430,6 +436,7 @@ func (cmap *CMap) parseBfchar() error {
 	}
 	return nil
 }
+
 func (cmap *CMap) parseWMode() error {
 	var wmode int
 	done := false
@@ -467,12 +474,14 @@ func (cmap *CMap) Bytes() []byte {
 	cmap.rawBytes = []byte(strings.Join([]string{cmapHeader, cmap.toBfData(), cmapFooter}, "\n"))
 	return cmap.rawBytes
 }
+
 func newCMapParser(data []byte) *cMapParser {
 	p := cMapParser{}
 	buf := bytes.NewBuffer(data)
 	p.reader = bufio.NewReader(buf)
 	return &p
 }
+
 func loadBuiltinCMap(name string) (*CMap, error) {
 	data, err := bcmaps.Asset(name)
 	if err != nil {
@@ -550,6 +559,7 @@ func (cmap *CMap) parseCIDRange() error {
 	}
 	return nil
 }
+
 func LoadPredefinedCMap(name string) (*CMap, error) {
 	cmap, err := loadBuiltinCMap(name)
 	if err != nil {
@@ -571,6 +581,7 @@ func LoadPredefinedCMap(name string) (*CMap, error) {
 	cmap.inverseBuilt = false
 	return cmap, nil
 }
+
 func (p *cMapParser) parseDict() (cmapDict, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Reading PDF Dict!")
@@ -684,6 +695,7 @@ func (cmap *CMap) toBfData() string {
 	}
 	return strings.Join(lines, "\n")
 }
+
 func (cmap *CMap) parseCodespaceRange() error {
 	for {
 		o, err := cmap.parseObject()
@@ -735,6 +747,7 @@ func (cmap *CMap) parseCodespaceRange() error {
 	}
 	return nil
 }
+
 func (cmap *CMap) CharcodeToUnicode(code CharCode) (string, bool) {
 	if s, ok := cmap.codeToUnicode[code]; ok {
 		return s, true
@@ -759,6 +772,7 @@ func hexToRunes(h cmapHexString) []rune {
 	runes := utf16.Decode(u16)
 	return runes
 }
+
 func hexToCharCode(h cmapHexString) CharCode {
 	code := CharCode(0)
 	for _, b := range h.data {
@@ -769,11 +783,13 @@ func hexToCharCode(h cmapHexString) CharCode {
 }
 func IsPredefinedCMap(name string) bool { return bcmaps.AssetExists(name) }
 
-type cMapParser struct{ reader *bufio.Reader }
-type cmapHexString struct {
-	numBytes int
-	data     []byte
-}
+type (
+	cMapParser    struct{ reader *bufio.Reader }
+	cmapHexString struct {
+		numBytes int
+		data     []byte
+	}
+)
 
 func minInt(a, b int) int {
 	if a < b {
@@ -795,6 +811,7 @@ func (cmap *CMap) Stream() (*core.PdfObjectStream, error) {
 	cmap.stream = stream
 	return cmap.stream, nil
 }
+
 func (cmap *CMap) CIDToCharcode(cid CharCode) (CharCode, bool) {
 	cmap.ensureInverseMappings()
 	code, ok := cmap.cidToCode[cid]
@@ -852,6 +869,7 @@ func (p *cMapParser) skipSpaces() (int, error) {
 	}
 	return n, nil
 }
+
 func (cmap *CMap) parseVersion() error {
 	version := ""
 	done := false
@@ -882,6 +900,7 @@ func (cmap *CMap) parseVersion() error {
 	cmap.version = version
 	return nil
 }
+
 func (cmap *CMap) inCodespace(code CharCode, nBytes int) bool {
 	for _, cs := range cmap.codespaces {
 		if cs.Low <= code && code <= cs.High && nBytes == cs.NumBytes {
@@ -890,6 +909,7 @@ func (cmap *CMap) inCodespace(code CharCode, nBytes int) bool {
 	}
 	return false
 }
+
 func (cmap *CMap) parseBfrange() error {
 	for {
 		var low CharCode
@@ -975,6 +995,7 @@ func (cmap *CMap) parseBfrange() error {
 	}
 	return nil
 }
+
 func NewCIDSystemInfo(obj core.PdfObject) (info CIDSystemInfo, err error) {
 	dict, ok := core.GetDict(obj)
 	if !ok {
@@ -1080,6 +1101,7 @@ func (cmap *CMap) parse() error {
 	}
 	return nil
 }
+
 func (cmap *CMap) parseType() error {
 	typ := 0
 	done := false
@@ -1104,6 +1126,7 @@ func (cmap *CMap) parseType() error {
 	cmap.ctype = typ
 	return nil
 }
+
 func (cmap *CMap) MergeCodeToUnicode(m map[CharCode]string, overwrite bool) {
 	if len(m) == 0 {
 		return
@@ -1129,9 +1152,11 @@ func (cmap *CMap) MergeCodeToUnicode(m map[CharCode]string, overwrite bool) {
 	cmap.rawBytes = nil
 	cmap.stream = nil
 }
+
 func (info *CIDSystemInfo) String() string {
 	return fmt.Sprintf("%s-%s-%03d", info.Registry, info.Ordering, info.Supplement)
 }
+
 func (p *cMapParser) parseOperand() (cmapOperand, error) {
 	op := cmapOperand{}
 	buf := bytes.Buffer{}
@@ -1158,6 +1183,7 @@ func (p *cMapParser) parseOperand() (cmapOperand, error) {
 	op.Operand = buf.String()
 	return op, nil
 }
+
 func hexToRune(h cmapHexString) rune {
 	runes := hexToRunes(h)
 	if n := len(runes); n == 0 {
@@ -1201,17 +1227,20 @@ func (cmap *CMap) ensureInverseMappings() {
 	sort.Slice(cmap.codespaces, func(i, j int) bool { return cmap.codespaces[i].Low < cmap.codespaces[j].Low })
 	cmap.inverseBuilt = true
 }
+
 func (cmap *CMap) CharcodeToCID(code CharCode) (CharCode, bool) {
 	cid, ok := cmap.codeToCID[code]
 	return cid, ok
 }
 
-type cmapObject interface{}
-type cmapOperand struct{ Operand string }
-type integer struct {
-	set bool
-	val int
-}
+type (
+	cmapObject  interface{}
+	cmapOperand struct{ Operand string }
+	integer     struct {
+		set bool
+		val int
+	}
+)
 
 func (cmap *CMap) CharcodeBytesToUnicode(data []byte) (string, int) {
 	codes, ok := cmap.BytesToCharcodes(data)
@@ -1235,11 +1264,13 @@ func (cmap *CMap) CharcodeBytesToUnicode(data []byte) (string, int) {
 	}
 	return result, len(missing)
 }
+
 func (cmap *CMap) StringToCID(s string) (CharCode, bool) {
 	cmap.ensureInverseMappings()
 	code, ok := cmap.unicodeToCode[s]
 	return code, ok
 }
+
 func (p *cMapParser) parseComment() (string, error) {
 	var buf bytes.Buffer
 	_, err := p.skipSpaces()
@@ -1266,6 +1297,7 @@ func (p *cMapParser) parseComment() (string, error) {
 	}
 	return buf.String(), nil
 }
+
 func (cmap *CMap) String() string {
 	info := cmap.systemInfo
 	parts := []string{fmt.Sprintf("nbits:%d", cmap.nbits), fmt.Sprintf("type:%d", cmap.ctype)}

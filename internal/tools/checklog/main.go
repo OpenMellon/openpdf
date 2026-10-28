@@ -24,6 +24,7 @@ type finding struct {
 func (f finding) String() string {
 	return fmt.Sprintf("%s:%d:%d: unguarded common.Log.%s in for-loop body", f.pos.Filename, f.pos.Line, f.pos.Column, f.method)
 }
+
 func (c *fileCtx) hasName(name string) bool {
 	for _, n := range c.names {
 		if n == name {
@@ -54,6 +55,7 @@ func inLoopBody(stack []ast.Node) bool {
 	}
 	return false
 }
+
 func newFileCtx(file *ast.File) fileCtx {
 	var ctx fileCtx
 	for _, imp := range file.Imports {
@@ -73,6 +75,7 @@ func newFileCtx(file *ast.File) fileCtx {
 	}
 	return ctx
 }
+
 func logCallMethod(call *ast.CallExpr, ctx *fileCtx) (string, bool) {
 	if len(call.Args) < 2 {
 		return "", false
@@ -90,6 +93,7 @@ func logCallMethod(call *ast.CallExpr, ctx *fileCtx) (string, bool) {
 	}
 	return method, true
 }
+
 func checkFile(fset *token.FileSet, file *ast.File) []finding {
 	ctx := newFileCtx(file)
 	if len(ctx.names) == 0 && !ctx.dotImport {
@@ -123,6 +127,7 @@ func checkFile(fset *token.FileSet, file *ast.File) []finding {
 	})
 	return findings
 }
+
 func main() {
 	flag.Parse()
 	root := "."
@@ -173,6 +178,7 @@ func main() {
 		os.Exit(1)
 	}
 }
+
 func isCommonLog(expr ast.Expr, ctx *fileCtx) bool {
 	switch e := expr.(type) {
 	case *ast.SelectorExpr:

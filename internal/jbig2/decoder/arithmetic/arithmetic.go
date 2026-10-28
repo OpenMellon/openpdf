@@ -5,11 +5,12 @@ package arithmetic
 
 import (
 	"fmt"
+	"io"
+	"strings"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/bitwise"
 	jbig2internal "github.com/OpenMellon/openpdf/internal/jbig2/internal"
-	"io"
-	"strings"
 )
 
 func (s *DecoderStats) String() string {
@@ -22,6 +23,7 @@ func (s *DecoderStats) String() string {
 	}
 	return sb.String()
 }
+
 func New(r *bitwise.Reader) (*Decoder, error) {
 	d := &Decoder{reader: r, ContextSize: []uint32{16, 13, 10, 10}, ReferedToContextSize: []uint32{13, 10}}
 	if err := d.init(); err != nil {
@@ -29,6 +31,7 @@ func New(r *bitwise.Reader) (*Decoder, error) {
 	}
 	return d, nil
 }
+
 func (d *Decoder) DecodeInt(stats *DecoderStats) (int32, error) {
 	var (
 		value, offset    int32
@@ -105,6 +108,7 @@ func (d *Decoder) DecodeInt(stats *DecoderStats) (int32, error) {
 	}
 	return 0, jbig2internal.ErrOOB
 }
+
 func (d *Decoder) mpsExchange(stats *DecoderStats, index int32) int {
 	mps := stats.mps[stats.index]
 	if d.a < qeTable[index][0] {
@@ -118,9 +122,7 @@ func (d *Decoder) mpsExchange(stats *DecoderStats, index int32) int {
 	return int(mps)
 }
 
-var (
-	qeTable = [][4]uint32{{0x5601, 1, 1, 1}, {0x3401, 2, 6, 0}, {0x1801, 3, 9, 0}, {0x0AC1, 4, 12, 0}, {0x0521, 5, 29, 0}, {0x0221, 38, 33, 0}, {0x5601, 7, 6, 1}, {0x5401, 8, 14, 0}, {0x4801, 9, 14, 0}, {0x3801, 10, 14, 0}, {0x3001, 11, 17, 0}, {0x2401, 12, 18, 0}, {0x1C01, 13, 20, 0}, {0x1601, 29, 21, 0}, {0x5601, 15, 14, 1}, {0x5401, 16, 14, 0}, {0x5101, 17, 15, 0}, {0x4801, 18, 16, 0}, {0x3801, 19, 17, 0}, {0x3401, 20, 18, 0}, {0x3001, 21, 19, 0}, {0x2801, 22, 19, 0}, {0x2401, 23, 20, 0}, {0x2201, 24, 21, 0}, {0x1C01, 25, 22, 0}, {0x1801, 26, 23, 0}, {0x1601, 27, 24, 0}, {0x1401, 28, 25, 0}, {0x1201, 29, 26, 0}, {0x1101, 30, 27, 0}, {0x0AC1, 31, 28, 0}, {0x09C1, 32, 29, 0}, {0x08A1, 33, 30, 0}, {0x0521, 34, 31, 0}, {0x0441, 35, 32, 0}, {0x02A1, 36, 33, 0}, {0x0221, 37, 34, 0}, {0x0141, 38, 35, 0}, {0x0111, 39, 36, 0}, {0x0085, 40, 37, 0}, {0x0049, 41, 38, 0}, {0x0025, 42, 39, 0}, {0x0015, 43, 40, 0}, {0x0009, 44, 41, 0}, {0x0005, 45, 42, 0}, {0x0001, 45, 43, 0}, {0x5601, 46, 46, 0}}
-)
+var qeTable = [][4]uint32{{0x5601, 1, 1, 1}, {0x3401, 2, 6, 0}, {0x1801, 3, 9, 0}, {0x0AC1, 4, 12, 0}, {0x0521, 5, 29, 0}, {0x0221, 38, 33, 0}, {0x5601, 7, 6, 1}, {0x5401, 8, 14, 0}, {0x4801, 9, 14, 0}, {0x3801, 10, 14, 0}, {0x3001, 11, 17, 0}, {0x2401, 12, 18, 0}, {0x1C01, 13, 20, 0}, {0x1601, 29, 21, 0}, {0x5601, 15, 14, 1}, {0x5401, 16, 14, 0}, {0x5101, 17, 15, 0}, {0x4801, 18, 16, 0}, {0x3801, 19, 17, 0}, {0x3401, 20, 18, 0}, {0x3001, 21, 19, 0}, {0x2801, 22, 19, 0}, {0x2401, 23, 20, 0}, {0x2201, 24, 21, 0}, {0x1C01, 25, 22, 0}, {0x1801, 26, 23, 0}, {0x1601, 27, 24, 0}, {0x1401, 28, 25, 0}, {0x1201, 29, 26, 0}, {0x1101, 30, 27, 0}, {0x0AC1, 31, 28, 0}, {0x09C1, 32, 29, 0}, {0x08A1, 33, 30, 0}, {0x0521, 34, 31, 0}, {0x0441, 35, 32, 0}, {0x02A1, 36, 33, 0}, {0x0221, 37, 34, 0}, {0x0141, 38, 35, 0}, {0x0111, 39, 36, 0}, {0x0085, 40, 37, 0}, {0x0049, 41, 38, 0}, {0x0025, 42, 39, 0}, {0x0015, 43, 40, 0}, {0x0009, 44, 41, 0}, {0x0005, 45, 42, 0}, {0x0001, 45, 43, 0}, {0x5601, 46, 46, 0}}
 
 func (s *DecoderStats) toggleMps() { s.mps[s.index] ^= 1 }
 func (d *Decoder) init() error {
@@ -141,6 +143,7 @@ func (d *Decoder) init() error {
 	d.bitsDecoded++
 	return nil
 }
+
 func (d *Decoder) DecodeIAID(codeLen uint64, stats *DecoderStats) (int64, error) {
 	d.prev = 1
 	var i uint64
@@ -155,6 +158,7 @@ func (d *Decoder) DecodeIAID(codeLen uint64, stats *DecoderStats) (int64, error)
 	result := d.prev - (1 << codeLen)
 	return result, nil
 }
+
 func (s *DecoderStats) Copy() *DecoderStats {
 	c := &DecoderStats{contextSize: s.contextSize, contexts: make([]byte, s.contextSize)}
 	copy(c.contexts, s.contexts)
@@ -175,12 +179,14 @@ func (d *Decoder) decodeIntBit(stats *DecoderStats) (int, error) {
 	}
 	return bit, nil
 }
+
 func (s *DecoderStats) Overwrite(dNew *DecoderStats) {
 	for i := 0; i < len(s.contexts); i++ {
 		s.contexts[i] = dNew.contexts[i]
 		s.mps[i] = dNew.mps[i]
 	}
 }
+
 func (d *Decoder) DecodeBit(stats *DecoderStats) (int, error) {
 	var (
 		bit   int
@@ -237,6 +243,7 @@ func (d *Decoder) lpsExchange(stats *DecoderStats, index int32, qe uint32) int {
 	d.a = qe
 	return int(1 - mps)
 }
+
 func (d *Decoder) readByte() error {
 	if d.reader.AbsolutePosition() > d.startPos {
 		if _, err := d.reader.Seek(-1, io.SeekCurrent); err != nil {
@@ -286,12 +293,14 @@ type DecoderStats struct {
 func NewStats(contextSize int32, index int32) *DecoderStats {
 	return &DecoderStats{index: index, contextSize: contextSize, contexts: make([]byte, contextSize), mps: make([]byte, contextSize)}
 }
+
 func (s *DecoderStats) Reset() {
 	for i := 0; i < len(s.contexts); i++ {
 		s.contexts[i] = 0
 		s.mps[i] = 0
 	}
 }
+
 func (d *Decoder) renormalize() error {
 	for {
 		if d.ct == 0 {

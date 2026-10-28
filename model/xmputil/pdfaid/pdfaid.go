@@ -5,12 +5,14 @@ package pdfaid
 
 import (
 	"fmt"
+
 	"github.com/OpenMellon/go-xmp/xmp"
 	"github.com/OpenMellon/openpdf/model/xmputil/pdfaextension"
 )
 
 // Namespaces implements xmp.Model interface.
 func (m *Model) Namespaces() xmp.NamespaceList { return xmp.NamespaceList{Namespace} }
+
 func init() {
 	xmp.Register(Namespace, xmp.XmpMetadata)
 	pdfaextension.RegisterSchema(Namespace, &Schema)

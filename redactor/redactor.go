@@ -6,6 +6,12 @@ package redactor
 import (
 	"errors"
 	"fmt"
+	"io"
+	"regexp"
+	"slices"
+	"sort"
+	"strings"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/core"
@@ -13,11 +19,6 @@ import (
 	"github.com/OpenMellon/openpdf/extractor"
 	"github.com/OpenMellon/openpdf/internal/textencoding"
 	"github.com/OpenMellon/openpdf/model"
-	"io"
-	"regexp"
-	"slices"
-	"sort"
-	"strings"
 )
 
 func (c *pageFormClones) rewireXObjects(xobjects *core.PdfObjectDictionary, orig, clone *core.PdfObjectStream, depth int, visiting map[*core.PdfObjectStream]bool) (*core.PdfObjectDictionary, bool) {
@@ -89,6 +90,7 @@ func (c *pageFormClones) rewireXObjects(xobjects *core.PdfObjectDictionary, orig
 	}
 	return out, changed
 }
+
 func markArrayText(marks *extractor.TextMarkArray) string {
 	text := ""
 	for _, mark := range marks.Elements() {
@@ -117,6 +119,7 @@ func groupByText(matches []*matchedIndex) []*targetMap {
 	}
 	return targets
 }
+
 func (r *Redactor) redactPage(ops *contentstream.ContentStreamOperations, res *model.PdfPageResources) ([]matchedBBox, *contentstream.ContentStreamOperations, []editFailure, []*editTarget, error) {
 	pageText, matchSets, newlines, err := findMatches(r.allTerms(), ops, res)
 	if err != nil {
@@ -226,6 +229,7 @@ const (
 func RedactRectanglePropsNew() *RectangleProps {
 	return &RectangleProps{FillColor: creator.ColorBlack, BorderWidth: 0.0, FillOpacity: 1.0}
 }
+
 func glyphAdvance(font *model.PdfFont, code textencoding.CharCode, ch string, mark extractor.TextMark) (float64, error) {
 	metrics, ok := font.GetCharMetrics(code)
 	if !ok {
@@ -261,6 +265,7 @@ func firstDirectObject(marks *extractor.TextMarkArray) (core.PdfObject, int) {
 	}
 	return obj, idx
 }
+
 func containedRanges(m *matchedIndex, ranges [][]int) (bool, [][]int) {
 	contained := [][]int{}
 	for _, r := range ranges {
@@ -270,6 +275,7 @@ func containedRanges(m *matchedIndex, ranges [][]int) (bool, [][]int) {
 	}
 	return len(contained) > 0, contained
 }
+
 func splitByTextObject(marks *extractor.TextMarkArray) []*extractor.TextMarkArray {
 	elems := marks.Elements()
 	n := len(elems)
@@ -307,6 +313,7 @@ func splitByTextObject(marks *extractor.TextMarkArray) []*extractor.TextMarkArra
 	}
 	return groups
 }
+
 func placeholdersToReplacements(phs []placeHolders) []replacement {
 	out := []replacement{}
 	for _, ph := range phs {
@@ -321,6 +328,7 @@ func placeholdersToReplacements(phs []placeHolders) []replacement {
 	sort.Slice(out, func(i, j int) bool { return out[i].off < out[j].off })
 	return out
 }
+
 func (m *regexMatcher) match(s string) ([]*matchedIndex, error) {
 	pattern := m.term.Pattern
 	if pattern == nil {
@@ -335,6 +343,7 @@ func (m *regexMatcher) match(s string) ([]*matchedIndex, error) {
 	}
 	return out, nil
 }
+
 func shallowCloneStream(src *core.PdfObjectStream) *core.PdfObjectStream {
 	dst := &core.PdfObjectStream{}
 	dst.PdfObjectDictionary = core.MakeDict()
@@ -344,6 +353,7 @@ func shallowCloneStream(src *core.PdfObjectStream) *core.PdfObjectStream {
 	dst.Stream = src.Stream
 	return dst
 }
+
 func newPageFormClones() *pageFormClones {
 	return &pageFormClones{clones: map[*core.PdfObjectStream]*core.PdfObjectStream{}, isClone: map[*core.PdfObjectStream]bool{}, privateDicts: map[*core.PdfObjectDictionary]bool{}, noRewire: map[formSearch]bool{}, rewired: map[*core.PdfObjectStream]bool{}}
 }
@@ -461,6 +471,7 @@ func rewriteFormStreams(edits []pageFormEdits) []RedactionFailure {
 	}
 	return failures
 }
+
 func nestedRanges(a, b targetMap) (bool, []int) {
 	contains := strings.Contains(a.text, b.text)
 	var nested []int
@@ -473,6 +484,7 @@ func nestedRanges(a, b targetMap) (bool, []int) {
 	}
 	return contains, nested
 }
+
 func (c *pageFormClones) privateDict(d *core.PdfObjectDictionary) *core.PdfObjectDictionary {
 	if c.privateDicts[d] {
 		return d
@@ -484,6 +496,7 @@ func (c *pageFormClones) privateDict(d *core.PdfObjectDictionary) *core.PdfObjec
 	c.privateDicts[dup] = true
 	return dup
 }
+
 func sameEdits(paints []formPaint) bool {
 	first := paints[0].target
 	keys := first.editKeys()
@@ -507,7 +520,6 @@ type matchedBBox struct {
 // RedactionFailure describes a matched term occurrence that could not be
 // verified as physically removed from the document content.
 type RedactionFailure struct {
-
 	// Page is the 1-based number of the page the term was matched on.
 	Page int
 
@@ -575,6 +587,7 @@ func rewriteTj(op *contentstream.ContentStreamOperation, obj core.PdfObject, spa
 	op.Operand = "TJ"
 	return nil
 }
+
 func buildTJArray(text string, repls []replacement, font *model.PdfFont) []core.PdfObject {
 	out := []core.PdfObject{}
 	pos := 0
@@ -603,6 +616,7 @@ func buildTJArray(text string, repls []replacement, font *model.PdfFont) []core.
 	}
 	return out
 }
+
 func spanAdjustment(marks *extractor.TextMarkArray, start, end int) (float64, error) {
 	obj, idx := firstDirectObject(marks)
 	if obj == nil {
@@ -631,6 +645,7 @@ func spanAdjustment(marks *extractor.TextMarkArray, start, end int) (float64, er
 	}
 	return tjAdjustment(total, mark.Tfs, mark.Th)
 }
+
 func indexAll(s, sub string) []int {
 	if len(sub) == 0 {
 		return nil
@@ -646,15 +661,18 @@ func indexAll(s, sub string) []int {
 	}
 	return out
 }
+
 func newRegexMatcher(term RedactionTerm) (*regexMatcher, error) {
 	return &regexMatcher{term: term}, nil
 }
+
 func spanFont(marks *extractor.TextMarkArray) *model.PdfFont {
 	_, idx := firstDirectObject(marks)
 	mark := marks.Elements()[idx]
 	font := mark.Font
 	return font
 }
+
 func splitAroundMatch(span localSpanMarks, marks *extractor.TextMarkArray, font *model.PdfFont, text, term string) ([]core.PdfObject, error) {
 	spanText := markArrayText(marks)
 	textLen := len(text)
@@ -696,6 +714,7 @@ func splitAroundMatch(span localSpanMarks, marks *extractor.TextMarkArray, font 
 	}
 	return out, nil
 }
+
 func removeRanges(t *targetMap, drop []int) {
 	var kept [][]int
 	for i, r := range t.ranges {
@@ -722,6 +741,7 @@ func splitOverlaps(ms []*matchedIndex, ranges [][]int) []*matchedIndex {
 	}
 	return out
 }
+
 func locateMatch(rng []int, marks *extractor.TextMarkArray, text string) (*extractor.TextMarkArray, matchedBBox, error) {
 	box := matchedBBox{}
 	start := rng[0]
@@ -742,6 +762,7 @@ func locateMatch(rng []int, marks *extractor.TextMarkArray, text string) (*extra
 	box = matchedBBox{text: text, box: bbox}
 	return sub, box, nil
 }
+
 func groupByTerm(spans []localSpanMarks) (map[string][]localSpanMarks, []string) {
 	byTerm := make(map[string][]localSpanMarks)
 	order := []string{}
@@ -756,6 +777,7 @@ func groupByTerm(spans []localSpanMarks) (map[string][]localSpanMarks, []string)
 	}
 	return byTerm, order
 }
+
 func applyEdits(targets []*editTarget, bySource map[core.PdfObject][]localSpanMarks, lookup targetOpLookup) []editFailure {
 	var failures []editFailure
 	for obj, spans := range bySource {
@@ -848,6 +870,7 @@ func expandQuoteOperator(ops *contentstream.ContentStreamOperations, operand str
 	*ops = out
 	return nil
 }
+
 func (t *editTarget) editKeys() []string {
 	keys := make([]string, 0, len(t.editedOps))
 	for i, op := range *t.ops {
@@ -857,6 +880,7 @@ func (t *editTarget) editKeys() []string {
 	}
 	return keys
 }
+
 func decodeOperand(obj core.PdfObject, font *model.PdfFont) ([]textencoding.CharCode, []string, error) {
 	b, ok := core.GetStringBytes(obj)
 	if !ok {
@@ -892,6 +916,7 @@ func (c *pageFormClones) unreferencedReason() string {
 	}
 	return "it is not referenced from the page resources other than possibly through " + strings.Join(reasons, " or ") + ", which were not followed"
 }
+
 func (r *Redactor) allTerms() []RedactionTerm {
 	out := make([]RedactionTerm, 0, len(r.opts.Terms)+len(r.extraTerms))
 	out = append(out, r.opts.Terms...)
@@ -917,6 +942,7 @@ func pruneNestedTargets(ts []*targetMap) {
 		}
 	}
 }
+
 func neighbourIndex(marks *extractor.TextMarkArray, i int) int {
 	elems := marks.Elements()
 	prev := i - 1
@@ -959,12 +985,14 @@ func (c *pageFormClones) current(s *core.PdfObjectStream) *core.PdfObjectStream 
 	}
 	return s
 }
+
 func normalizeNewlines(s string) (string, [][]int) {
 	re := regexp.MustCompile("\\n")
 	locs := re.FindAllStringIndex(s, -1)
 	out := re.ReplaceAllString(s, " ")
 	return out, locs
 }
+
 func verifyRedaction(terms []RedactionTerm, ops *contentstream.ContentStreamOperations, res *model.PdfPageResources) ([]editFailure, error) {
 	_, matchSets, _, err := findMatches(terms, ops, res)
 	if err != nil {
@@ -978,6 +1006,7 @@ func verifyRedaction(terms []RedactionTerm, ops *contentstream.ContentStreamOper
 	}
 	return failures, nil
 }
+
 func findPlaceholders(text string, spans []localSpanMarks) ([]placeHolders, error) {
 	prev := ""
 	out := []placeHolders{}
@@ -1150,6 +1179,7 @@ func (r *Redactor) Redact() error {
 	}
 	return nil
 }
+
 func tjAdjustment(advance, fontSize, hScale float64) (float64, error) {
 	scaled := fontSize * hScale / 100
 	if scaled == 0 {
@@ -1160,6 +1190,7 @@ func tjAdjustment(advance, fontSize, hScale float64) (float64, error) {
 	}
 	return -1000 * advance / scaled, nil
 }
+
 func decodeText(obj core.PdfObject, font *model.PdfFont) (string, error) {
 	_, strs, err := decodeOperand(obj, font)
 	if err != nil {
@@ -1195,6 +1226,7 @@ func reencodeStream(s *core.PdfObjectStream, ops *contentstream.ContentStreamOpe
 	s.PdfObjectDictionary.Set("Length", core.MakeInteger(int64(len(data))))
 	return nil
 }
+
 func failuresForSpans(spans []localSpanMarks, reason string) []editFailure {
 	_, terms := groupByTerm(spans)
 	out := make([]editFailure, 0, len(terms))
@@ -1294,10 +1326,12 @@ func (c *pageFormClones) cloneOf(s *core.PdfObjectStream) *core.PdfObjectStream 
 	c.privateDicts[clone.PdfObjectDictionary] = true
 	return clone
 }
+
 func operationString(op *contentstream.ContentStreamOperation) string {
 	ops := contentstream.ContentStreamOperations{op}
 	return ops.String()
 }
+
 func splitAroundRanges(m *matchedIndex, ranges [][]int) []*matchedIndex {
 	out := []*matchedIndex{}
 	base := m.start

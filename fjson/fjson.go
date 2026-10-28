@@ -6,11 +6,12 @@ package fjson
 
 import (
 	"encoding/json"
+	"io"
+	"os"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
-	"io"
-	"os"
 )
 
 // SetImage assign model.Image to a specific field identified by fieldName.

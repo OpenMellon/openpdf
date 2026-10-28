@@ -4,9 +4,10 @@
 package sampling
 
 import (
+	"io"
+
 	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"github.com/OpenMellon/openpdf/internal/imageutil"
-	"io"
 )
 
 func ResampleUint32(data []uint32, bitsPerInputSample int, bitsPerOutputSample int) []uint32 {
@@ -127,9 +128,11 @@ func (r *Reader) ReadSample() (uint32, error) {
 	}
 	return uint32(value), nil
 }
+
 func NewWriter(img imageutil.ImageBase) *Writer {
 	return &Writer{bits: bitwise.NewWriterMSB(img.Data), image: img, componentsRemaining: img.ColorComponents, paddedRows: img.BytesPerLine*8 != img.ColorComponents*img.BitsPerComponent*img.Width}
 }
+
 func (w *Writer) WriteSamples(samples []uint32) error {
 	for i := 0; i < len(samples); i++ {
 		if err := w.WriteSample(samples[i]); err != nil {
@@ -155,6 +158,7 @@ func (r *Reader) ReadSamples(samples []uint32) (err error) {
 	}
 	return nil
 }
+
 func (w *Writer) WriteSample(sample uint32) error {
 	if _, err := w.bits.WriteBits(uint64(sample), w.image.BitsPerComponent); err != nil {
 		return err
@@ -172,6 +176,7 @@ func (w *Writer) WriteSample(sample uint32) error {
 	}
 	return nil
 }
+
 func ResampleBytes(data []byte, bitsPerSample int) []uint32 {
 	var output []uint32
 	outputBitsRemaining := bitsPerSample

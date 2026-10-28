@@ -21,8 +21,10 @@ func encode(dst []byte, id UUID) {
 	hex.Encode(dst[24:], id[10:])
 }
 
-var Nil = zeroUUID
-var randomReader = rand.Reader
+var (
+	Nil          = zeroUUID
+	randomReader = rand.Reader
+)
 
 func MustUUID() UUID {
 	uuid, err := NewUUID()

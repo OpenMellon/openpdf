@@ -12,6 +12,13 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"image/color"
+	"math"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/core"
@@ -25,12 +32,6 @@ import (
 	"github.com/OpenMellon/openpdf/model/xmputil"
 	"github.com/OpenMellon/openpdf/model/xmputil/pdfaextension"
 	"github.com/adrg/sysfont"
-	"image/color"
-	"math"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func verifyFonts(r *model.CompliancePdfReader, std standardType, clause string) (violations []ViolatedRule) {
@@ -204,6 +205,7 @@ func verifyFonts(r *model.CompliancePdfReader, std standardType, clause string) 
 	}
 	return violations
 }
+
 func verifyLinearized(r *model.CompliancePdfReader, clause string) ViolatedRule {
 	if !r.IsLinearized() {
 		return noViolation
@@ -216,6 +218,7 @@ func verifyLinearized(r *model.CompliancePdfReader, clause string) ViolatedRule 
 
 // Conformance gets the PDF/A conformance.
 func (p *profile2) Conformance() string { return p.standard.conformance }
+
 func verifyCMapWMode(dict *core.PdfObjectDictionary, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap, clause string) ViolatedRule {
 	s := clause + ".3-4"
 	const (
@@ -273,7 +276,6 @@ func isRDFOrXMLName(name xml.Name) bool {
 
 // VerificationError is the PDF/A verification error structure, that contains all violated rules.
 type VerificationError struct {
-
 	// ViolatedRules are the rules that were violated during error verification.
 	ViolatedRules []ViolatedRule
 
@@ -322,6 +324,7 @@ func verifyEmbeddedFilesPDFA4(r *model.CompliancePdfReader) (violations []Violat
 
 // StandardName gets the name of the standard.
 func (p *profile2) StandardName() string { return fmt.Sprintf("PDF/A-2%s", p.standard.conformance) }
+
 func verifyCMapWModePDFA1(dict *core.PdfObjectDictionary, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap) ViolatedRule {
 	const (
 		ruleNo = "6.3.3-4"
@@ -471,6 +474,7 @@ func (p *profile1) ValidateStandard(r *model.CompliancePdfReader) error {
 	}
 	return nil
 }
+
 func resolveItemText(s string, contentKind xmpContentKind, ok bool) (string, bool) {
 	switch contentKind {
 	case xmpContentValue:
@@ -489,6 +493,7 @@ func NewProfile4(options *Profile4Options) *Profile4 {
 	setProfile4OptionDefaults(options)
 	return &Profile4{profile4{options: *options, standard: standard4()}}
 }
+
 func parseItemContent(dec *xml.Decoder, start xml.StartElement) (s string, contentKind xmpContentKind, err error) {
 	switch {
 	case start.Name.Space == rdfNamespace && start.Name.Local == "value":
@@ -510,6 +515,7 @@ func parseItemContent(dec *xml.Decoder, start xml.StartElement) (s string, conte
 func DefaultProfile1Options() *Profile1Options {
 	return &Profile1Options{Now: time.Now, Xmp: XmpOptions{MarshalIndent: "\t"}}
 }
+
 func extensionPropertyTypes(schemas []pdfaextension.Schema) map[string]map[string]xmpPropertyType {
 	propTypeBySByS := map[string]map[string]xmpPropertyType{}
 	for _, schema := range schemas {
@@ -582,6 +588,7 @@ func fixXObjects(doc *docutil.Document, part int) error {
 	}
 	return nil
 }
+
 func verifyContentStreamOperatorsPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	for _, page := range r.PageList {
 		contentStreams, err := page.GetContentStreams()
@@ -603,6 +610,7 @@ func verifyContentStreamOperatorsPDFA1(r *model.CompliancePdfReader) ViolatedRul
 func Validate(d *model.CompliancePdfReader, profile Profile) error {
 	return profile.ValidateStandard(d)
 }
+
 func verifyActionsPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_6_1_1, reported6_6_1_2 bool
 	allReported := func() bool { return reported6_6_1_1 && reported6_6_1_2 }
@@ -670,6 +678,7 @@ func verifyActionsPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRule
 	}
 	return violations
 }
+
 func firstOutputIntentDict(doc *docutil.Document) (*core.PdfObjectDictionary, bool) {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -684,6 +693,7 @@ func firstOutputIntentDict(doc *docutil.Document) (*core.PdfObjectDictionary, bo
 	}
 	return core.GetDict(outputIntentsArray.Get(0))
 }
+
 func fixInteractiveForm(doc *docutil.Document) error {
 	for _, object := range doc.Objects {
 		objectDict, ok := core.GetDict(object)
@@ -714,6 +724,7 @@ func fixInteractiveForm(doc *docutil.Document) error {
 	}
 	return nil
 }
+
 func newColorspaceOptimizers(cmykDefault bool, std standardType) (pageColorspaceOptimizeFunc, documentColorspaceOptimizeFunc) {
 	var hasRGB, hasGray, hasCMYK bool
 	optimizePage := func(doc *docutil.Document, page *docutil.Page, imgs []*docutil.Image) error {
@@ -879,6 +890,7 @@ func newColorspaceOptimizers(cmykDefault bool, std standardType) (pageColorspace
 	}
 	return optimizePage, optimizeDocument
 }
+
 func verifySymbolicTrueTypeEncoding(font *model.PdfFont, dict *core.PdfObjectDictionary, clause string) ViolatedRule {
 	s := clause + ".6-3"
 	const (
@@ -907,6 +919,7 @@ func verifySymbolicTrueTypeEncoding(font *model.PdfFont, dict *core.PdfObjectDic
 	}
 	return noViolation
 }
+
 func verifyCIDSetPDFA1(font *model.PdfFont, dict *core.PdfObjectDictionary) ViolatedRule {
 	const (
 		ruleNo = "6.3.5-3"
@@ -930,6 +943,7 @@ func verifyCIDSetPDFA1(font *model.PdfFont, dict *core.PdfObjectDictionary) Viol
 
 // StandardName gets the name of the standard.
 func (p *profile1) StandardName() string { return fmt.Sprintf("PDF/A-1%s", p.standard.conformance) }
+
 func verifyHeaderPDFA4(r *model.CompliancePdfReader) ViolatedRule {
 	if r.ParserMetadata().HeaderPosition() != 0 {
 		return newViolatedRule("6.1.2-1", "header position is not at the first byte")
@@ -942,6 +956,7 @@ func verifyHeaderPDFA4(r *model.CompliancePdfReader) ViolatedRule {
 	}
 	return noViolation
 }
+
 func isResourceParseType(start xml.StartElement) bool {
 	for _, attr := range start.Attr {
 		if attr.Name.Space == rdfNamespace && attr.Name.Local == "parseType" && attr.Value == "Resource" {
@@ -956,7 +971,6 @@ func isResourceParseType(start xml.StartElement) bool {
 
 // Profile3Options are the options that changes the way how optimizer may try to adapt document into PDF/A standard.
 type Profile3Options struct {
-
 	// CMYKDefaultColorSpace is an option that refers PDF/A
 	CMYKDefaultColorSpace bool
 
@@ -1110,6 +1124,7 @@ func verifyAnnotationsPDFA1(r *model.CompliancePdfReader) (violations []Violated
 	}
 	return violations
 }
+
 func setLastModified(doc *docutil.Document, t time.Time) error {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -1160,6 +1175,7 @@ type profile1 struct {
 
 // StandardName gets the name of the standard.
 func (p *profile3) StandardName() string { return fmt.Sprintf("PDF/A-3%s", p.standard.conformance) }
+
 func verifyInfoMatchesXMP(info *model.PdfInfo, xmp *xmputil.Document) (violations []ViolatedRule) {
 	pdfInfo, ok := xmp.GetPdfInfo()
 	if !ok || pdfInfo.InfoDict == nil {
@@ -1176,6 +1192,7 @@ func verifyInfoMatchesXMP(info *model.PdfInfo, xmp *xmputil.Document) (violation
 	}
 	return violations
 }
+
 func verifyFormXObjectsPDFA1(r *model.CompliancePdfReader) (rule ViolatedRule) {
 	for _, n := range r.GetObjectNums() {
 		obj, err := r.GetIndirectObjectByNumber(n)
@@ -1227,6 +1244,7 @@ type Profile3B struct{ profile3 }
 
 // Conformance gets the PDF/A conformance.
 func (p *profile1) Conformance() string { return p.standard.conformance }
+
 func parseDescriptionProperties(dec *xml.Decoder) []xmpPropertyValue {
 	var props []xmpPropertyValue
 	for {
@@ -1313,6 +1331,7 @@ func verifyOutputIntentPDFA1(r *model.CompliancePdfReader) (violations []Violate
 	violations = append(violations, rule)
 	return violations
 }
+
 func verifyXObjectsPDFA23(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_2_8_1, reported6_2_9_1, reported6_2_9_1_2, reported6_2_9_2, reported6_2_8_3, reported6_2_9_3, reported6_2_8_2 bool
 	seen := map[*core.PdfObjectStream]struct{}{}
@@ -1394,6 +1413,7 @@ func verifyXObjectsPDFA23(r *model.CompliancePdfReader) (violations []ViolatedRu
 	}
 	return violations
 }
+
 func parseXMPProperties(data []byte) []xmpPropertyValue {
 	decoder := xml.NewDecoder(bytes.NewReader(data))
 	decoder.Strict = false
@@ -1419,6 +1439,7 @@ func parseXMPProperties(data []byte) []xmpPropertyValue {
 		props = append(props, parseDescriptionProperties(decoder)...)
 	}
 }
+
 func verifyInteractiveFormsPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	for _, n := range r.GetObjectNums() {
 		obj, err := r.GetIndirectObjectByNumber(n)
@@ -1446,6 +1467,7 @@ func verifyInteractiveFormsPDFA1(r *model.CompliancePdfReader) (violations []Vio
 	}
 	return violations
 }
+
 func verifyToUnicode(dict *core.PdfObjectDictionary, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap, clause string) ViolatedRule {
 	s := clause + ".7-1"
 	const (
@@ -1521,6 +1543,7 @@ func (p *profile4) ApplyStandard(document *docutil.Document) (err error) {
 	}
 	return nil
 }
+
 func validateXMPProperties(data []byte, schemas []pdfaextension.Schema, useOverrides bool) bool {
 	propTypeBySByS := extensionPropertyTypes(schemas)
 	for _, prop := range parseXMPProperties(data) {
@@ -1567,6 +1590,7 @@ func verifyFieldActionsPDFA23(r *model.CompliancePdfReader) (rule ViolatedRule) 
 	}
 	return noViolation
 }
+
 func substringBetween(s string, start string, end string) (string, bool) {
 	n := strings.Index(s, start)
 	if n == -1 {
@@ -1580,6 +1604,7 @@ func substringBetween(s string, start string, end string) (string, bool) {
 	count = n + count
 	return s[n:count], true
 }
+
 func verifyEmbeddedFilesPDFA3(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	objectNums := r.GetObjectNums()
 	for _, objectNum := range objectNums {
@@ -1615,6 +1640,7 @@ func verifyEmbeddedFilesPDFA3(r *model.CompliancePdfReader) (violations []Violat
 	}
 	return violations
 }
+
 func removeImageSoftMasks(doc *docutil.Document, page *docutil.Page, imgs []*docutil.Image) error {
 	for _, img := range imgs {
 		if img.SMask == nil {
@@ -1674,7 +1700,6 @@ func (p *profile4) Part() int { return p.standard.part }
 
 // XmpOptions are the options used by the optimization of the XMP metadata.
 type XmpOptions struct {
-
 	// Copyright information.
 	Copyright string
 
@@ -1779,6 +1804,7 @@ func verifyActionsPDFA4(r *model.CompliancePdfReader, std standardType) (violati
 	}
 	return violations
 }
+
 func removeAlternatePresentations(doc *docutil.Document) error {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -1869,11 +1895,13 @@ func updateXMPMetadata(doc *docutil.Document, std standardType, xmpOptions XmpOp
 	}
 	return nil
 }
+
 func setProfile4OptionDefaults(profile4Options *Profile4Options) {
 	if profile4Options.Now == nil {
 		profile4Options.Now = time.Now
 	}
 }
+
 func verifyColorspacesPDFA1(r *model.CompliancePdfReader, checkOutputIntents bool) (violations []ViolatedRule) {
 	var reportedUnused1, reportedUnused2, reported6_2_3_1, reported6_2_3_2, reported6_2_3_3, reported6_2_3_4, reported6_2_3_1_2 bool
 	allReported := func() bool {
@@ -2123,6 +2151,7 @@ func verifyColorspacesPDFA1(r *model.CompliancePdfReader, checkOutputIntents boo
 	}
 	return violations
 }
+
 func parseArrayItems(dec *xml.Decoder) (items []xmpArrayItem, ok bool, err error) {
 	for {
 		tok, err := dec.Token()
@@ -2154,6 +2183,7 @@ func parseArrayItems(dec *xml.Decoder) (items []xmpArrayItem, ok bool, err error
 		}
 	}
 }
+
 func convertContentStreamColors(res *model.PdfPageResources, ops *contentstream.ContentStreamOperations, cmykDefault bool) ([]byte, error) {
 	var changed bool
 	for _, op := range *ops {
@@ -2297,6 +2327,7 @@ func (p *profile2) Part() int { return p.standard.part }
 
 // Conformance gets the PDF/A conformance.
 func (p *profile3) Conformance() string { return p.standard.conformance }
+
 func verifyAnnotationsPDFA4(r *model.CompliancePdfReader, std standardType) (violations []ViolatedRule) {
 	var reported6_3_1_1, reported6_3_2_1, reported6_3_2_2, reported6_3_2_3, reported6_3_3_2, reported6_4_1_1, reported6_4_1_1_2 bool
 	allReported := func() bool {
@@ -2436,6 +2467,7 @@ func verifyAnnotationsPDFA4(r *model.CompliancePdfReader, std standardType) (vio
 	}
 	return violations
 }
+
 func verifyStreamsPDFA23(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_1_7_1, reported6_1_7_3, reported6_1_7_4 bool
 	if r.ParserMetadata().HasNonConformantStream() {
@@ -2562,6 +2594,7 @@ func verifyStreamsPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRule
 	}
 	return violations
 }
+
 func (s standardType) outputIntentSubtype() model.PdfOutputIntentType {
 	switch s.part {
 	case 1:
@@ -2576,6 +2609,7 @@ func (s standardType) outputIntentSubtype() model.PdfOutputIntentType {
 		return 0
 	}
 }
+
 func addCMYKOutputIntent(std standardType, intents *docutil.OutputIntents) error {
 	cmykIsoCoatedV2OutputIntent, err := colorprofile.NewCmykIsoCoatedV2OutputIntent(std.outputIntentSubtype())
 	if err != nil {
@@ -2586,6 +2620,7 @@ func addCMYKOutputIntent(std standardType, intents *docutil.OutputIntents) error
 	}
 	return nil
 }
+
 func ensureMinimumPDF2Version(doc *docutil.Document, minor int) {
 	if doc.Version.Major < 2 {
 		doc.Version.Major = 2
@@ -2595,6 +2630,7 @@ func ensureMinimumPDF2Version(doc *docutil.Document, minor int) {
 		doc.Version.Minor = minor
 	}
 }
+
 func verifyCMapsEmbedded(dict *core.PdfObjectDictionary, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap, clause string) ViolatedRule {
 	s := clause + ".3-3"
 	const (
@@ -2626,6 +2662,7 @@ func verifyCMapsEmbedded(dict *core.PdfObjectDictionary, streamData map[*core.Pd
 	}
 	return noViolation
 }
+
 func verifyHexStrings(r *model.CompliancePdfReader, clause string) (violations []ViolatedRule) {
 	if r.ParserMetadata().HasOddLengthHexStrings() {
 		violations = append(violations, newViolatedRule(clause+"-1", "hexadecimal strings should be of even size"))
@@ -2635,6 +2672,7 @@ func verifyHexStrings(r *model.CompliancePdfReader, clause string) (violations [
 	}
 	return violations
 }
+
 func verifySymbolicTrueTypeEncodingPDFA1(font *model.PdfFont, dict *core.PdfObjectDictionary) ViolatedRule {
 	const (
 		ruleNo = "6.3.7-2"
@@ -2667,7 +2705,6 @@ func (d *documentImages) hasOnlyDeviceCMYK() bool { return d.hasCMYK && !d.hasRG
 
 // Profile1Options are the options that changes the way how optimizer may try to adapt document into PDF/A standard.
 type Profile1Options struct {
-
 	// CMYKDefaultColorSpace is an option that refers PDF/A-1
 	CMYKDefaultColorSpace bool
 
@@ -2688,6 +2725,7 @@ func verifyCatalogAdditionalActionsPDFA1(r *model.CompliancePdfReader) (rule Vio
 	}
 	return noViolation
 }
+
 func verifyFormXObjectsPDFA23(r *model.CompliancePdfReader) (rule ViolatedRule) {
 	for _, n := range r.GetObjectNums() {
 		obj, err := r.GetIndirectObjectByNumber(n)
@@ -2816,6 +2854,7 @@ func (p *profile4) ValidateStandard(r *model.CompliancePdfReader) error {
 	}
 	return nil
 }
+
 func verifyEmbeddedFilesPDFA2(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	objectNums := r.GetObjectNums()
 	for _, objectNum := range objectNums {
@@ -2862,6 +2901,7 @@ func verifyEmbeddedFilesPDFA2(r *model.CompliancePdfReader) (violations []Violat
 
 // Conformance gets the PDF/A conformance.
 func (p *profile4) Conformance() string { return p.standard.conformance }
+
 func optimizeFormXObjectColors(doc *docutil.Document, cmykDefault bool) error {
 	pages, ok := doc.GetPages()
 	if !ok {
@@ -2953,6 +2993,7 @@ func propertyMatchesType(prop xmpPropertyValue, propType xmpPropertyType) bool {
 		return true
 	}
 }
+
 func firstOutputIntent(r *model.CompliancePdfReader) (*model.PdfOutputIntent, bool) {
 	dict, ok := firstOutputIntentDictFromReader(r)
 	if !ok {
@@ -2964,11 +3005,13 @@ func firstOutputIntent(r *model.CompliancePdfReader) (*model.PdfOutputIntent, bo
 	}
 	return outputIntent, true
 }
+
 func setProfile1OptionDefaults(profile1Options *Profile1Options) {
 	if profile1Options.Now == nil {
 		profile1Options.Now = time.Now
 	}
 }
+
 func verifyXrefSubsectionsPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	parserMetadata := r.ParserMetadata()
 	if parserMetadata.HasInvalidSubsectionHeader() {
@@ -3135,7 +3178,6 @@ func verifyContentStreamOperators(r *model.CompliancePdfReader) ViolatedRule {
 
 // Profile4Options are the options that changes the way how optimizer may try to adapt document into PDF/A standard.
 type Profile4Options struct {
-
 	// CMYKDefaultColorSpace is an option that refers PDF/A
 	CMYKDefaultColorSpace bool
 
@@ -3246,6 +3288,7 @@ func verifyFontDictionariesPDFA1(r *model.CompliancePdfReader) (violations []Vio
 	}
 	return violations
 }
+
 func verifyInteractiveFormsPDFA23(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	for _, n := range r.GetObjectNums() {
 		obj, err := r.GetIndirectObjectByNumber(n)
@@ -3277,6 +3320,7 @@ func verifyInteractiveFormsPDFA23(r *model.CompliancePdfReader) (violations []Vi
 	}
 	return violations
 }
+
 func verifyInteractiveFormsPDFA4(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	for _, n := range r.GetObjectNums() {
 		obj, err := r.GetIndirectObjectByNumber(n)
@@ -3308,6 +3352,7 @@ func verifyInteractiveFormsPDFA4(r *model.CompliancePdfReader) (violations []Vio
 	}
 	return violations
 }
+
 func verifyFontDictionaries(r *model.CompliancePdfReader, clause string) (violations []ViolatedRule) {
 	var reportedType, reportedSubtype, reportedBaseFont, reportedFirstChar, reportedLastChar, reportedWidths bool
 	allReported := func() bool {
@@ -3408,6 +3453,7 @@ func verifyFontDictionaries(r *model.CompliancePdfReader, clause string) (violat
 	}
 	return violations
 }
+
 func verifyXrefKeywordEOL(r *model.CompliancePdfReader) ViolatedRule {
 	parserMetadata := r.ParserMetadata()
 	if parserMetadata.HasInvalidSeparationAfterXRef() {
@@ -3415,6 +3461,7 @@ func verifyXrefKeywordEOL(r *model.CompliancePdfReader) ViolatedRule {
 	}
 	return noViolation
 }
+
 func verifyFieldActionsPDFA1(r *model.CompliancePdfReader) (rule ViolatedRule) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -3439,6 +3486,7 @@ func verifyFieldActionsPDFA1(r *model.CompliancePdfReader) (rule ViolatedRule) {
 	}
 	return noViolation
 }
+
 func verifyActionsPDFA23(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_5_1_1, reported6_5_1_2 bool
 	allReported := func() bool { return reported6_5_1_1 && reported6_5_1_2 }
@@ -3506,6 +3554,7 @@ func verifyActionsPDFA23(r *model.CompliancePdfReader) (violations []ViolatedRul
 	}
 	return violations
 }
+
 func verifyRequirements(r *model.CompliancePdfReader, clause string) (rule ViolatedRule) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -3516,6 +3565,7 @@ func verifyRequirements(r *model.CompliancePdfReader, clause string) (rule Viola
 	}
 	return noViolation
 }
+
 func verifyXObjectsPDFA4(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_2_7_1_1, reported6_2_8_1_1, reportedUnused2, reported6_2_8_2_1, reported6_2_7_1_3, reportedUnused1, reported6_2_7_1_2 bool
 	seen := map[*core.PdfObjectStream]struct{}{}
@@ -3687,6 +3737,7 @@ func (p *profile3) ValidateStandard(r *model.CompliancePdfReader) error {
 	}
 	return nil
 }
+
 func verifyColorspaces(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_2_4_3_4, reported6_2_4_3_2, reported6_2_4_3_3, reported6_2_4_2_1 bool
 	allReported := func() bool { return reported6_2_4_3_4 && reported6_2_4_3_2 && reported6_2_4_3_3 && reported6_2_4_2_1 }
@@ -3885,6 +3936,7 @@ func verifyColorspaces(r *model.CompliancePdfReader) (violations []ViolatedRule)
 	}
 	return violations
 }
+
 func convertImagesColorspace(imgs []*docutil.Image, cmykDefault bool) error {
 	detail := core.PdfObjectName("DeviceRGB")
 	if cmykDefault {
@@ -3934,6 +3986,7 @@ func convertImagesColorspace(imgs []*docutil.Image, cmykDefault bool) error {
 	}
 	return nil
 }
+
 func verifyMetadataPDFA23(r *model.CompliancePdfReader, std standardType, unused bool) (violations []ViolatedRule) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -4267,6 +4320,7 @@ func verifyFontsPDFA1(r *model.CompliancePdfReader, std standardType) (violation
 	}
 	return violations
 }
+
 func embedFonts(doc *docutil.Document) error {
 	dictByS := map[string]*core.PdfObjectDictionary{}
 	finder := sysfont.NewFinder(&sysfont.FinderOpts{Extensions: []string{".ttf", ".ttc"}})
@@ -4401,6 +4455,7 @@ func embedFonts(doc *docutil.Document) error {
 func DefaultProfile2Options() *Profile2Options {
 	return &Profile2Options{Now: time.Now, Xmp: XmpOptions{MarshalIndent: "\t"}}
 }
+
 func filterCatalogAdditionalActions(doc *docutil.Document) error {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -4446,6 +4501,7 @@ func ensureStructTreeRoot(doc *docutil.Document) error {
 	}
 	return nil
 }
+
 func verifyCIDToGIDMapPDFA1(dict *core.PdfObjectDictionary) ViolatedRule {
 	const (
 		ruleNo = "6.3.3-2"
@@ -4463,6 +4519,7 @@ func verifyCIDToGIDMapPDFA1(dict *core.PdfObjectDictionary) ViolatedRule {
 	}
 	return noViolation
 }
+
 func loadCMap(stream *core.PdfObjectStream, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap) (*cmap.CMap, error) {
 	cm, ok := cmaps[stream]
 	if !ok {
@@ -4490,6 +4547,7 @@ func standard3A() standardType { return standardType{part: 3, conformance: "A"} 
 func DefaultProfile3Options() *Profile3Options {
 	return &Profile3Options{Now: time.Now, Xmp: XmpOptions{MarshalIndent: "\t"}}
 }
+
 func verifyCatalogAdditionalActionsPDFA4(r *model.CompliancePdfReader) (rule ViolatedRule) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -4506,6 +4564,7 @@ func verifyCatalogAdditionalActionsPDFA4(r *model.CompliancePdfReader) (rule Vio
 	}
 	return noViolation
 }
+
 func verifyNonSymbolicTrueTypeEncodingPDFA1(font *model.PdfFont, dict *core.PdfObjectDictionary) ViolatedRule {
 	const (
 		ruleNo = "6.3.7-1"
@@ -4692,6 +4751,7 @@ func (p *profile2) ValidateStandard(r *model.CompliancePdfReader) error {
 	}
 	return nil
 }
+
 func updateInfoDates(doc *docutil.Document, now func() time.Time) error {
 	info, err := model.NewPdfInfoFromObject(doc.Info)
 	if err != nil {
@@ -4703,6 +4763,7 @@ func updateInfoDates(doc *docutil.Document, now func() time.Time) error {
 	doc.Info = info.ToPdfObject()
 	return nil
 }
+
 func addOutputIntent(std standardType, intents *docutil.OutputIntents) error {
 	isoCoatedV2Gray1CBasOutputIntent, err := colorprofile.NewISOCoatedV2Gray1CBasOutputIntent(std.outputIntentSubtype())
 	if err != nil {
@@ -4713,6 +4774,7 @@ func addOutputIntent(std standardType, intents *docutil.OutputIntents) error {
 	}
 	return nil
 }
+
 func catalogDict(r *model.CompliancePdfReader) (*core.PdfObjectDictionary, bool) {
 	trailer, err := r.GetTrailer()
 	if err != nil {
@@ -4731,6 +4793,7 @@ func catalogDict(r *model.CompliancePdfReader) (*core.PdfObjectDictionary, bool)
 	}
 	return refDict, true
 }
+
 func verifyCMapsEmbeddedPDFA1(dict *core.PdfObjectDictionary, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap) ViolatedRule {
 	const (
 		ruleNo = "6.3.3-3"
@@ -4762,6 +4825,7 @@ func verifyCMapsEmbeddedPDFA1(dict *core.PdfObjectDictionary, streamData map[*co
 	}
 	return noViolation
 }
+
 func firstOutputIntentDictFromReader(r *model.CompliancePdfReader) (*core.PdfObjectDictionary, bool) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -4779,11 +4843,13 @@ func firstOutputIntentDictFromReader(r *model.CompliancePdfReader) (*core.PdfObj
 
 // Profile1A is the implementation of the PDF/A-1A standard profile.
 // Implements model.StandardImplementer, Profile interfaces.
-type Profile1A struct{ profile1 }
-type colorspaceModification struct {
-	converter imageutil.ColorConverter
-	target    model.PdfColorspace
-}
+type (
+	Profile1A              struct{ profile1 }
+	colorspaceModification struct {
+		converter imageutil.ColorConverter
+		target    model.PdfColorspace
+	}
+)
 
 func verifyFiltersPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	for _, page := range r.PageList {
@@ -4838,6 +4904,7 @@ func verifyFiltersPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	}
 	return noViolation
 }
+
 func verifyOptionalContentPDFA4(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	checkConfigName := func(dict *core.PdfObjectDictionary, sList *[]string, rules *[]ViolatedRule) error {
 		name := dict.Get("Name")
@@ -4888,6 +4955,7 @@ func NewProfile2U(options *Profile2Options) *Profile2U {
 	setProfile2OptionDefaults(options)
 	return &Profile2U{profile2{options: *options, standard: standard2U()}}
 }
+
 func verifyCharSetPDFA1(font *model.PdfFont, dict *core.PdfObjectDictionary) ViolatedRule {
 	const (
 		ruleNo = "6.3.5-2"
@@ -4977,6 +5045,7 @@ func verifyStreamsPDFA4(r *model.CompliancePdfReader) (violations []ViolatedRule
 	}
 	return violations
 }
+
 func lookupPropertyType(prop xmpPropertyValue, propTypeBySByS map[string]map[string]xmpPropertyType, useOverrides bool) (xmpPropertyType, bool) {
 	if useOverrides {
 		if propTypeByS, ok := predefinedPropertyOverrides[prop.Namespace]; ok {
@@ -5104,6 +5173,7 @@ func verifyLogicalStructurePDFA23(r *model.CompliancePdfReader) (violations []Vi
 	}
 	return violations
 }
+
 func verifyXObjectSMaskPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	for _, n := range r.GetObjectNums() {
 		obj, err := r.GetIndirectObjectByNumber(n)
@@ -5127,6 +5197,7 @@ func verifyXObjectSMaskPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	}
 	return noViolation
 }
+
 func verifyCatalogAdditionalActionsPDFA23(r *model.CompliancePdfReader) (rule ViolatedRule) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -5137,6 +5208,7 @@ func verifyCatalogAdditionalActionsPDFA23(r *model.CompliancePdfReader) (rule Vi
 	}
 	return noViolation
 }
+
 func fixActionsPDFA4(doc *docutil.Document, std standardType) error {
 	for _, object := range doc.Objects {
 		objectDict, ok := core.GetDict(object)
@@ -5175,6 +5247,7 @@ func fixActionsPDFA4(doc *docutil.Document, std standardType) error {
 	}
 	return nil
 }
+
 func verifyTransparencyGroupPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	seen := map[*core.PdfObjectStream]struct{}{}
 	for _, page := range r.PageList {
@@ -5300,7 +5373,6 @@ func valueMatchesBaseType(s string, baseType xmpBaseType) bool {
 
 // Profile2Options are the options that changes the way how optimizer may try to adapt document into PDF/A standard.
 type Profile2Options struct {
-
 	// CMYKDefaultColorSpace is an option that refers PDF/A
 	CMYKDefaultColorSpace bool
 
@@ -5321,6 +5393,7 @@ func NewProfile1A(options *Profile1Options) *Profile1A {
 	setProfile1OptionDefaults(options)
 	return &Profile1A{profile1{options: *options, standard: standard1A()}}
 }
+
 func verifyCIDSystemInfoPDFA1(dict *core.PdfObjectDictionary, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap) ViolatedRule {
 	const (
 		detail = "For any given composite (Type 0) font referenced within a conforming file, the CIDSystemInfo entries of its CIDFont and CMap dictionaries shall be compatible. In other words, the Registry and Ordering strings of the CIDSystemInfo dictionaries for that font shall be identical, unless the value of the Encoding key in the font dictionary is Identity-H or Identity-V."
@@ -5363,6 +5436,7 @@ func verifyCIDSystemInfoPDFA1(dict *core.PdfObjectDictionary, streamData map[*co
 	}
 	return noViolation
 }
+
 func updateXMPMetadataPDFA4(doc *docutil.Document, std standardType, xmpOptions XmpOptions) error {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -5421,6 +5495,7 @@ func updateXMPMetadataPDFA4(doc *docutil.Document, std standardType, xmpOptions 
 	}
 	return nil
 }
+
 func skipElement(dec *xml.Decoder, depth int) error {
 	for {
 		tok, err := dec.Token()
@@ -5447,6 +5522,7 @@ func NewProfile3B(options *Profile3Options) *Profile3B {
 	setProfile3OptionDefaults(options)
 	return &Profile3B{profile3{options: *options, standard: standard3B()}}
 }
+
 func fixAnnotationsPDFA1(doc *docutil.Document) error {
 	pages, ok := doc.GetPages()
 	if !ok {
@@ -5516,6 +5592,7 @@ func fixAnnotationsPDFA1(doc *docutil.Document) error {
 	}
 	return nil
 }
+
 func verifyHeaderPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	if r.ParserMetadata().HeaderPosition() != 0 {
 		return newViolatedRule("6.1.2-1", "header position is not at the first byte")
@@ -5529,12 +5606,15 @@ func ensureDocumentID(doc *docutil.Document) {
 	}
 	doc.UseHashBasedID = true
 }
+
 func (s standardType) String() string {
 	return fmt.Sprintf("PDF/A-%d%s", s.part, s.conformance)
 }
+
 func verifyLinearizedPDFA23(r *model.CompliancePdfReader) ViolatedRule {
 	return verifyLinearized(r, "6.1.11")
 }
+
 func verifyHeaderBinaryComment(r *model.CompliancePdfReader) ViolatedRule {
 	bs := r.ParserMetadata().HeaderCommentBytes()
 	if bs[0] > 127 && bs[1] > 127 && bs[2] > 127 && bs[3] > 127 {
@@ -5616,6 +5696,7 @@ func fixAnnotationsPDFA23(doc *docutil.Document) error {
 	}
 	return nil
 }
+
 func convertPageContentColors(doc *docutil.Document, cmykDefault bool) error {
 	pages, ok := doc.GetPages()
 	if !ok {
@@ -5655,6 +5736,7 @@ func convertPageContentColors(doc *docutil.Document, cmykDefault bool) error {
 	}
 	return nil
 }
+
 func verifySymbolicTrueTypeCmapPDFA1(font *model.PdfFont, dict *core.PdfObjectDictionary) ViolatedRule {
 	const (
 		ruleNo = "6.3.7-3"
@@ -5679,6 +5761,7 @@ func verifySymbolicTrueTypeCmapPDFA1(font *model.PdfFont, dict *core.PdfObjectDi
 	}
 	return noViolation
 }
+
 func setMarkInfoMarked(doc *docutil.Document) {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -5765,6 +5848,7 @@ func setProfile2OptionDefaults(profile2Options *Profile2Options) {
 		profile2Options.Now = time.Now
 	}
 }
+
 func fixActions(doc *docutil.Document, part int) error {
 	for _, object := range doc.Objects {
 		objectDict, ok := core.GetDict(object)
@@ -5803,6 +5887,7 @@ func fixActions(doc *docutil.Document, part int) error {
 	}
 	return nil
 }
+
 func verifyFontEmbeddedPDFA1(font *model.PdfFont, dict *core.PdfObjectDictionary, invisibleText bool) ViolatedRule {
 	const (
 		ruleNo = "6.3.4-1"
@@ -5843,6 +5928,7 @@ func NewProfile1B(options *Profile1Options) *Profile1B {
 	setProfile1OptionDefaults(options)
 	return &Profile1B{profile1{options: *options, standard: standard1B()}}
 }
+
 func verifyCIDToGIDMap(dict *core.PdfObjectDictionary, clause string) ViolatedRule {
 	s := clause + ".3-2"
 	const (
@@ -5860,6 +5946,7 @@ func verifyCIDToGIDMap(dict *core.PdfObjectDictionary, clause string) ViolatedRu
 	}
 	return noViolation
 }
+
 func verifyAlternatePresentations(r *model.CompliancePdfReader, clause string) (violations []ViolatedRule) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -5874,6 +5961,7 @@ func verifyAlternatePresentations(r *model.CompliancePdfReader, clause string) (
 	}
 	return violations
 }
+
 func fixExtGStatePDFA23(doc *docutil.Document) error {
 	fixExtGState := func(dict *core.PdfObjectDictionary) error {
 		if dict.Get("TR") != nil {
@@ -6044,6 +6132,7 @@ func fixInteractiveFormPDFA1(doc *docutil.Document) error {
 	}
 	return nil
 }
+
 func fixAnnotationColors(doc *docutil.Document, cmykDefault bool) error {
 	pages, ok := doc.GetPages()
 	if !ok {
@@ -6093,6 +6182,7 @@ func fixAnnotationColors(doc *docutil.Document, cmykDefault bool) error {
 	}
 	return nil
 }
+
 func verifyImplementationLimitsPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var (
 		reported6_1_12_1, reported6_1_12_2, reported6_1_12_3, reported6_1_12_4, reported6_1_12_5, reported6_1_12_11, reported6_1_12_9 bool
@@ -6246,6 +6336,7 @@ func readContent(dec *xml.Decoder) (s string, contentKind xmpContentKind, err er
 		}
 	}
 }
+
 func verifyImplementationLimitsPDFA23(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var (
 		reported6_1_13_1, reported6_1_13_2, reported6_1_13_3, reported6_1_13_4, reported6_1_13_9 bool
@@ -6325,6 +6416,7 @@ func verifyImplementationLimitsPDFA23(r *model.CompliancePdfReader) (violations 
 	}
 	return violations
 }
+
 func verifyMetadataPDFA1(r *model.CompliancePdfReader, std standardType, unused bool) (violations []ViolatedRule) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -6395,6 +6487,7 @@ func verifyMetadataPDFA1(r *model.CompliancePdfReader, std standardType, unused 
 	}
 	return violations
 }
+
 func verifyAnnotationsPDFA23(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_3_1_1, reported6_3_2_1, reported6_3_2_2, reported6_3_2_3, reported6_3_3_2, reported6_4_1_1, reported6_4_1_1_2 bool
 	allReported := func() bool {
@@ -6801,6 +6894,7 @@ func fixOptionalContent(doc *docutil.Document) error {
 	}
 	return nil
 }
+
 func verifyPermissions(r *model.CompliancePdfReader, clause string) (violations []ViolatedRule) {
 	dict, ok := catalogDict(r)
 	if !ok {
@@ -6818,6 +6912,7 @@ func verifyPermissions(r *model.CompliancePdfReader, clause string) (violations 
 	}
 	return violations
 }
+
 func verifyExtGState(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_2_5_1, reported6_2_5_2, reported6_2_5_3, reported6_2_5_4, reported6_2_5_5, reported6_2_10_1, reported6_2_10_1_2 bool
 	allReported := func() bool {
@@ -6987,8 +7082,10 @@ type ViolatedRule struct {
 
 // Profile4E is the implementation of the PDF/A-4E standard profile.
 // Implements model.StandardImplementer, Profile interfaces.
-type Profile4E struct{ profile4 }
-type xmpBaseType uint8
+type (
+	Profile4E   struct{ profile4 }
+	xmpBaseType uint8
+)
 
 func applyImageModifications(img *model.XObjectImage, imageModifications2 imageModifications) error {
 	image, err := img.ToImage()
@@ -7008,6 +7105,7 @@ func applyImageModifications(img *model.XObjectImage, imageModifications2 imageM
 	img.ToPdfObject()
 	return nil
 }
+
 func verifyToUnicodePDFA1(dict *core.PdfObjectDictionary, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap) ViolatedRule {
 	const (
 		ruleNo = "6.3.8-1"
@@ -7046,6 +7144,7 @@ func NewProfile2A(options *Profile2Options) *Profile2A {
 	setProfile2OptionDefaults(options)
 	return &Profile2A{profile2{options: *options, standard: standard2A()}}
 }
+
 func verifyReferenceXObjectsPDFA1(r *model.CompliancePdfReader) (rule ViolatedRule) {
 	for _, n := range r.GetObjectNums() {
 		obj, err := r.GetIndirectObjectByNumber(n)
@@ -7069,6 +7168,7 @@ func verifyReferenceXObjectsPDFA1(r *model.CompliancePdfReader) (rule ViolatedRu
 	}
 	return rule
 }
+
 func verifyOptionalContentPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	trailer, err := r.GetTrailer()
 	if err != nil {
@@ -7100,6 +7200,7 @@ func NewProfile3A(options *Profile3Options) *Profile3A {
 	setProfile3OptionDefaults(options)
 	return &Profile3A{profile3{options: *options, standard: standard3A()}}
 }
+
 func verifyEmbeddedFilesPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	objectNums := r.GetObjectNums()
 	for _, objectNum := range objectNums {
@@ -7136,6 +7237,7 @@ func verifyEmbeddedFilesPDFA1(r *model.CompliancePdfReader) (violations []Violat
 	}
 	return violations
 }
+
 func verifyXObjectsPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	var reported6_2_4_1, reported6_2_4_2, reported6_2_5_1, reported6_2_6_1, reported6_2_4_3, reported6_2_7_1 bool
 	seen := map[*core.PdfObjectStream]struct{}{}
@@ -7213,6 +7315,7 @@ func verifyXObjectsPDFA1(r *model.CompliancePdfReader) (violations []ViolatedRul
 	}
 	return violations
 }
+
 func verifyFormXObjectOPIPDFA4(r *model.CompliancePdfReader) (rule ViolatedRule) {
 	for _, n := range r.GetObjectNums() {
 		obj, err := r.GetIndirectObjectByNumber(n)
@@ -7237,6 +7340,7 @@ func verifyFormXObjectOPIPDFA4(r *model.CompliancePdfReader) (rule ViolatedRule)
 	}
 	return rule
 }
+
 func infoEntryMatches(s string, info, info2 *model.PdfInfo) bool {
 	switch s {
 	case "CreationDate":
@@ -7333,6 +7437,7 @@ func (p *profile3) ApplyStandard(document *docutil.Document) (err error) {
 	}
 	return nil
 }
+
 func parseValueType(s string) xmpPropertyType {
 	str := strings.TrimSpace(s)
 	arrayKind := xmpArrayNone
@@ -7366,6 +7471,7 @@ func parseValueType(s string) xmpPropertyType {
 	}
 	return xmpPropertyType{Array: arrayKind, Base: xmpBaseOther}
 }
+
 func removeRequirements(doc *docutil.Document) error {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -7376,6 +7482,7 @@ func removeRequirements(doc *docutil.Document) error {
 	}
 	return nil
 }
+
 func setCatalogVersion(doc *docutil.Document) error {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -7384,6 +7491,7 @@ func setCatalogVersion(doc *docutil.Document) error {
 	catalog.SetVersion()
 	return nil
 }
+
 func fixTransparencyGroups(doc *docutil.Document) error {
 	pages, ok := doc.GetPages()
 	if !ok {
@@ -7437,6 +7545,7 @@ func NewProfile4F(options *Profile4Options) *Profile4F {
 	setProfile4OptionDefaults(options)
 	return &Profile4F{profile4{options: *options, standard: standard4F()}}
 }
+
 func optimizeColorspaces(doc *docutil.Document, optimizePages []pageColorspaceOptimizeFunc, optimizeDocuments []documentColorspaceOptimizeFunc) error {
 	pages, ok := doc.GetPages()
 	if !ok {
@@ -7655,6 +7764,7 @@ func verifyExtGStatePDFA1(r *model.CompliancePdfReader) (violations []ViolatedRu
 	}
 	return violations
 }
+
 func verifyCIDSystemInfo(dict *core.PdfObjectDictionary, streamData map[*core.PdfObjectStream][]byte, cmaps map[*core.PdfObjectStream]*cmap.CMap, clause string) ViolatedRule {
 	s := clause + ".3-1"
 	const (
@@ -7704,6 +7814,7 @@ func verifyNoDataAfterEOF(r *model.CompliancePdfReader) ViolatedRule {
 	}
 	return noViolation
 }
+
 func verifyLogicalStructurePDFA1A(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	ok := true
 	catalogMarkInfo, ok2 := r.GetCatalogMarkInfo()
@@ -7744,9 +7855,11 @@ func verifyLogicalStructurePDFA1A(r *model.CompliancePdfReader) (violations []Vi
 	}
 	return violations
 }
+
 func verifyLinearizedPDFA1(r *model.CompliancePdfReader) ViolatedRule {
 	return verifyLinearized(r, "6.1.3-4")
 }
+
 func verifyHeaderPDFA23(r *model.CompliancePdfReader) ViolatedRule {
 	if r.ParserMetadata().HeaderPosition() != 0 {
 		return newViolatedRule("6.1.2-1", "header position is not at the first byte")

@@ -11,12 +11,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/timestamp"
-	"golang.org/x/crypto/ocsp"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/timestamp"
+	"golang.org/x/crypto/ocsp"
 )
 
 // Get retrieves the certificate at the specified URL. A status other
@@ -47,7 +48,6 @@ func (c *CertClient) Get(url string) (*x509.Certificate, error) {
 // OCSPClient represents a OCSP (Online Certificate Status Protocol) client.
 // It is used to request revocation data from OCSP servers.
 type OCSPClient struct {
-
 	// HTTPClient is the HTTP client used to make OCSP requests.
 	// By default, an HTTP client with a 5 second timeout per request is used.
 	HTTPClient *http.Client
@@ -111,7 +111,6 @@ func (c *TimestampClient) GetEncodedToken(serverURL string, req *timestamp.Reque
 // TimestampClient represents a RFC 3161 timestamp client.
 // It is used to obtain signed tokens from timestamp authority servers.
 type TimestampClient struct {
-
 	// HTTPClient is the HTTP client used to make timestamp requests.
 	// By default, an HTTP client with a 5 second timeout per request is used.
 	HTTPClient *http.Client
@@ -176,7 +175,6 @@ func readLimitedBody(resp *http.Response, limit, defaultLimit int64) ([]byte, er
 // CRLClient represents a CRL (Certificate revocation list) client.
 // It is used to request revocation data from CRL servers.
 type CRLClient struct {
-
 	// HTTPClient is the HTTP client used to make CRL requests.
 	// By default, an HTTP client with a 5 second timeout per request is used.
 	HTTPClient *http.Client
@@ -194,7 +192,6 @@ func NewCertClient() *CertClient { return &CertClient{HTTPClient: newHTTPClient(
 // CertClient represents a X.509 certificate client. Its primary purpose
 // is to download certificates.
 type CertClient struct {
-
 	// HTTPClient is the HTTP client used to make certificate requests.
 	// By default, an HTTP client with a 5 second timeout per request is used.
 	HTTPClient *http.Client

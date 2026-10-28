@@ -7,13 +7,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/OpenMellon/openpdf/model"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/OpenMellon/openpdf/model"
 )
 
 // Service returns the underlying OCR service.
@@ -44,7 +45,6 @@ func NewHTTPOCRService(options OCROptions) *HTTPOCRService {
 
 // OCRService defines the interface for OCR services.
 type OCRService interface {
-
 	// ExtractText extracts text from an image reader.
 	// The filename parameter is used to set the filename in the multipart form data.
 	// If filename is empty, a default name based on content type will be used.
@@ -216,7 +216,6 @@ func (s *HTTPOCRService) ExtractText(ctx context.Context, reader io.Reader, file
 
 // OCROptions provides configuration for HTTP-based OCR services.
 type OCROptions struct {
-
 	// URL for the OCR service.
 	Url string
 
@@ -271,6 +270,7 @@ func (c *Client) ExtractText(ctx context.Context, reader io.Reader, filename str
 	}
 	return c.service.ExtractText(ctx, reader, filename)
 }
+
 func (s *HTTPOCRService) executeRequestWithRetry(ctx context.Context, req *http.Request) ([]byte, error) {
 	client := s.options.Client
 	if client == nil {

@@ -22,8 +22,10 @@ type ConsoleLogger struct{ LogLevel LogLevel }
 // Trace does nothing for dummy logger.
 func (DummyLogger) Trace(format string, args ...interface{}) {}
 
-const releaseMinute = 30
-const Version = "5.2.0"
+const (
+	releaseMinute = 30
+	Version       = "5.2.0"
+)
 
 var ReleasedAt = time.Date(releaseYear, releaseMonth, releaseDay, releaseHour, releaseMinute, 0, 0, time.UTC)
 
@@ -141,6 +143,7 @@ type WriterLogger struct {
 // IsLogLevel returns true if log level is greater or equal than `level`.
 // Can be used to avoid resource intensive calls to loggers.
 func (l ConsoleLogger) IsLogLevel(level LogLevel) bool { return l.LogLevel >= level }
+
 func writeLog(w io.Writer, prefix string, format string, args ...interface{}) {
 	_, file, line, ok := runtime.Caller(3)
 	if !ok {

@@ -7,12 +7,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"image"
 	"image/color"
 	"image/draw"
 	"math"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/internal/bitwise"
 )
 
 func (m *Monochrome) ResolveDecode() error {
@@ -31,6 +32,7 @@ func (m *Monochrome) setIndexedBit(bitIdx int) { m.Data[(bitIdx >> 3)] |= 0x80 >
 func BytesPerLine(width, bitsPerComponent, colorComponents int) int {
 	return ((width*bitsPerComponent)*colorComponents + 7) >> 3
 }
+
 func NewImageBase(width int, height int, bitsPerComponent int, colorComponents int, data []byte, alpha []byte, decode []float64) ImageBase {
 	base := ImageBase{Width: width, Height: height, BitsPerComponent: bitsPerComponent, ColorComponents: colorComponents, Data: data, Alpha: alpha, Decode: decode, BytesPerLine: BytesPerLine(width, bitsPerComponent, colorComponents)}
 	if data == nil {
@@ -38,6 +40,7 @@ func NewImageBase(width int, height int, bitsPerComponent int, colorComponents i
 	}
 	return base
 }
+
 func AutoThresholdTriangle(histogram [256]int) uint8 {
 	var minBin, peakCount, peakBin, maxBin int
 	for i := 0; i < len(histogram); i++ {
@@ -112,12 +115,15 @@ func AutoThresholdTriangle(histogram [256]int) uint8 {
 	}
 	return uint8(split)
 }
+
 func (n16 *NRGBA16) ColorAt(x, y int) (color.Color, error) {
 	return ColorAtNRGBA16(x, y, n16.Width, n16.BytesPerLine, n16.Data, n16.Alpha, n16.Decode)
 }
+
 func (g4 *Gray4) ColorAt(x, y int) (color.Color, error) {
 	return ColorAtGray4BPC(x, y, g4.BytesPerLine, g4.Data, g4.Decode)
 }
+
 func expandBinaryFactor8(dst, src *Monochrome) (err error) {
 	srcBytesPerLine := src.BytesPerLine
 	dstBytesPerLine := dst.BytesPerLine
@@ -140,6 +146,7 @@ func expandBinaryFactor8(dst, src *Monochrome) (err error) {
 	}
 	return nil
 }
+
 func (b *ImageBase) setEightFullBytes(idx int, value uint64) error {
 	if idx+7 > len(b.Data)-1 {
 		return errors.New("index out of range")
@@ -154,6 +161,7 @@ func (b *ImageBase) setEightFullBytes(idx int, value uint64) error {
 	b.Data[idx+7] = byte(value & 0xff)
 	return nil
 }
+
 func (m *Monochrome) SetGray(x, y int, g color.Gray) {
 	idx := y*m.BytesPerLine + x>>3
 	if idx > len(m.Data)-1 {
@@ -162,6 +170,7 @@ func (m *Monochrome) SetGray(x, y int, g color.Gray) {
 	g = applyMonochromeThreshold(g, monochromeModel(m.ModelThreshold))
 	m.setGray(x, g, idx)
 }
+
 func makeExpand2Table() (table [256]uint16) {
 	for i := 0; i < 256; i++ {
 		if i&0x01 != 0 {
@@ -191,6 +200,7 @@ func makeExpand2Table() (table [256]uint16) {
 	}
 	return table
 }
+
 func copyNRGBAToRGBA(src NRGBA, dst RGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -199,6 +209,7 @@ func copyNRGBAToRGBA(src NRGBA, dst RGBA, bounds image.Rectangle) {
 		}
 	}
 }
+
 func (m *Monochrome) setGray(x int, g color.Gray, idx int) {
 	if g.Y == 0 {
 		m.clearBit(idx, x)
@@ -206,18 +217,21 @@ func (m *Monochrome) setGray(x int, g color.Gray, idx int) {
 		m.setGrayBit(idx, x)
 	}
 }
+
 func (c32 *CMYK32) Validate() error {
 	if len(c32.Data) != 4*c32.Width*c32.Height {
 		return errors.New("invalid image data size for provided dimensions")
 	}
 	return nil
 }
+
 func (g2 *Gray2) Validate() error {
 	if len(g2.Data) != g2.Height*g2.BytesPerLine {
 		return ErrInvalidImage
 	}
 	return nil
 }
+
 func reduceRankBinaryLevel3(src, dst *Monochrome, tab []byte, width int) (err error) {
 	var (
 		srcRow, dstRow, y, dstY, x, dstX, k, idx int
@@ -272,6 +286,7 @@ func reduceRankBinaryLevel3(src, dst *Monochrome, tab []byte, width int) (err er
 	}
 	return nil
 }
+
 func (m *Monochrome) ColorAt(x, y int) (color.Color, error) {
 	return ColorAtGray1BPC(x, y, m.BytesPerLine, m.Data, m.Decode)
 }
@@ -282,10 +297,12 @@ func nrgba16ModelConvert(c color.Color) color.Color {
 	n := color.NRGBAModel.Convert(c).(color.NRGBA)
 	return quantizeNRGBA16(n)
 }
+
 func (g16 *Gray16) GrayAt(x, y int) color.Gray {
 	c, _ := g16.ColorAt(x, y)
 	return color.Gray{Y: uint8(c.(color.Gray16).Y >> 8)}
 }
+
 func ColorAtGrayscale(x, y, bitsPerColor, bytesPerLine int, data []byte, decode []float64) (color.Color, error) {
 	switch bitsPerColor {
 	case 1:
@@ -302,6 +319,7 @@ func ColorAtGrayscale(x, y, bitsPerColor, bytesPerLine int, data []byte, decode 
 		return nil, fmt.Errorf("unsupported gray scale bits per color amount: '%d'", bitsPerColor)
 	}
 }
+
 func ColorAtNRGBA16(x, y, width, bytesPerLine int, data, alpha []byte, decode []float64) (color.NRGBA, error) {
 	idx := y*bytesPerLine + x*3/2
 	if idx+1 >= len(data) {
@@ -407,6 +425,7 @@ func expandBinaryXY(src *Monochrome, xFactor, yFactor int) (*Monochrome, error) 
 	}
 	return dst, nil
 }
+
 func (r32 *RGBA32) SetRGBA(x, y int, c color.RGBA) {
 	pixIdx := y*r32.Width + x
 	idx := 3 * pixIdx
@@ -415,6 +434,7 @@ func (r32 *RGBA32) SetRGBA(x, y int, c color.RGBA) {
 	}
 	r32.setRGBA(pixIdx, c)
 }
+
 func (g4 *Gray4) Validate() error {
 	if len(g4.Data) != g4.Height*g4.BytesPerLine {
 		return ErrInvalidImage
@@ -426,6 +446,7 @@ func gray4ModelConvert(c color.Color) color.Color {
 	g := color.GrayModel.Convert(c).(color.Gray)
 	return quantizeGray4(g)
 }
+
 func copyGeneric(src image.Image, dst Image, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -434,6 +455,7 @@ func copyGeneric(src image.Image, dst Image, bounds image.Rectangle) {
 		}
 	}
 }
+
 func (g2 *Gray2) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: g2.Width, Y: g2.Height}}
 }
@@ -457,6 +479,7 @@ func ColorAt(x, y, width, bitsPerColor, colorComponents, bytesPerLine int, data,
 		return nil, fmt.Errorf("provided invalid color component for the image: %d", colorComponents)
 	}
 }
+
 func ColorAtGray2BPC(x, y, bytesPerLine int, data []byte, decode []float64) (color.Gray, error) {
 	idx := y*bytesPerLine + x>>2
 	if idx >= len(data) {
@@ -468,11 +491,13 @@ func ColorAtGray2BPC(x, y, bytesPerLine int, data []byte, decode []float64) (col
 	}
 	return color.Gray{Y: v * 85}, nil
 }
+
 func cmykToGray(c color.CMYK) color.Gray {
 	r, g, b := color.CMYKToRGB(c.C, c.M, c.Y, c.K)
 	gray := (19595*uint32(r) + 38470*uint32(g) + 7471*uint32(b) + 1<<7) >> 16
 	return color.Gray{Y: uint8(gray)}
 }
+
 func log2Floor(n uint) uint {
 	var bits uint
 	for n != 0 {
@@ -481,6 +506,7 @@ func log2Floor(n uint) uint {
 	}
 	return bits - 1
 }
+
 func ColorAtGray1BPC(x, y, bytesPerLine int, data []byte, decode []float64) (color.Gray, error) {
 	idx := y*bytesPerLine + x>>3
 	if idx >= len(data) {
@@ -492,6 +518,7 @@ func ColorAtGray1BPC(x, y, bytesPerLine int, data []byte, decode []float64) (col
 	}
 	return color.Gray{Y: v * 255}, nil
 }
+
 func copyRGBAToRGBA(src, dst RGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -533,6 +560,7 @@ func (m *Monochrome) Histogram() (hist [256]int) {
 	}
 	return hist
 }
+
 func dropOpaqueAlpha(alpha []byte, img Image) error {
 	opaque := true
 	for i := 0; i < len(alpha); i++ {
@@ -553,9 +581,11 @@ func dropOpaqueAlpha(alpha []byte, img Image) error {
 	}
 	return nil
 }
+
 func (r32 *RGBA32) ColorAt(x, y int) (color.Color, error) {
 	return ColorAtRGBA32(x, y, r32.Width, r32.Data, r32.Alpha, r32.Decode)
 }
+
 func (n16 *NRGBA16) SetNRGBA(x, y int, c color.NRGBA) {
 	idx := y*n16.BytesPerLine + x*3/2
 	if idx+1 >= len(n16.Data) {
@@ -579,6 +609,7 @@ func ScaleAlphaToMonochrome(data []byte, width, height int) ([]byte, error) {
 	}
 	return mono.Base().Data, nil
 }
+
 func nrgbaToGray(c color.NRGBA) color.Gray {
 	r, g, b, _ := c.RGBA()
 	gray := (19595*r + 38470*g + 7471*b + 1<<15) >> 24
@@ -594,6 +625,7 @@ func (g8 *Gray8) Histogram() (hist [256]int) {
 	}
 	return hist
 }
+
 func newMonochromeWithData(width, height int, data []byte) *Monochrome {
 	m := newMonochrome(width, height)
 	m.Data = data
@@ -629,6 +661,7 @@ func thresholdImage(img image.Image, threshold uint8) *image.Gray {
 	}
 	return dst
 }
+
 func ColorAtGray8BPC(x, y, bytesPerLine int, data []byte, decode []float64) (color.Gray, error) {
 	idx := y*bytesPerLine + x
 	if idx >= len(data) {
@@ -640,10 +673,12 @@ func ColorAtGray8BPC(x, y, bytesPerLine int, data []byte, decode []float64) (col
 	}
 	return color.Gray{Y: v}, nil
 }
+
 func rgbaToGray(c color.RGBA) color.Gray {
 	gray := (19595*uint32(c.R) + 38470*uint32(c.G) + 7471*uint32(c.B) + 1<<7) >> 16
 	return color.Gray{Y: uint8(gray)}
 }
+
 func nrgba64ToGray(c color.NRGBA64) color.Gray {
 	var zero color.NRGBA64
 	if c == zero {
@@ -653,6 +688,7 @@ func nrgba64ToGray(c color.NRGBA64) color.Gray {
 	gray := (19595*r + 38470*g + 7471*b + 1<<15) >> 24
 	return color.Gray{Y: uint8(gray)}
 }
+
 func rasterOpUniformAligned(dest *Monochrome, dx, dy int, dw, dh int, op RasterOperator) {
 	var (
 		dstStart int
@@ -702,6 +738,7 @@ func rasterOpUniformAligned(dest *Monochrome, dx, dy int, dw, dh int, op RasterO
 		}
 	}
 }
+
 func convertToNRGBA64(img image.Image) (Image, error) {
 	if n, ok := img.(*NRGBA64); ok {
 		return n.Copy(), nil
@@ -719,6 +756,7 @@ func convertToNRGBA64(img image.Image) (Image, error) {
 	}
 	return dst, nil
 }
+
 func AddDataPadding(width, height, bitsPerComponent, colorComponents int, data []byte) ([]byte, error) {
 	bytesPerLineOut := BytesPerLine(width, bitsPerComponent, colorComponents)
 	if bytesPerLineOut == width*colorComponents*bitsPerComponent/8 {
@@ -771,6 +809,7 @@ func expandBinary(src *Monochrome, factor int) (*Monochrome, error) {
 	steps := expandFactorSteps(factor)
 	return expandBinaryFactors(src, factor, steps)
 }
+
 func copyNYCbCrAToRGBA(src *image.NYCbCrA, dst RGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -792,9 +831,11 @@ func (n64 *NRGBA64) setNRGBA64(idx int, c color.NRGBA64, alphaIdx int) {
 		n64.Alpha[alphaIdx+1] = uint8(c.A & 0xff)
 	}
 }
+
 func nrgba64ToNRGBA(c color.NRGBA64) color.NRGBA {
 	return color.NRGBA{R: uint8(c.R >> 8), G: uint8(c.G >> 8), B: uint8(c.B >> 8), A: uint8(c.A >> 8)}
 }
+
 func ColorAtNRGBA(x, y, width, bytesPerLine, bitsPerColor int, data, alpha []byte, decode []float64) (color.Color, error) {
 	switch bitsPerColor {
 	case 4:
@@ -807,6 +848,7 @@ func ColorAtNRGBA(x, y, width, bytesPerLine, bitsPerColor int, data, alpha []byt
 		return nil, fmt.Errorf("unsupported rgb bits per color amount: '%d'", bitsPerColor)
 	}
 }
+
 func (r32 *RGBA32) Validate() error {
 	if len(r32.Data) != 3*r32.Width*r32.Height {
 		return errors.New("invalid image data size for provided dimensions")
@@ -822,14 +864,17 @@ func copyGrayToRGBA(src Gray, dst RGBA, bounds image.Rectangle) {
 		}
 	}
 }
+
 func cmykToNRGBA(c color.CMYK) color.NRGBA {
 	r, g, b := color.CMYKToRGB(c.C, c.M, c.Y, c.K)
 	return color.NRGBA{R: r, G: g, B: b, A: 0xff}
 }
+
 func (r32 *RGBA32) RGBAAt(x, y int) color.RGBA {
 	c, _ := ColorAtRGBA32(x, y, r32.Width, r32.Data, r32.Alpha, r32.Decode)
 	return c
 }
+
 func copyGenericWithAlpha(src image.Image, dst Image, bounds image.Rectangle) {
 	if masker, ok := src.(SMasker); ok && masker.HasAlpha() {
 		dst.(SMasker).MakeAlpha()
@@ -852,6 +897,7 @@ func (m *Monochrome) ColorModel() color.Model { return MonochromeModel(m.ModelTh
 func ConverterFunc(converterFunc func(img image.Image) (Image, error)) ColorConverter {
 	return colorConverter{convert: converterFunc}
 }
+
 func copyCMYKToCMYK(src, dst CMYK, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -876,12 +922,14 @@ func FromGoImage(i image.Image) (Image, error) {
 		return NRGBAConverter.Convert(i)
 	}
 }
+
 func NextPowerOf2(n uint) uint {
 	if IsPowerOf2(n) {
 		return n
 	}
 	return 1 << (log2Floor(n) + 1)
 }
+
 func (m *Monochrome) RasterOperation(dx, dy, dw, dh int, op RasterOperator, src *Monochrome, sx, sy int) error {
 	return rasterOperation(m, dx, dy, dw, dh, op, src, sx, sy)
 }
@@ -891,6 +939,7 @@ var _ Gray = &Monochrome{}
 func newMonochrome(width, height int) *Monochrome {
 	return &Monochrome{ImageBase: NewImageBase(width, height, 1, 1, nil, nil, nil), ModelThreshold: 0x0f}
 }
+
 func (conv *monochromeThresholdConverter) Convert(img image.Image) (Image, error) {
 	if existing, ok := img.(*Monochrome); ok {
 		return existing.Copy(), nil
@@ -909,6 +958,7 @@ func (conv *monochromeThresholdConverter) Convert(img image.Image) (Image, error
 	}
 	return dst, nil
 }
+
 func makeExpand4Table() (table [256]uint32) {
 	for i := 0; i < 256; i++ {
 		if i&0x01 != 0 {
@@ -943,6 +993,7 @@ func (n16 *NRGBA16) NRGBAAt(x, y int) color.NRGBA {
 	c, _ := ColorAtNRGBA16(x, y, n16.Width, n16.BytesPerLine, n16.Data, n16.Alpha, n16.Decode)
 	return c
 }
+
 func reduceRankBinaryLevel2(src, dst *Monochrome, tab []byte, width int) (err error) {
 	var (
 		srcRow, dstRow, y, dstY, x, dstX, k, idx int
@@ -997,6 +1048,7 @@ func reduceRankBinaryLevel2(src, dst *Monochrome, tab []byte, width int) (err er
 	}
 	return nil
 }
+
 func boundsAndAlphaBuffer(img image.Image, bytesPerPixel int) (image.Rectangle, bool, []byte) {
 	bounds := img.Bounds()
 	var (
@@ -1015,6 +1067,7 @@ func boundsAndAlphaBuffer(img image.Image, bytesPerPixel int) (image.Rectangle, 
 	}
 	return bounds, hasAlpha, alpha
 }
+
 func (n64 *NRGBA64) SetNRGBA64(x, y int, c color.NRGBA64) {
 	alphaIdx := (y*n64.Width + x) * 2
 	idx := alphaIdx * 3
@@ -1052,6 +1105,7 @@ func (b *ImageBase) setTwoBytes(idx int, value uint16) error {
 	b.Data[idx+1] = byte(value & 0xff)
 	return nil
 }
+
 func (m *Monochrome) getBit(rowStart, x int) uint8 {
 	return m.Data[rowStart+(x>>3)] >> uint(7-(x&7)) & 1
 }
@@ -1100,6 +1154,7 @@ func (m *Monochrome) ReduceBinary(factor float64) (*Monochrome, error) {
 	}
 	return result, nil
 }
+
 func (g8 *Gray8) SetGray(x, y int, g color.Gray) {
 	idx := y*g8.BytesPerLine + x
 	if idx > len(g8.Data)-1 {
@@ -1107,6 +1162,7 @@ func (g8 *Gray8) SetGray(x, y int, g color.Gray) {
 	}
 	g8.Data[idx] = g.Y
 }
+
 func (r32 *RGBA32) Set(x, y int, c color.Color) {
 	pixIdx := y*r32.Width + x
 	idx := 3 * pixIdx
@@ -1142,6 +1198,7 @@ func convertToCMYK32(img image.Image) (Image, error) {
 	}
 	return dst, nil
 }
+
 func (n64 *NRGBA64) Set(x, y int, c color.Color) {
 	alphaIdx := (y*n64.Width + x) * 2
 	idx := alphaIdx * 3
@@ -1151,6 +1208,7 @@ func (n64 *NRGBA64) Set(x, y int, c color.Color) {
 	nc := color.NRGBA64Model.Convert(c).(color.NRGBA64)
 	n64.setNRGBA64(idx, nc, alphaIdx)
 }
+
 func (n32 *NRGBA32) setRGBA(pixIdx int, c color.NRGBA) {
 	idx := 3 * pixIdx
 	n32.Data[idx] = c.R
@@ -1160,9 +1218,11 @@ func (n32 *NRGBA32) setRGBA(pixIdx int, c color.NRGBA) {
 		n32.Alpha[pixIdx] = c.A
 	}
 }
+
 func (n16 *NRGBA16) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: n16.Width, Y: n16.Height}}
 }
+
 func makeExpand8Table() (table [256]uint64) {
 	for i := 0; i < 256; i++ {
 		if i&0x01 != 0 {
@@ -1216,10 +1276,12 @@ func (r32 *RGBA32) setRGBA(pixIdx int, c color.RGBA) {
 		r32.Alpha[pixIdx] = c.A
 	}
 }
+
 func (m monochromeModel) Convert(c color.Color) color.Color {
 	g := color.GrayModel.Convert(c).(color.Gray)
 	return applyMonochromeThreshold(g, m)
 }
+
 func (g2 *Gray2) Histogram() (hist [256]int) {
 	for x := 0; x < g2.Width; x++ {
 		for y := 0; y < g2.Height; y++ {
@@ -1228,6 +1290,7 @@ func (g2 *Gray2) Histogram() (hist [256]int) {
 	}
 	return hist
 }
+
 func makeRankReduceTable() (table []byte) {
 	table = make([]byte, 256)
 	for i := 0; i < 256; i++ {
@@ -1274,6 +1337,7 @@ type nrgba64 interface {
 func (g8 *Gray8) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: g8.Width, Y: g8.Height}}
 }
+
 func copyNRGBA64ToGray(dst Gray, src nrgba64, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -1282,6 +1346,7 @@ func copyNRGBA64ToGray(dst Gray, src nrgba64, bounds image.Rectangle) {
 		}
 	}
 }
+
 func rgbaToNRGBA(c color.RGBA) color.NRGBA {
 	switch c.A {
 	case 0xff:
@@ -1306,6 +1371,7 @@ func (b *ImageBase) Pix() []byte { return b.Data }
 func (g16 *Gray16) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: g16.Width, Y: g16.Height}}
 }
+
 func expandBinaryFactor4(dst, src *Monochrome) (err error) {
 	srcBytesPerLine := src.BytesPerLine
 	dstBytesPerLine := dst.BytesPerLine
@@ -1347,6 +1413,7 @@ func expandBinaryFactor4(dst, src *Monochrome) (err error) {
 	}
 	return nil
 }
+
 func (g2 *Gray2) SetGray(x, y int, gray color.Gray) {
 	q := quantizeGray2(gray)
 	rowStart := y * g2.BytesPerLine
@@ -1355,8 +1422,9 @@ func (g2 *Gray2) SetGray(x, y int, gray color.Gray) {
 		return
 	}
 	v := q.Y >> 6
-	g2.Data[idx] = (g2.Data[idx] & (^(0xc0 >> uint(2*((x)&3))))) | (v << uint(6-2*(x&3)))
+	g2.Data[idx] = (g2.Data[idx] & (^(0xc0 >> uint(2*(x&3))))) | (v << uint(6-2*(x&3)))
 }
+
 func (m *Monochrome) copy() *Monochrome {
 	cp := newMonochrome(m.Width, m.Height)
 	cp.ModelThreshold = m.ModelThreshold
@@ -1372,16 +1440,19 @@ func (m *Monochrome) copy() *Monochrome {
 	}
 	return cp
 }
+
 func (g8 *Gray8) Validate() error {
 	if len(g8.Data) != g8.Height*g8.BytesPerLine {
 		return ErrInvalidImage
 	}
 	return nil
 }
+
 func rgbaToCMYK(c color.RGBA) color.CMYK {
 	cyan, magenta, yellow, black := color.RGBToCMYK(c.R, c.G, c.B)
 	return color.CMYK{C: cyan, M: magenta, Y: yellow, K: black}
 }
+
 func ColorAtGray16BPC(x, y, bytesPerLine int, data []byte, decode []float64) (color.Gray16, error) {
 	idx := (y*bytesPerLine/2 + x) * 2
 	if idx+1 >= len(data) {
@@ -1393,12 +1464,15 @@ func ColorAtGray16BPC(x, y, bytesPerLine int, data []byte, decode []float64) (co
 	}
 	return color.Gray16{Y: v}, nil
 }
+
 func RasterOperation(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, src *Monochrome, sx, sy int) error {
 	return rasterOperation(dest, dx, dy, dw, dh, op, src, sx, sy)
 }
 
-var _ image.Image = &Gray16{}
-var _ RGBA = &RGBA32{}
+var (
+	_ image.Image = &Gray16{}
+	_ RGBA        = &RGBA32{}
+)
 
 func (n64 *NRGBA64) ColorAt(x, y int) (color.Color, error) {
 	return ColorAtNRGBA64(x, y, n64.Width, n64.Data, n64.Alpha, n64.Decode)
@@ -1431,6 +1505,7 @@ func ColorAtRGBA32(x, y, width int, data, alpha []byte, decode []float64) (color
 	}
 	return color.RGBA{R: r, G: g, B: b, A: a}, nil
 }
+
 func (m *Monochrome) Copy() Image {
 	return &Monochrome{ImageBase: m.ImageBase.copy(), ModelThreshold: m.ModelThreshold}
 }
@@ -1443,18 +1518,21 @@ func (n32 *NRGBA32) Validate() error {
 	}
 	return nil
 }
+
 func isBlackOrWhite(v uint8) bool {
 	if v == 0 || v == 255 {
 		return true
 	}
 	return false
 }
+
 func quantizeNRGBA16(c color.NRGBA) color.NRGBA {
 	c.R = c.R>>4 | (c.R>>4)<<4
 	c.G = c.G>>4 | (c.G>>4)<<4
 	c.B = c.B>>4 | (c.B>>4)<<4
 	return c
 }
+
 func ColorAtGray4BPC(x, y, bytesPerLine int, data []byte, decode []float64) (color.Gray, error) {
 	idx := y*bytesPerLine + x>>1
 	if idx >= len(data) {
@@ -1466,6 +1544,7 @@ func ColorAtGray4BPC(x, y, bytesPerLine int, data []byte, decode []float64) (col
 	}
 	return color.Gray{Y: v * 17 & 0xff}, nil
 }
+
 func copyToGray(src image.Image, dst Image, bounds image.Rectangle) {
 	switch img := src.(type) {
 	case Gray:
@@ -1480,6 +1559,7 @@ func copyToGray(src image.Image, dst Image, bounds image.Rectangle) {
 		copyGeneric(src, dst, bounds)
 	}
 }
+
 func rasterOpUniformUnaligned(dest *Monochrome, dx, dy int, dw, dh int, op RasterOperator) {
 	var (
 		singleByte   bool
@@ -1559,7 +1639,7 @@ func rasterOpUniformUnaligned(dest *Monochrome, dx, dy int, dw, dh int, op Raste
 		if hasMiddle {
 			for y = 0; y < dh; y++ {
 				for i = 0; i < middleBytes; i++ {
-					dest.Data[dstMiddle+i] = ^(dest.Data[dstMiddle+i])
+					dest.Data[dstMiddle+i] = ^dest.Data[dstMiddle+i]
 				}
 				dstMiddle += dest.BytesPerLine
 			}
@@ -1575,8 +1655,10 @@ func rasterOpUniformUnaligned(dest *Monochrome, dx, dy int, dw, dh int, op Raste
 
 var _ image.Image = &NRGBA16{}
 
-type NRGBA64 struct{ ImageBase }
-type RGBA32 struct{ ImageBase }
+type (
+	NRGBA64 struct{ ImageBase }
+	RGBA32  struct{ ImageBase }
+)
 
 func minInt(a int, b int) int {
 	if a < b {
@@ -1584,9 +1666,11 @@ func minInt(a int, b int) int {
 	}
 	return b
 }
+
 func coordinatesOutOfRange(x int, y int) error {
 	return fmt.Errorf("image coordinates out of range (%d, %d)", x, y)
 }
+
 func (m *Monochrome) AddPadding() (err error) {
 	if minLen := ((m.Width * m.Height) + 7) >> 3; len(m.Data) < minLen {
 		return fmt.Errorf("invalid data length: '%d'. The data should contain at least: '%d' bytes", len(m.Data), minLen)
@@ -1621,13 +1705,16 @@ func (m *Monochrome) AddPadding() (err error) {
 	m.Data = w.Data()
 	return nil
 }
+
 func (r32 *RGBA32) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: r32.Width, Y: r32.Height}}
 }
+
 func (m *Monochrome) GrayAt(x, y int) color.Gray {
 	g, _ := ColorAtGray1BPC(x, y, m.BytesPerLine, m.Data, m.Decode)
 	return g
 }
+
 func rasterOperation(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, src *Monochrome, sx, sy int) error {
 	if dest == nil {
 		return errors.New("nil 'dest' Bitmap")
@@ -1649,10 +1736,12 @@ func rasterOperation(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, sr
 	}
 	return nil
 }
+
 func cmykToRGBA(c color.CMYK) color.RGBA {
 	r, g, b := color.CMYKToRGB(c.C, c.M, c.Y, c.K)
 	return color.RGBA{R: r, G: g, B: b, A: 0xff}
 }
+
 func (g2 *Gray2) Set(x, y int, c color.Color) {
 	if x >= g2.Width || y >= g2.Height {
 		return
@@ -1661,7 +1750,7 @@ func (g2 *Gray2) Set(x, y int, c color.Color) {
 	rowStart := y * g2.BytesPerLine
 	idx := rowStart + (x >> 2)
 	v := g.Y >> 6
-	g2.Data[idx] = (g2.Data[idx] & (^(0xc0 >> uint(2*((x)&3))))) | (v << uint(6-2*(x&3)))
+	g2.Data[idx] = (g2.Data[idx] & (^(0xc0 >> uint(2*(x&3))))) | (v << uint(6-2*(x&3)))
 }
 
 var (
@@ -1712,6 +1801,7 @@ func expandBinaryFactor2(dst, src *Monochrome) (err error) {
 	}
 	return nil
 }
+
 func (n32 *NRGBA32) NRGBAAt(x, y int) color.NRGBA {
 	c, _ := ColorAtNRGBA32(x, y, n32.Width, n32.Data, n32.Alpha, n32.Decode)
 	return c
@@ -1746,6 +1836,7 @@ func nycbcraToNRGBA(c color.NYCbCrA) color.NRGBA {
 	}
 	return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: c.A}
 }
+
 func NewImage(width, height, bitsPerComponent, colorComponents int, data, alpha []byte, decode []float64) (Image, error) {
 	base := NewImageBase(width, height, bitsPerComponent, colorComponents, data, alpha, decode)
 	var img Image
@@ -1780,6 +1871,7 @@ func NewImage(width, height, bitsPerComponent, colorComponents int, data, alpha 
 	}
 	return img, nil
 }
+
 func (g4 *Gray4) Histogram() (hist [256]int) {
 	for x := 0; x < g4.Width; x++ {
 		for y := 0; y < g4.Height; y++ {
@@ -1788,6 +1880,7 @@ func (g4 *Gray4) Histogram() (hist [256]int) {
 	}
 	return hist
 }
+
 func (c32 *CMYK32) SetCMYK(x, y int, c color.CMYK) {
 	idx := 4 * (y*c32.Width + x)
 	if idx+3 >= len(c32.Data) {
@@ -1821,6 +1914,7 @@ func reduceRankBinaryCascade(src *Monochrome, levels ...int) (result *Monochrome
 	}
 	return result, nil
 }
+
 func (m *Monochrome) ExpandBinary(factor int) (*Monochrome, error) {
 	if !IsPowerOf2(uint(factor)) {
 		return nil, fmt.Errorf("invalid expand binary factor: %d", factor)
@@ -1885,10 +1979,12 @@ func rasterOperationClipped(dest *Monochrome, dx, dy int, dw, dh int, op RasterO
 	}
 	return nil
 }
+
 func (g4 *Gray4) GrayAt(x, y int) color.Gray {
 	g, _ := ColorAtGray4BPC(x, y, g4.BytesPerLine, g4.Data, g4.Decode)
 	return g
 }
+
 func ColorAtNRGBA64(x, y, width int, data, alpha []byte, decode []float64) (color.NRGBA64, error) {
 	alphaIdx := (y*width + x) * 2
 	idx := alphaIdx * 3
@@ -1910,6 +2006,7 @@ func ColorAtNRGBA64(x, y, width int, data, alpha []byte, decode []float64) (colo
 	}
 	return color.NRGBA64{R: r, G: g, B: b, A: a}, nil
 }
+
 func rasterOpByteAligned(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, src *Monochrome, sx, sy int) error {
 	var (
 		lastMask       byte
@@ -1944,7 +2041,7 @@ func rasterOpByteAligned(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator
 			srcIdx = srcStart + y*src.BytesPerLine
 			dstIdx = dstStart + y*dest.BytesPerLine
 			for i = 0; i < fullBytes; i++ {
-				dest.Data[dstIdx] = ^(src.Data[srcIdx])
+				dest.Data[dstIdx] = ^src.Data[srcIdx]
 				dstIdx++
 				srcIdx++
 			}
@@ -1996,12 +2093,12 @@ func rasterOpByteAligned(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator
 			srcIdx = srcStart + y*src.BytesPerLine
 			dstIdx = dstStart + y*dest.BytesPerLine
 			for i = 0; i < fullBytes; i++ {
-				dest.Data[dstIdx] |= ^(src.Data[srcIdx])
+				dest.Data[dstIdx] |= ^src.Data[srcIdx]
 				dstIdx++
 				srcIdx++
 			}
 			if trailingBits > 0 {
-				dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], ^(src.Data[srcIdx])|dest.Data[dstIdx], lastMask)
+				dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], ^src.Data[srcIdx]|dest.Data[dstIdx], lastMask)
 			}
 		}
 	case PixNotSrcAndDst:
@@ -2009,12 +2106,12 @@ func rasterOpByteAligned(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator
 			srcIdx = srcStart + y*src.BytesPerLine
 			dstIdx = dstStart + y*dest.BytesPerLine
 			for i = 0; i < fullBytes; i++ {
-				dest.Data[dstIdx] &= ^(src.Data[srcIdx])
+				dest.Data[dstIdx] &= ^src.Data[srcIdx]
 				dstIdx++
 				srcIdx++
 			}
 			if trailingBits > 0 {
-				dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], ^(src.Data[srcIdx])&dest.Data[dstIdx], lastMask)
+				dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], ^src.Data[srcIdx]&dest.Data[dstIdx], lastMask)
 			}
 		}
 	case PixSrcOrNotDst:
@@ -2022,12 +2119,12 @@ func rasterOpByteAligned(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator
 			srcIdx = srcStart + y*src.BytesPerLine
 			dstIdx = dstStart + y*dest.BytesPerLine
 			for i = 0; i < fullBytes; i++ {
-				dest.Data[dstIdx] = src.Data[srcIdx] | ^(dest.Data[dstIdx])
+				dest.Data[dstIdx] = src.Data[srcIdx] | ^dest.Data[dstIdx]
 				dstIdx++
 				srcIdx++
 			}
 			if trailingBits > 0 {
-				dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], src.Data[srcIdx]|^(dest.Data[dstIdx]), lastMask)
+				dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], src.Data[srcIdx]|^dest.Data[dstIdx], lastMask)
 			}
 		}
 	case PixSrcAndNotDst:
@@ -2035,12 +2132,12 @@ func rasterOpByteAligned(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator
 			srcIdx = srcStart + y*src.BytesPerLine
 			dstIdx = dstStart + y*dest.BytesPerLine
 			for i = 0; i < fullBytes; i++ {
-				dest.Data[dstIdx] = src.Data[srcIdx] &^ (dest.Data[dstIdx])
+				dest.Data[dstIdx] = src.Data[srcIdx] &^ dest.Data[dstIdx]
 				dstIdx++
 				srcIdx++
 			}
 			if trailingBits > 0 {
-				dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], src.Data[srcIdx]&^(dest.Data[dstIdx]), lastMask)
+				dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], src.Data[srcIdx]&^dest.Data[dstIdx], lastMask)
 			}
 		}
 	case PixNotPixSrcOrDst:
@@ -2088,6 +2185,7 @@ func rasterOpByteAligned(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator
 	}
 	return nil
 }
+
 func (b *ImageBase) setByte(idx int, v byte) error {
 	if idx > len(b.Data)-1 {
 		return errors.New("index out of range")
@@ -2095,6 +2193,7 @@ func (b *ImageBase) setByte(idx int, v byte) error {
 	b.Data[idx] = v
 	return nil
 }
+
 func rasterOpShifted(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, src *Monochrome, sx, sy int) error {
 	var (
 		hasLeading        bool
@@ -2803,14 +2902,14 @@ func rasterOpSameShift(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, 
 		}
 	case PixNotSrcOrDst:
 		for y = 0; y < dh; y++ {
-			dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], ^(src.Data[srcIdx])|dest.Data[dstIdx], leadingMask)
+			dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], ^src.Data[srcIdx]|dest.Data[dstIdx], leadingMask)
 			dstIdx += dest.BytesPerLine
 			srcIdx += src.BytesPerLine
 		}
 		if hasMiddle {
 			for y = 0; y < dh; y++ {
 				for i = 0; i < middleBytes; i++ {
-					dest.Data[dstMiddle+i] |= ^(src.Data[srcMiddle+i])
+					dest.Data[dstMiddle+i] |= ^src.Data[srcMiddle+i]
 				}
 				dstMiddle += dest.BytesPerLine
 				srcMiddle += src.BytesPerLine
@@ -2818,14 +2917,14 @@ func rasterOpSameShift(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, 
 		}
 		if hasTrailing {
 			for y = 0; y < dh; y++ {
-				dest.Data[dstTrailing] = mergeMasked(dest.Data[dstTrailing], ^(src.Data[srcTrailing])|dest.Data[dstTrailing], trailingMask)
+				dest.Data[dstTrailing] = mergeMasked(dest.Data[dstTrailing], ^src.Data[srcTrailing]|dest.Data[dstTrailing], trailingMask)
 				dstTrailing += dest.BytesPerLine
 				srcTrailing += src.BytesPerLine
 			}
 		}
 	case PixNotSrcAndDst:
 		for y = 0; y < dh; y++ {
-			dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], ^(src.Data[srcIdx])&dest.Data[dstIdx], leadingMask)
+			dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], ^src.Data[srcIdx]&dest.Data[dstIdx], leadingMask)
 			dstIdx += dest.BytesPerLine
 			srcIdx += src.BytesPerLine
 		}
@@ -2840,21 +2939,21 @@ func rasterOpSameShift(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, 
 		}
 		if hasTrailing {
 			for y = 0; y < dh; y++ {
-				dest.Data[dstTrailing] = mergeMasked(dest.Data[dstTrailing], ^(src.Data[srcTrailing])&dest.Data[dstTrailing], trailingMask)
+				dest.Data[dstTrailing] = mergeMasked(dest.Data[dstTrailing], ^src.Data[srcTrailing]&dest.Data[dstTrailing], trailingMask)
 				dstTrailing += dest.BytesPerLine
 				srcTrailing += src.BytesPerLine
 			}
 		}
 	case PixSrcOrNotDst:
 		for y = 0; y < dh; y++ {
-			dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], src.Data[srcIdx]|^(dest.Data[dstIdx]), leadingMask)
+			dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], src.Data[srcIdx]|^dest.Data[dstIdx], leadingMask)
 			dstIdx += dest.BytesPerLine
 			srcIdx += src.BytesPerLine
 		}
 		if hasMiddle {
 			for y = 0; y < dh; y++ {
 				for i = 0; i < middleBytes; i++ {
-					dest.Data[dstMiddle+i] = src.Data[srcMiddle+i] | ^(dest.Data[dstMiddle+i])
+					dest.Data[dstMiddle+i] = src.Data[srcMiddle+i] | ^dest.Data[dstMiddle+i]
 				}
 				dstMiddle += dest.BytesPerLine
 				srcMiddle += src.BytesPerLine
@@ -2862,21 +2961,21 @@ func rasterOpSameShift(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, 
 		}
 		if hasTrailing {
 			for y = 0; y < dh; y++ {
-				dest.Data[dstTrailing] = mergeMasked(dest.Data[dstTrailing], src.Data[srcTrailing]|^(dest.Data[dstTrailing]), trailingMask)
+				dest.Data[dstTrailing] = mergeMasked(dest.Data[dstTrailing], src.Data[srcTrailing]|^dest.Data[dstTrailing], trailingMask)
 				dstTrailing += dest.BytesPerLine
 				srcTrailing += src.BytesPerLine
 			}
 		}
 	case PixSrcAndNotDst:
 		for y = 0; y < dh; y++ {
-			dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], src.Data[srcIdx]&^(dest.Data[dstIdx]), leadingMask)
+			dest.Data[dstIdx] = mergeMasked(dest.Data[dstIdx], src.Data[srcIdx]&^dest.Data[dstIdx], leadingMask)
 			dstIdx += dest.BytesPerLine
 			srcIdx += src.BytesPerLine
 		}
 		if hasMiddle {
 			for y = 0; y < dh; y++ {
 				for i = 0; i < middleBytes; i++ {
-					dest.Data[dstMiddle+i] = src.Data[srcMiddle+i] &^ (dest.Data[dstMiddle+i])
+					dest.Data[dstMiddle+i] = src.Data[srcMiddle+i] &^ dest.Data[dstMiddle+i]
 				}
 				dstMiddle += dest.BytesPerLine
 				srcMiddle += src.BytesPerLine
@@ -2884,7 +2983,7 @@ func rasterOpSameShift(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, 
 		}
 		if hasTrailing {
 			for y = 0; y < dh; y++ {
-				dest.Data[dstTrailing] = mergeMasked(dest.Data[dstTrailing], src.Data[srcTrailing]&^(dest.Data[dstTrailing]), trailingMask)
+				dest.Data[dstTrailing] = mergeMasked(dest.Data[dstTrailing], src.Data[srcTrailing]&^dest.Data[dstTrailing], trailingMask)
 				dstTrailing += dest.BytesPerLine
 				srcTrailing += src.BytesPerLine
 			}
@@ -2961,6 +3060,7 @@ func rasterOpSameShift(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator, 
 	}
 	return nil
 }
+
 func convertToMonochrome(img image.Image) (Image, error) {
 	if existing, ok := img.(*Monochrome); ok {
 		return existing, nil
@@ -2997,6 +3097,7 @@ func convertToMonochrome(img image.Image) (Image, error) {
 	}
 	return dst, nil
 }
+
 func ColorAtNRGBA32(x, y, width int, data, alpha []byte, decode []float64) (color.NRGBA, error) {
 	pixIdx := y*width + x
 	idx := 3 * pixIdx
@@ -3023,9 +3124,11 @@ func ColorAtNRGBA32(x, y, width int, data, alpha []byte, decode []float64) (colo
 	}
 	return color.NRGBA{R: r, G: g, B: b, A: a}, nil
 }
+
 func (m *Monochrome) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: m.Width, Y: m.Height}}
 }
+
 func (n64 *NRGBA64) Validate() error {
 	if len(n64.Data) != 3*2*n64.Width*n64.Height {
 		return errors.New("invalid image data size for provided dimensions")
@@ -3103,16 +3206,20 @@ func (m *Monochrome) getBitAt(x, y int) bool {
 	}
 	return false
 }
+
 func (n32 *NRGBA32) ColorAt(x, y int) (color.Color, error) {
 	return ColorAtNRGBA32(x, y, n32.Width, n32.Data, n32.Alpha, n32.Decode)
 }
+
 func (m *Monochrome) InverseData() error {
 	return m.RasterOperation(0, 0, m.Width, m.Height, PixNotDst, nil, 0, 0)
 }
+
 func nrgbaToRGBA(c color.NRGBA) color.RGBA {
 	r, g, b, a := c.RGBA()
 	return color.RGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
 }
+
 func isBlackAndWhite(img *image.Gray) bool {
 	for i := 0; i < len(img.Pix); i++ {
 		if !isBlackOrWhite(img.Pix[i]) {
@@ -3138,6 +3245,7 @@ func copyGrayToCMYK(src Gray, dst CMYK, bounds image.Rectangle) {
 		}
 	}
 }
+
 func (b *ImageBase) setFourBytes(idx int, value uint32) error {
 	if idx+3 > len(b.Data)-1 {
 		return fmt.Errorf("index: '%d' out of range", idx)
@@ -3178,9 +3286,11 @@ func (m *Monochrome) Scale(scale float64) (*Monochrome, error) {
 	height := int(math.RoundToEven(float64(m.Height) * scale))
 	return m.ScaleLow(width, height)
 }
+
 func decodeSampleToGray8(sample, maxVal float64, decode []float64) uint8 {
 	return uint8(math.Round(DecodeSample(sample, maxVal, decode[0], decode[1]) * 255))
 }
+
 func convertToNRGBA16(img image.Image) (Image, error) {
 	if existing, ok := img.(*NRGBA16); ok {
 		return existing.Copy(), nil
@@ -3236,6 +3346,7 @@ func thresholdGray(img *image.Gray, threshold uint8) *image.Gray {
 	}
 	return dst
 }
+
 func (n64 *NRGBA64) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: n64.Width, Y: n64.Height}}
 }
@@ -3294,6 +3405,7 @@ func (g16 *Gray16) Validate() error {
 	}
 	return nil
 }
+
 func (n32 *NRGBA32) Set(x, y int, c color.Color) {
 	pixIdx := y*n32.Width + x
 	idx := 3 * pixIdx
@@ -3374,10 +3486,12 @@ func (c32 *CMYK32) Set(x, y int, c color.Color) {
 	c32.Data[idx+2] = cmyk.Y
 	c32.Data[idx+3] = cmyk.K
 }
+
 func gray2ModelConvert(c color.Color) color.Color {
 	g := color.GrayModel.Convert(c).(color.Gray)
 	return quantizeGray2(g)
 }
+
 func convertToNRGBA32(img image.Image) (Image, error) {
 	if existing, ok := img.(*NRGBA32); ok {
 		return existing.Copy(), nil
@@ -3395,6 +3509,7 @@ func convertToNRGBA32(img image.Image) (Image, error) {
 	}
 	return dst, nil
 }
+
 func copyNRGBA64ToNRGBA(src nrgba64, dst NRGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -3403,6 +3518,7 @@ func copyNRGBA64ToNRGBA(src nrgba64, dst NRGBA, bounds image.Rectangle) {
 		}
 	}
 }
+
 func nrgbaToCMYK(c color.NRGBA) color.CMYK {
 	r, g, b, _ := c.RGBA()
 	cyan, magenta, yellow, black := color.RGBToCMYK(uint8(r>>8), uint8(g>>8), uint8(b>>8))
@@ -3431,19 +3547,21 @@ func copyNRGBAToGray(src NRGBA, dst Gray, bounds image.Rectangle) {
 	}
 }
 func (n16 *NRGBA16) Base() *ImageBase      { return &n16.ImageBase }
-func mergeMasked(dst, src, mask byte) byte { return (dst &^ (mask)) | (src & mask) }
+func mergeMasked(dst, src, mask byte) byte { return (dst &^ mask) | (src & mask) }
 func (b *ImageBase) getByte(idx int) (byte, error) {
 	if idx > len(b.Data)-1 || idx < 0 {
 		return 0, fmt.Errorf("index: %d out of range", idx)
 	}
 	return b.Data[idx], nil
 }
+
 func (m *Monochrome) Validate() error {
 	if len(m.Data) != m.Height*m.BytesPerLine {
 		return ErrInvalidImage
 	}
 	return nil
 }
+
 func copyRGBAToNRGBA(src RGBA, dst NRGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -3452,16 +3570,19 @@ func copyRGBAToNRGBA(src RGBA, dst NRGBA, bounds image.Rectangle) {
 		}
 	}
 }
+
 func (n64 *NRGBA64) At(x, y int) color.Color {
 	c, _ := n64.ColorAt(x, y)
 	return c
 }
+
 func thresholdByte(v, threshold uint8) uint8 {
 	if v < threshold {
 		return 255
 	}
 	return 0
 }
+
 func copyNRGBAToGrayZeroWhite(dst Gray, src NRGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -3470,6 +3591,7 @@ func copyNRGBAToGrayZeroWhite(dst Gray, src NRGBA, bounds image.Rectangle) {
 		}
 	}
 }
+
 func thresholdGray16(img *image.Gray16, threshold uint8) *image.Gray {
 	bounds := img.Bounds()
 	dst := image.NewGray(bounds)
@@ -3481,6 +3603,7 @@ func thresholdGray16(img *image.Gray16, threshold uint8) *image.Gray {
 	}
 	return dst
 }
+
 func (g16 *Gray16) Histogram() (hist [256]int) {
 	for x := 0; x < g16.Width; x++ {
 		for y := 0; y < g16.Height; y++ {
@@ -3489,6 +3612,7 @@ func (g16 *Gray16) Histogram() (hist [256]int) {
 	}
 	return hist
 }
+
 func copyNRGBAToNRGBA(src, dst NRGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -3513,12 +3637,14 @@ func (n32 *NRGBA32) At(x, y int) color.Color {
 	c, _ := n32.ColorAt(x, y)
 	return c
 }
+
 func (b *ImageBase) copy() ImageBase {
 	cp := *b
 	cp.Data = make([]byte, len(b.Data))
 	copy(cp.Data, b.Data)
 	return cp
 }
+
 func (g8 *Gray8) GrayAt(x, y int) color.Gray {
 	g, _ := ColorAtGray8BPC(x, y, g8.BytesPerLine, g8.Data, g8.Decode)
 	return g
@@ -3529,6 +3655,7 @@ func (n64 *NRGBA64) NRGBA64At(x, y int) color.NRGBA64 {
 	c, _ := ColorAtNRGBA64(x, y, n64.Width, n64.Data, n64.Alpha, n64.Decode)
 	return c
 }
+
 func convertToGray4(img image.Image) (Image, error) {
 	if existing, ok := img.(*Gray4); ok {
 		return existing.Copy(), nil
@@ -3541,6 +3668,7 @@ func convertToGray4(img image.Image) (Image, error) {
 	copyToGray(img, dst, bounds)
 	return dst, nil
 }
+
 func LinearInterpolate(x, xmin, xmax, ymin, ymax float64) float64 {
 	if math.Abs(xmax-xmin) < 0.000001 {
 		return ymin
@@ -3548,6 +3676,7 @@ func LinearInterpolate(x, xmin, xmax, ymin, ymax float64) float64 {
 	y := ymin + (x-xmin)*(ymax-ymin)/(xmax-xmin)
 	return y
 }
+
 func GetConverter(bitsPerComponent, colorComponents int) (ColorConverter, error) {
 	switch colorComponents {
 	case 1:
@@ -3577,6 +3706,7 @@ func GetConverter(bitsPerComponent, colorComponents int) (ColorConverter, error)
 	}
 	return nil, fmt.Errorf("provided invalid colorConverter parameters. BitsPerComponent: %d, ColorComponents: %d", bitsPerComponent, colorComponents)
 }
+
 func (g4 *Gray4) SetGray(x, y int, g color.Gray) {
 	if x >= g4.Width || y >= g4.Height {
 		return
@@ -3584,6 +3714,7 @@ func (g4 *Gray4) SetGray(x, y int, g color.Gray) {
 	g = quantizeGray4(g)
 	g4.setGray(x, y, g)
 }
+
 func (c32 *CMYK32) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: c32.Width, Y: c32.Height}}
 }
@@ -3598,13 +3729,16 @@ func (m *Monochrome) Set(x, y int, c color.Color) {
 	g := m.ColorModel().Convert(c).(color.Gray)
 	m.setGray(x, g, idx)
 }
+
 func (c32 *CMYK32) ColorAt(x, y int) (color.Color, error) {
 	return ColorAtCMYK(x, y, c32.Width, c32.Data, c32.Decode)
 }
+
 func (c32 *CMYK32) CMYKAt(x, y int) color.CMYK {
 	c, _ := ColorAtCMYK(x, y, c32.Width, c32.Data, c32.Decode)
 	return c
 }
+
 func copyCMYKToRGBA(src CMYK, dst RGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -3613,6 +3747,7 @@ func copyCMYKToRGBA(src CMYK, dst RGBA, bounds image.Rectangle) {
 		}
 	}
 }
+
 func copyNRGBA64ToRGBA(src nrgba64, dst RGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -3621,6 +3756,7 @@ func copyNRGBA64ToRGBA(src nrgba64, dst RGBA, bounds image.Rectangle) {
 		}
 	}
 }
+
 func expandBinaryFactors(src *Monochrome, factor int, steps []uint) (*Monochrome, error) {
 	width := factor * src.Width
 	height := factor * src.Height
@@ -3657,6 +3793,7 @@ func nrgba64ToRGBA(c color.NRGBA64) color.RGBA {
 	r, g, b, a := c.RGBA()
 	return color.RGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
 }
+
 func initBitCountTable() {
 	for i := 0; i < 256; i++ {
 		bitCountTable[i] = uint8(i&0x1) + (uint8(i>>1) & 0x1) + (uint8(i>>2) & 0x1) + (uint8(i>>3) & 0x1) + (uint8(i>>4) & 0x1) + (uint8(i>>5) & 0x1) + (uint8(i>>6) & 0x1) + (uint8(i>>7) & 0x1)
@@ -3687,6 +3824,7 @@ func InDelta(expected, current, delta float64) bool {
 	}
 	return true
 }
+
 func rasterOpUniform(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator) {
 	if dx < 0 {
 		dw += dx
@@ -3713,12 +3851,14 @@ func rasterOpUniform(dest *Monochrome, dx, dy, dw, dh int, op RasterOperator) {
 		rasterOpUniformUnaligned(dest, dx, dy, dw, dh, op)
 	}
 }
+
 func applyMonochromeThreshold(g color.Gray, model monochromeModel) color.Gray {
 	if g.Y > uint8(model) {
 		return color.Gray{Y: math.MaxUint8}
 	}
 	return color.Gray{}
 }
+
 func convertToGray16(img image.Image) (Image, error) {
 	if existing, ok := img.(*Gray16); ok {
 		return existing.Copy(), nil
@@ -3731,6 +3871,7 @@ func convertToGray16(img image.Image) (Image, error) {
 	copyToGray(img, dst, bounds)
 	return dst, nil
 }
+
 func ColorAtCMYK(x, y, width int, data []byte, decode []float64) (color.CMYK, error) {
 	idx := 4 * (y*width + x)
 	if idx+3 >= len(data) {
@@ -3748,6 +3889,7 @@ func ColorAtCMYK(x, y, width int, data []byte, decode []float64) (color.CMYK, er
 	}
 	return color.CMYK{C: C, M: M, Y: Y, K: K}, nil
 }
+
 func GrayHistogram(g Gray) (hist [256]int) {
 	switch v := g.(type) {
 	case Histogramer:
@@ -3773,6 +3915,7 @@ func copyRGBAToGray(src RGBA, dst Gray, bounds image.Rectangle) {
 		}
 	}
 }
+
 func copyGrayToNRGBA(src Gray, dst NRGBA, bounds image.Rectangle) {
 	for x := 0; x < bounds.Max.X; x++ {
 		for y := 0; y < bounds.Max.Y; y++ {
@@ -3781,6 +3924,7 @@ func copyGrayToNRGBA(src Gray, dst NRGBA, bounds image.Rectangle) {
 		}
 	}
 }
+
 func (b *ImageBase) setEightPartlyBytes(idx, n int, value uint64) (err error) {
 	var (
 		v     byte
@@ -3804,6 +3948,7 @@ func (b *ImageBase) setEightPartlyBytes(idx, n int, value uint64) (err error) {
 	}
 	return nil
 }
+
 func (g16 *Gray16) SetGray(x, y int, g color.Gray) {
 	idx := (y*g16.BytesPerLine/2 + x) * 2
 	if idx+1 >= len(g16.Data) {
@@ -3812,6 +3957,7 @@ func (g16 *Gray16) SetGray(x, y int, g color.Gray) {
 	g16.Data[idx] = g.Y
 	g16.Data[idx+1] = g.Y
 }
+
 func nrgbaToGrayZeroWhite(c color.NRGBA) color.Gray {
 	var zero color.NRGBA
 	if c == zero {
@@ -3821,6 +3967,7 @@ func nrgbaToGrayZeroWhite(c color.NRGBA) color.Gray {
 	gray := (19595*r + 38470*g + 7471*b + 1<<15) >> 24
 	return color.Gray{Y: uint8(gray)}
 }
+
 func (n16 *NRGBA16) Set(x, y int, c color.Color) {
 	idx := y*n16.BytesPerLine + x*3/2
 	if idx+1 >= len(n16.Data) {
@@ -3894,9 +4041,11 @@ func expandFactorSteps(factor int) []uint {
 	}
 	return steps
 }
+
 func (n32 *NRGBA32) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{X: n32.Width, Y: n32.Height}}
 }
+
 func (b *ImageBase) newAlpha() {
 	bytesPerLine := BytesPerLine(b.Width, b.BitsPerComponent, 1)
 	b.Alpha = make([]byte, b.Height*bytesPerLine)
@@ -3918,6 +4067,7 @@ func convertToRGBA32(img image.Image) (Image, error) {
 	}
 	return dst, nil
 }
+
 func reduceRankBinary(src *Monochrome, level int, tab []byte) (dst *Monochrome, err error) {
 	const funcName = "reduceRankBinary"
 	if src == nil {
@@ -3969,6 +4119,7 @@ func quantizeGray2(g color.Gray) color.Gray {
 	g.Y = v | v<<4
 	return g
 }
+
 func ImgToBinary(i image.Image, threshold uint8) *image.Gray {
 	switch v := i.(type) {
 	case *image.Gray:
@@ -3982,6 +4133,7 @@ func ImgToBinary(i image.Image, threshold uint8) *image.Gray {
 		return thresholdImage(v, threshold)
 	}
 }
+
 func (m *Monochrome) ScaleLow(width, height int) (*Monochrome, error) {
 	if width < 0 || height < 0 {
 		return nil, errors.New("provided invalid width and height")
@@ -4047,6 +4199,7 @@ func copyToRGBA(src image.Image, dst Image, bounds image.Rectangle) {
 		copyGeneric(src, dst, bounds)
 	}
 }
+
 func (g4 *Gray4) setGray(x int, y int, g color.Gray) {
 	rowStart := y * g4.BytesPerLine
 	idx := rowStart + (x >> 1)

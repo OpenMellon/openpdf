@@ -6,17 +6,18 @@ package bitmap
 import (
 	"encoding/binary"
 	"fmt"
+	"image"
+	"math"
+	"sort"
+	"strings"
+	"testing"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"github.com/OpenMellon/openpdf/internal/imageutil"
 	"github.com/OpenMellon/openpdf/internal/jbig2/basic"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
 	"github.com/stretchr/testify/require"
-	"image"
-	"math"
-	"sort"
-	"strings"
-	"testing"
 )
 
 func (bm *Bitmap) nextOnPixel(x, y int) (pt image.Point, found bool, err error) {
@@ -27,6 +28,7 @@ func (bm *Bitmap) nextOnPixel(x, y int) (pt image.Point, found bool, err error) 
 	}
 	return pt, found, nil
 }
+
 func (boxes *Boxes) selectWithIndicator(indicator *basic.NumSlice) (result *Boxes, err error) {
 	const processName = "Boxes.selectWithIndicator"
 	if boxes == nil {
@@ -61,6 +63,7 @@ func (boxes *Boxes) selectWithIndicator(indicator *basic.NumSlice) (result *Boxe
 	result = &selected
 	return result, nil
 }
+
 func reduceRankBinary2(src *Bitmap, level int, tab []byte) (dest *Bitmap, err error) {
 	const processName = "reduceRankBinary2"
 	if src == nil {
@@ -95,6 +98,7 @@ func reduceRankBinary2(src *Bitmap, level int, tab []byte) (dest *Bitmap, err er
 	}
 	return dest, nil
 }
+
 func (cp *ClassedPoints) ySortFunction() func(i int, j int) bool {
 	return func(i, j int) bool { return cp.YAtIndex(i) < cp.YAtIndex(j) }
 }
@@ -194,6 +198,7 @@ func seedFillStackBB4(s *Bitmap, stack *basic.Stack, x, y int) (bb *image.Rectan
 	box.Max.Y++
 	return &box, nil
 }
+
 func makeSubsampleTab2x() (tab []byte) {
 	tab = make([]byte, 256)
 	for i := 0; i < 256; i++ {
@@ -227,7 +232,7 @@ func verifyMorphProcesses(procs ...MorphProcess) (err error) {
 	}
 	return nil
 }
-func mergeBytes(dst, src, mask byte) byte { return (dst &^ (mask)) | (src & mask) }
+func mergeBytes(dst, src, mask byte) byte { return (dst &^ mask) | (src & mask) }
 func TstImageBitmap() *Bitmap             { return imageBitmap.Copy() }
 func dilate(dest *Bitmap, src *Bitmap, sel *Selection) (*Bitmap, error) {
 	var (
@@ -254,11 +259,13 @@ func dilate(dest *Bitmap, src *Bitmap, sel *Selection) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func TstDSymbol(t *testing.T, scale ...int) *Bitmap {
 	bm, err := NewWithData(4, 5, []byte{0xf0, 0x90, 0x90, 0x90, 0xE0})
 	require.NoError(t, err)
 	return TstGetScaledSymbol(t, bm, scale...)
 }
+
 func rasterOpShiftedLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, src *Bitmap, sx, sy int) error {
 	var (
 		leadingPartial  bool
@@ -794,6 +801,7 @@ func rasterOpShiftedLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, src
 	}
 	return nil
 }
+
 func (bms *Bitmaps) HeightSorter() func(i, j int) bool {
 	return func(i, j int) bool {
 		less := bms.Values[i].Height < bms.Values[j].Height
@@ -801,6 +809,7 @@ func (bms *Bitmaps) HeightSorter() func(i, j int) bool {
 		return less
 	}
 }
+
 func seedfillBinaryLow4(seed, mask *Bitmap, h, wpl int) (err error) {
 	const processName = "seedfillBinaryLow4"
 	var (
@@ -895,13 +904,17 @@ func seedfillBinaryLow4(seed, mask *Bitmap, h, wpl int) (err error) {
 	}
 	return nil
 }
+
 func init() {
 	for i := 0; i < 256; i++ {
 		popCountTab[i] = uint8(i&0x1) + (uint8(i>>1) & 0x1) + (uint8(i>>2) & 0x1) + (uint8(i>>3) & 0x1) + (uint8(i>>4) & 0x1) + (uint8(i>>5) & 0x1) + (uint8(i>>6) & 0x1) + (uint8(i>>7) & 0x1)
 	}
 }
+
 func Centroid(bm *Bitmap, centTab, sumTab []int) (Point, error) { return bm.centroid(centTab, sumTab) }
-func (bm *Bitmap) setBit(bitIdx int)                            { bm.Data[(bitIdx >> 3)] |= 0x80 >> uint(bitIdx&7) }
+
+func (bm *Bitmap) setBit(bitIdx int) { bm.Data[(bitIdx >> 3)] |= 0x80 >> uint(bitIdx&7) }
+
 func (bm *Bitmap) GetComponents(components Component, maxWidth, maxHeight int) (bitmaps *Bitmaps, boxes *Boxes, err error) {
 	const processName = "Bitmap.GetComponents"
 	if bm == nil {
@@ -987,6 +1000,7 @@ func (bm *Bitmap) GetComponents(components Component, maxWidth, maxHeight int) (
 	}
 	return bitmaps, boxes, nil
 }
+
 func (boxes *Boxes) SelectBySize(width, height int, tp LocationFilter, relation SizeComparison) (result *Boxes, err error) {
 	const processName = "Boxes.SelectBySize"
 	if boxes == nil {
@@ -1012,6 +1026,7 @@ func (boxes *Boxes) SelectBySize(width, height int, tp LocationFilter, relation 
 	}
 	return selected, nil
 }
+
 func makeExpandTab4x() (tab [256]uint32) {
 	for i := 0; i < 256; i++ {
 		if i&0x01 != 0 {
@@ -1041,6 +1056,7 @@ func makeExpandTab4x() (tab [256]uint32) {
 	}
 	return tab
 }
+
 func (cp *ClassedPoints) GroupByY() ([]*ClassedPoints, error) {
 	const processName = "ClassedPoints.GroupByY"
 	if err := cp.validateIntSlice(); err != nil {
@@ -1160,9 +1176,11 @@ func TstCSymbol(t *testing.T) *Bitmap {
 	require.NoError(t, bm.SetPixel(4, 5, 1))
 	return bm
 }
+
 func (pts Points) XSorter() func(i, j int) bool {
 	return func(i, j int) bool { return pts[i].X < pts[j].X }
 }
+
 func New(width, height int) (*Bitmap, error) {
 	if width < 0 || height < 0 {
 		return nil, fmt.Errorf("JBIG2: invalid bitmap dimensions %d x %d", width, height)
@@ -1178,6 +1196,7 @@ func New(width, height int) (*Bitmap, error) {
 	bm.Data = make([]byte, dataSize)
 	return bm, nil
 }
+
 func makePixelCentroidTab8() []int {
 	tab := make([]int, 256)
 	tab[0] = 0
@@ -1206,6 +1225,7 @@ func makePixelCentroidTab8() []int {
 	}
 	return tab
 }
+
 func expandReplicate(src *Bitmap, factor int) (*Bitmap, error) {
 	const processName = "expandReplicate"
 	if src == nil {
@@ -1238,6 +1258,7 @@ func newSelection(height, width int, name string) *Selection {
 	}
 	return sel
 }
+
 func MorphSequence(src *Bitmap, sequence ...MorphProcess) (*Bitmap, error) {
 	return morphSequence(src, sequence...)
 }
@@ -1262,8 +1283,10 @@ type Component int
 
 func Copy(d, s *Bitmap) (*Bitmap, error) { return copyBitmap(d, s) }
 
-type MorphOperation int
-type shift int
+type (
+	MorphOperation int
+	shift          int
+)
 
 func RankHausTest(p1, p2, p3, p4 *Bitmap, delX, delY float32, maxDiffW, maxDiffH, area1, area3 int, rank float32, tab8 []int) (exceeds bool, err error) {
 	const processName = "RankHausTest"
@@ -1314,6 +1337,7 @@ func RankHausTest(p1, p2, p3, p4 *Bitmap, delX, delY float32, maxDiffW, maxDiffH
 	}
 	return !exceeds, nil
 }
+
 func (mp MorphProcess) verify(index int, netReduction, borderSize *int) error {
 	const processName = "MorphProcess.verify"
 	switch mp.Operation {
@@ -1360,6 +1384,7 @@ func (mp MorphProcess) verify(index int, netReduction, borderSize *int) error {
 	}
 	return nil
 }
+
 func openMorph(dest, src *Bitmap, sel *Selection) (*Bitmap, error) {
 	const processName = "open"
 	var err error
@@ -1377,6 +1402,7 @@ func openMorph(dest, src *Bitmap, sel *Selection) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func rasterOpNoSrc(bm *Bitmap, dx, dy, dw, dh int, op RasterOperator) {
 	if dx < 0 {
 		dw += dx
@@ -1403,6 +1429,7 @@ func rasterOpNoSrc(bm *Bitmap, dx, dy, dw, dh int, op RasterOperator) {
 		rasterOpNoSrcUnaligned(bm, dx, dy, dw, dh, op)
 	}
 }
+
 func (pts Points) GetGeometry(i int) (x, y float32, err error) {
 	if i > len(pts)-1 {
 		return 0, 0, jbig2errors.Errorf("Points.Get", "index: '%d' out of range", i)
@@ -1410,6 +1437,7 @@ func (pts Points) GetGeometry(i int) (x, y float32, err error) {
 	pt := pts[i]
 	return pt.X, pt.Y, nil
 }
+
 func CorrelationScoreThresholded(bm1, bm2 *Bitmap, area1, area2 int, delX, delY float32, maxDiffW, maxDiffH int, tab, downcount []int, scoreThreshold float32) (bool, error) {
 	const processName = "CorrelationScoreThresholded"
 	if bm1 == nil {
@@ -1568,6 +1596,7 @@ func CorrelationScoreThresholded(bm1, bm2 *Bitmap, area1, area2 int, delX, delY 
 	}
 	return false, nil
 }
+
 func combineBytes(src, dst byte, op CombinationOperator) byte {
 	switch op {
 	case CmbOpOr:
@@ -1579,11 +1608,12 @@ func combineBytes(src, dst byte, op CombinationOperator) byte {
 	case CmbOpXNor:
 		return ^(dst ^ src)
 	case CmbOpNot:
-		return ^(dst)
+		return ^dst
 	default:
 		return dst
 	}
 }
+
 func closeSafeBrick(dest, src *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	const processName = "closeSafeBrick"
 	if src == nil {
@@ -1644,6 +1674,7 @@ func closeSafeBrick(dest, src *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func wordMaskByDilation(src *Bitmap) (mask *Bitmap, size int, err error) {
 	const processName = "Bitmap.wordMaskByDilation"
 	if src == nil {
@@ -1722,11 +1753,13 @@ func wordMaskByDilation(src *Bitmap) (mask *Bitmap, size int, err error) {
 	}
 	return mask, size, nil
 }
+
 func TstNSymbol(t *testing.T, scale ...int) *Bitmap {
 	bm, err := NewWithData(4, 5, []byte{0x90, 0xD0, 0xB0, 0x90, 0x90})
 	require.NoError(t, err)
 	return TstGetScaledSymbol(t, bm, scale...)
 }
+
 func openBrick(dest, src *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	const processName = "openBrick"
 	if src == nil {
@@ -1767,6 +1800,7 @@ func openBrick(dest, src *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func (bm *Bitmap) setEightBytes(byteIdx int, val uint64) error {
 	remaining := bm.RowStride - (byteIdx % bm.RowStride)
 	if bm.RowStride != bm.Width>>3 {
@@ -1777,6 +1811,7 @@ func (bm *Bitmap) setEightBytes(byteIdx int, val uint64) error {
 	}
 	return bm.setEightPartlyBytes(byteIdx, remaining, val)
 }
+
 func (bm *Bitmap) RemoveBorder(borderSize int) (*Bitmap, error) {
 	if borderSize == 0 {
 		return bm.Copy(), nil
@@ -1787,6 +1822,7 @@ func (bm *Bitmap) RemoveBorder(borderSize int) (*Bitmap, error) {
 	}
 	return result, nil
 }
+
 func rasterOpNoSrcUnaligned(bm *Bitmap, dx, dy int, dw, dh int, op RasterOperator) {
 	var (
 		inOneByte       bool
@@ -1866,7 +1902,7 @@ func rasterOpNoSrcUnaligned(bm *Bitmap, dx, dy int, dw, dh int, op RasterOperato
 		if hasMiddle {
 			for i = 0; i < dh; i++ {
 				for j = 0; j < midBytes; j++ {
-					bm.Data[dMid+j] = ^(bm.Data[dMid+j])
+					bm.Data[dMid+j] = ^bm.Data[dMid+j]
 				}
 				dMid += bm.RowStride
 			}
@@ -1879,6 +1915,7 @@ func rasterOpNoSrcUnaligned(bm *Bitmap, dx, dy int, dw, dh int, op RasterOperato
 		}
 	}
 }
+
 func rasterOpNoSrcAligned(bm *Bitmap, dx, dy int, dw, dh int, op RasterOperator) {
 	var (
 		dFirst   int
@@ -1934,6 +1971,7 @@ type SelectionValue int
 func (pts Points) YSorter() func(i, j int) bool {
 	return func(i, j int) bool { return pts[i].Y < pts[j].Y }
 }
+
 func (bm *Bitmap) GetUnpaddedData() ([]byte, error) {
 	remBits := uint(bm.Width & 0x07)
 	if remBits == 0 {
@@ -2027,6 +2065,7 @@ func (bms *Bitmaps) makeSizeIndicator(width, height int, filter LocationFilter, 
 	}
 	return indicator, nil
 }
+
 func absInt(n int) int {
 	if n < 0 {
 		return -n
@@ -2060,6 +2099,7 @@ func (bm *Bitmap) And(s *Bitmap) (result *Bitmap, err error) {
 	}
 	return result, nil
 }
+
 func TstTSymbol(t *testing.T, scale ...int) *Bitmap {
 	bm, err := NewWithData(5, 5, []byte{0xF8, 0x20, 0x20, 0x20, 0x20})
 	require.NoError(t, err)
@@ -2069,6 +2109,7 @@ func clearLowBits(n uint, b byte) byte { return b >> n << n }
 func (cp *ClassedPoints) Swap(i, j int) {
 	cp.IntSlice[i], cp.IntSlice[j] = cp.IntSlice[j], cp.IntSlice[i]
 }
+
 func NewClassedPoints(points *Points, classes basic.IntSlice) (*ClassedPoints, error) {
 	const processName = "NewClassedPoints"
 	if points == nil {
@@ -2119,6 +2160,7 @@ func xor(dest, a, b *Bitmap) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func morphSequence(src *Bitmap, sequence ...MorphProcess) (result *Bitmap, err error) {
 	const processName = "morphSequence"
 	if src == nil {
@@ -2186,9 +2228,11 @@ func morphSequence(src *Bitmap, sequence ...MorphProcess) (result *Bitmap, err e
 	}
 	return result, nil
 }
+
 func DilateBrick(d, s *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	return dilateBrick(d, s, hSize, vSize)
 }
+
 func (bm *Bitmap) GetVanillaData() []byte {
 	if bm.Color == Chocolate {
 		bm.inverseData()
@@ -2229,6 +2273,7 @@ func (bm *Bitmap) thresholdPixelSum(thresh int) bool {
 	}
 	return false
 }
+
 func combineBitmaps(a, b *Bitmap, op CombinationOperator) (*Bitmap, error) {
 	result, err := New(a.Width, a.Height)
 	if err != nil {
@@ -2239,6 +2284,7 @@ func combineBitmaps(a, b *Bitmap, op CombinationOperator) (*Bitmap, error) {
 	}
 	return result, nil
 }
+
 func makePixelSumTab8() []int {
 	tab := make([]int, 256)
 	for i := 0; i <= 0xff; i++ {
@@ -2247,6 +2293,7 @@ func makePixelSumTab8() []int {
 	}
 	return tab
 }
+
 func seedfillBinaryLow(seed *Bitmap, mask *Bitmap, connectivity int) (err error) {
 	const processName = "seedfillBinaryLow"
 	h := minInt(seed.Height, mask.Height)
@@ -2286,6 +2333,7 @@ func (bms *Bitmaps) GroupByHeight() (*BitmapsArray, error) {
 	}
 	return result, nil
 }
+
 func expandBinaryReplicate(src *Bitmap, xFact, yFact int) (*Bitmap, error) {
 	const processName = "expandBinaryReplicate"
 	if src == nil {
@@ -2345,8 +2393,9 @@ func expandBinaryReplicate(src *Bitmap, xFact, yFact int) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func (bm *Bitmap) String() string {
-	var s = "\n"
+	s := "\n"
 	for y := 0; y < bm.Height; y++ {
 		var line string
 		for x := 0; x < bm.Width; x++ {
@@ -2361,6 +2410,7 @@ func (bm *Bitmap) String() string {
 	}
 	return s
 }
+
 func expandBinaryFactor8(dest, src *Bitmap) (err error) {
 	const processName = "expandBinaryFactor8"
 	srcStride := src.RowStride
@@ -2384,10 +2434,11 @@ func expandBinaryFactor8(dest, src *Bitmap) (err error) {
 	}
 	return nil
 }
+
 func (cp *ClassedPoints) validateIntSlice() error {
 	const processName = "validateIntSlice"
 	for _, class := range cp.IntSlice {
-		if class >= (cp.Points.Size()) {
+		if class >= cp.Points.Size() {
 			return jbig2errors.Errorf(processName, "class id: '%d' is not a valid index in the points of size: %d", class, cp.Points.Size())
 		}
 	}
@@ -2410,6 +2461,7 @@ func (bm *Bitmap) SizesEqual(s *Bitmap) bool {
 	}
 	return true
 }
+
 func (cp *ClassedPoints) GetIntYByClass(i int) (int, error) {
 	const processName = "ClassedPoints.GetIntYByClass"
 	if i >= cp.IntSlice.Size() {
@@ -2417,6 +2469,7 @@ func (cp *ClassedPoints) GetIntYByClass(i int) (int, error) {
 	}
 	return int(cp.YAtIndex(i)), nil
 }
+
 func seedfillBinaryLow8(seed, mask *Bitmap, h, wpl int) (err error) {
 	const processName = "seedfillBinaryLow8"
 	var (
@@ -2561,6 +2614,7 @@ func processMorphArgs1(dest *Bitmap, src *Bitmap, sel *Selection, ptemp **Bitmap
 	}
 	return dest, nil
 }
+
 func (ba *BitmapsArray) GetBox(i int) (*image.Rectangle, error) {
 	const processName = "BitmapsArray.GetBox"
 	if ba == nil {
@@ -2571,6 +2625,7 @@ func (ba *BitmapsArray) GetBox(i int) (*image.Rectangle, error) {
 	}
 	return ba.Boxes[i], nil
 }
+
 func (bms *Bitmaps) WidthSorter() func(i, j int) bool {
 	return func(i, j int) bool { return bms.Values[i].Width < bms.Values[j].Width }
 }
@@ -2619,6 +2674,7 @@ func (bm *Bitmap) connComponentsBB(connectivity int) (boxes *Boxes, err error) {
 	}
 	return boxes, nil
 }
+
 func TstASymbol(t *testing.T) *Bitmap {
 	t.Helper()
 	bm, err := New(6, 6)
@@ -2644,6 +2700,7 @@ func TstASymbol(t *testing.T) *Bitmap {
 	require.NoError(t, bm.SetPixel(5, 5, 1))
 	return bm
 }
+
 func (bm *Bitmap) setPadBits(val int) {
 	padBits := 8 - bm.Width%8
 	if padBits == 8 {
@@ -2664,12 +2721,14 @@ func (bm *Bitmap) setPadBits(val int) {
 		}
 	}
 }
+
 func (bm *Bitmap) GetChocolateData() []byte {
 	if bm.Color == Vanilla {
 		bm.inverseData()
 	}
 	return bm.Data
 }
+
 func rasterOpSameOffsetLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, src *Bitmap, sx, sy int) error {
 	var (
 		inOneByte       bool
@@ -2820,14 +2879,14 @@ func rasterOpSameOffsetLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, 
 		}
 	case PixNotSrcOrDst:
 		for i = 0; i < dh; i++ {
-			dest.Data[dFirst] = mergeBytes(dest.Data[dFirst], ^(src.Data[sFirst])|dest.Data[dFirst], firstMask)
+			dest.Data[dFirst] = mergeBytes(dest.Data[dFirst], ^src.Data[sFirst]|dest.Data[dFirst], firstMask)
 			dFirst += dest.RowStride
 			sFirst += src.RowStride
 		}
 		if hasMiddle {
 			for i = 0; i < dh; i++ {
 				for j = 0; j < midBytes; j++ {
-					dest.Data[dMid+j] |= ^(src.Data[sMid+j])
+					dest.Data[dMid+j] |= ^src.Data[sMid+j]
 				}
 				dMid += dest.RowStride
 				sMid += src.RowStride
@@ -2835,14 +2894,14 @@ func rasterOpSameOffsetLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, 
 		}
 		if trailingPartial {
 			for i = 0; i < dh; i++ {
-				dest.Data[dLast] = mergeBytes(dest.Data[dLast], ^(src.Data[sLast])|dest.Data[dLast], lastMask)
+				dest.Data[dLast] = mergeBytes(dest.Data[dLast], ^src.Data[sLast]|dest.Data[dLast], lastMask)
 				dLast += dest.RowStride
 				sLast += src.RowStride
 			}
 		}
 	case PixNotSrcAndDst:
 		for i = 0; i < dh; i++ {
-			dest.Data[dFirst] = mergeBytes(dest.Data[dFirst], ^(src.Data[sFirst])&dest.Data[dFirst], firstMask)
+			dest.Data[dFirst] = mergeBytes(dest.Data[dFirst], ^src.Data[sFirst]&dest.Data[dFirst], firstMask)
 			dFirst += dest.RowStride
 			sFirst += src.RowStride
 		}
@@ -2857,21 +2916,21 @@ func rasterOpSameOffsetLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, 
 		}
 		if trailingPartial {
 			for i = 0; i < dh; i++ {
-				dest.Data[dLast] = mergeBytes(dest.Data[dLast], ^(src.Data[sLast])&dest.Data[dLast], lastMask)
+				dest.Data[dLast] = mergeBytes(dest.Data[dLast], ^src.Data[sLast]&dest.Data[dLast], lastMask)
 				dLast += dest.RowStride
 				sLast += src.RowStride
 			}
 		}
 	case PixSrcOrNotDst:
 		for i = 0; i < dh; i++ {
-			dest.Data[dFirst] = mergeBytes(dest.Data[dFirst], src.Data[sFirst]|^(dest.Data[dFirst]), firstMask)
+			dest.Data[dFirst] = mergeBytes(dest.Data[dFirst], src.Data[sFirst]|^dest.Data[dFirst], firstMask)
 			dFirst += dest.RowStride
 			sFirst += src.RowStride
 		}
 		if hasMiddle {
 			for i = 0; i < dh; i++ {
 				for j = 0; j < midBytes; j++ {
-					dest.Data[dMid+j] = src.Data[sMid+j] | ^(dest.Data[dMid+j])
+					dest.Data[dMid+j] = src.Data[sMid+j] | ^dest.Data[dMid+j]
 				}
 				dMid += dest.RowStride
 				sMid += src.RowStride
@@ -2879,21 +2938,21 @@ func rasterOpSameOffsetLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, 
 		}
 		if trailingPartial {
 			for i = 0; i < dh; i++ {
-				dest.Data[dLast] = mergeBytes(dest.Data[dLast], src.Data[sLast]|^(dest.Data[dLast]), lastMask)
+				dest.Data[dLast] = mergeBytes(dest.Data[dLast], src.Data[sLast]|^dest.Data[dLast], lastMask)
 				dLast += dest.RowStride
 				sLast += src.RowStride
 			}
 		}
 	case PixSrcAndNotDst:
 		for i = 0; i < dh; i++ {
-			dest.Data[dFirst] = mergeBytes(dest.Data[dFirst], src.Data[sFirst]&^(dest.Data[dFirst]), firstMask)
+			dest.Data[dFirst] = mergeBytes(dest.Data[dFirst], src.Data[sFirst]&^dest.Data[dFirst], firstMask)
 			dFirst += dest.RowStride
 			sFirst += src.RowStride
 		}
 		if hasMiddle {
 			for i = 0; i < dh; i++ {
 				for j = 0; j < midBytes; j++ {
-					dest.Data[dMid+j] = src.Data[sMid+j] &^ (dest.Data[dMid+j])
+					dest.Data[dMid+j] = src.Data[sMid+j] &^ dest.Data[dMid+j]
 				}
 				dMid += dest.RowStride
 				sMid += src.RowStride
@@ -2901,7 +2960,7 @@ func rasterOpSameOffsetLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, 
 		}
 		if trailingPartial {
 			for i = 0; i < dh; i++ {
-				dest.Data[dLast] = mergeBytes(dest.Data[dLast], src.Data[sLast]&^(dest.Data[dLast]), lastMask)
+				dest.Data[dLast] = mergeBytes(dest.Data[dLast], src.Data[sLast]&^dest.Data[dLast], lastMask)
 				dLast += dest.RowStride
 				sLast += src.RowStride
 			}
@@ -2978,6 +3037,7 @@ func rasterOpSameOffsetLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, 
 	}
 	return nil
 }
+
 func popFillSegment(stack *basic.Stack) (seg *fillSegment, err error) {
 	const processName = "popFillSegment"
 	if stack == nil {
@@ -3054,6 +3114,7 @@ func reduceRankBinary2Level3(src, dest *Bitmap, level int, tab []byte, size int)
 	}
 	return nil
 }
+
 func (bm *Bitmap) resizeImageData(src *Bitmap) error {
 	if src == nil {
 		return jbig2errors.Error("resizeImageData", "src is not defined")
@@ -3067,6 +3128,7 @@ func (bm *Bitmap) resizeImageData(src *Bitmap) error {
 	bm.RowStride = src.RowStride
 	return nil
 }
+
 func (sel *Selection) findMaxTranslations() (xp, yp, xn, yn int) {
 	for i := 0; i < sel.Height; i++ {
 		for j := 0; j < sel.Width; j++ {
@@ -3080,6 +3142,7 @@ func (sel *Selection) findMaxTranslations() (xp, yp, xn, yn int) {
 	}
 	return xp, yp, xn, yn
 }
+
 func processMorphArgs2(dest, src *Bitmap, sel *Selection) (*Bitmap, error) {
 	const processName = "processMorphArgs2"
 	var sw, sh int
@@ -3214,6 +3277,7 @@ func (bm *Bitmap) addBorderGeneral(left, right, top, bot int, val int) (*Bitmap,
 	}
 	return result, nil
 }
+
 func (bms *Bitmaps) selectByIndicator(indicator *basic.NumSlice) (result *Bitmaps, err error) {
 	const processName = "Bitmaps.selectByIndicator"
 	if bms == nil {
@@ -3253,6 +3317,7 @@ func (bms *Bitmaps) selectByIndicator(indicator *basic.NumSlice) (result *Bitmap
 	}
 	return result, nil
 }
+
 func reduceRankBinary2Level4(src, dest *Bitmap, level int, tab []byte, size int) (err error) {
 	const processName = "reduceRankBinary2Level4"
 	var (
@@ -3306,12 +3371,14 @@ func reduceRankBinary2Level4(src, dest *Bitmap, level int, tab []byte, size int)
 	}
 	return nil
 }
+
 func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
 }
+
 func TstPSymbol(t *testing.T) *Bitmap {
 	t.Helper()
 	bm, err := New(5, 8)
@@ -3335,6 +3402,7 @@ func TstPSymbol(t *testing.T) *Bitmap {
 	require.NoError(t, bm.SetPixel(0, 7, 1))
 	return bm
 }
+
 func (bm *Bitmap) clipRectangle(box, outBox *image.Rectangle) (result *Bitmap, err error) {
 	const processName = "clipRectangle"
 	if box == nil {
@@ -3377,6 +3445,7 @@ func TstESymbol(t *testing.T, scale ...int) *Bitmap {
 	require.NoError(t, err)
 	return TstGetScaledSymbol(t, bm, scale...)
 }
+
 func (bm *Bitmap) setEightFullBytes(idx int, val uint64) error {
 	if idx+7 > len(bm.Data)-1 {
 		return jbig2errors.Error("setEightBytes", "index out of range")
@@ -3391,9 +3460,11 @@ func (bm *Bitmap) setEightFullBytes(idx int, val uint64) error {
 	bm.Data[idx+7] = byte(val & 0xff)
 	return nil
 }
+
 func (bm *Bitmap) RemoveBorderGeneral(left, right, top, bot int) (*Bitmap, error) {
 	return bm.removeBorderGeneral(left, right, top, bot)
 }
+
 func (op CombinationOperator) String() string {
 	var s string
 	switch op {
@@ -3436,6 +3507,7 @@ func (bm *Bitmap) InverseData() { bm.inverseData() }
 func (bm *Bitmap) AddBorderGeneral(left, right, top, bot int, val int) (*Bitmap, error) {
 	return bm.addBorderGeneral(left, right, top, bot, val)
 }
+
 func (bm *Bitmap) ToImage() image.Image {
 	img, err := imageutil.NewImage(bm.Width, bm.Height, 1, 1, bm.Data, nil, nil)
 	if err != nil {
@@ -3443,6 +3515,7 @@ func (bm *Bitmap) ToImage() image.Image {
 	}
 	return img
 }
+
 func (bm *Bitmap) GetPixel(x, y int) bool {
 	idx := bm.GetByteIndex(x, y)
 	bitOff := bm.GetBitOffset(x)
@@ -3475,6 +3548,7 @@ func closeMorph(dest, src *Bitmap, sel *Selection) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func (bms *Bitmaps) SelectByIndexes(idx []int) (*Bitmaps, error) {
 	const processName = "Bitmaps.SortIndexesByHeight"
 	result, err := bms.selectByIndexes(idx)
@@ -3483,11 +3557,13 @@ func (bms *Bitmaps) SelectByIndexes(idx []int) (*Bitmaps, error) {
 	}
 	return result, nil
 }
+
 func TstOSymbol(t *testing.T, scale ...int) *Bitmap {
 	bm, err := NewWithData(4, 5, []byte{0xF0, 0x90, 0x90, 0x90, 0xF0})
 	require.NoError(t, err)
 	return TstGetScaledSymbol(t, bm, scale...)
 }
+
 func (cp *ClassedPoints) xSortFunction() func(i int, j int) bool {
 	return func(i, j int) bool { return cp.XAtIndex(i) < cp.XAtIndex(j) }
 }
@@ -3507,6 +3583,7 @@ func (s *byHeight) Swap(i, j int) {
 		s.Boxes[i], s.Boxes[j] = s.Boxes[j], s.Boxes[i]
 	}
 }
+
 func (bms *Bitmaps) ClipToBitmap(s *Bitmap) (*Bitmaps, error) {
 	const processName = "Bitmaps.ClipToBitmap"
 	if bms == nil {
@@ -3540,6 +3617,7 @@ func (bms *Bitmaps) ClipToBitmap(s *Bitmap) (*Bitmaps, error) {
 	}
 	return result, nil
 }
+
 func seedFillStackBB8(s *Bitmap, stack *basic.Stack, x, y int) (bb *image.Rectangle, err error) {
 	const processName = "seedFillStackBB"
 	if s == nil {
@@ -3663,6 +3741,7 @@ func blitShiftedWithTail(src, dst *Bitmap, startLine, endLine, dstIdx, srcStart,
 	}
 	return nil
 }
+
 func dilateBrick(dest, src *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	const processName = "dilateBrick"
 	if src == nil {
@@ -3699,6 +3778,7 @@ func dilateBrick(dest, src *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func (bm *Bitmap) connComponentsBitmapsBB(bms *Bitmaps, connectivity int) (boxes *Boxes, err error) {
 	const processName = "connComponentsBitmapsBB"
 	if connectivity != 4 && connectivity != 8 {
@@ -3713,9 +3793,7 @@ func (bm *Bitmap) connComponentsBitmapsBB(bms *Bitmaps, connectivity int) (boxes
 	if bm.Zero() {
 		return &Boxes{}, nil
 	}
-	var (
-		work, rest, component, region *Bitmap
-	)
+	var work, rest, component, region *Bitmap
 	bm.setPadBits(0)
 	if work, err = copyBitmap(nil, bm); err != nil {
 		return nil, jbig2errors.Wrap(err, processName, "bm1")
@@ -3764,6 +3842,7 @@ func (bm *Bitmap) connComponentsBitmapsBB(bms *Bitmaps, connectivity int) (boxes
 	bms.Boxes = *boxes
 	return boxes, nil
 }
+
 func (bms *Bitmaps) selectByIndexes(idx []int) (*Bitmaps, error) {
 	result := &Bitmaps{}
 	for _, i := range idx {
@@ -3775,6 +3854,7 @@ func (bms *Bitmaps) selectByIndexes(idx []int) (*Bitmaps, error) {
 	}
 	return result, nil
 }
+
 func (pts Points) GetIntY(i int) (int, error) {
 	if i >= len(pts) {
 		return 0, jbig2errors.Errorf("Points.GetIntY", "index: '%d' out of range", i)
@@ -3861,6 +3941,7 @@ func (cp *ClassedPoints) GetIntXByClass(i int) (int, error) {
 	}
 	return int(cp.XAtIndex(i)), nil
 }
+
 func pushFillSegmentBoundingBox(stack *basic.Stack, x1, x2, y, dy, maxY int, bb *image.Rectangle) (err error) {
 	const processName = "pushFillSegmentBoundingBox"
 	if stack == nil {
@@ -3904,6 +3985,7 @@ func (pts Points) GetIntX(i int) (int, error) {
 	}
 	return int(pts[i].X), nil
 }
+
 func Blit(src *Bitmap, dst *Bitmap, x, y int, op CombinationOperator) error {
 	var startLine, srcStart int
 	srcEnd := src.RowStride - 1
@@ -3948,9 +4030,11 @@ func Blit(src *Bitmap, dst *Bitmap, x, y int, op CombinationOperator) error {
 	}
 	return err
 }
+
 func CombineBytes(oldByte, newByte byte, op CombinationOperator) byte {
 	return combineBytes(oldByte, newByte, op)
 }
+
 func (bm *Bitmap) inverseData() {
 	if err := bm.RasterOperation(0, 0, bm.Width, bm.Height, PixNotDst, nil, 0, 0); err != nil {
 		common.Log.Debug("Inverse data failed: '%v'", err)
@@ -3961,6 +4045,7 @@ func (bm *Bitmap) inverseData() {
 		bm.Color = Chocolate
 	}
 }
+
 func closeBrick(dest, src *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	const processName = "closeBrick"
 	if src == nil {
@@ -3998,6 +4083,7 @@ func closeBrick(dest, src *Bitmap, hSize, vSize int) (*Bitmap, error) {
 	}
 	return dest, nil
 }
+
 func (pts *Points) Add(pt *Points) error {
 	const processName = "Points.Add"
 	if pts == nil {
@@ -4082,7 +4168,7 @@ func rasterOpByteAlignedLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator,
 			sIdx = sFirst + i*src.RowStride
 			dIdx = dFirst + i*dest.RowStride
 			for j = 0; j < fullBytes; j++ {
-				dest.Data[dIdx] = ^(src.Data[sIdx])
+				dest.Data[dIdx] = ^src.Data[sIdx]
 				dIdx++
 				sIdx++
 			}
@@ -4134,12 +4220,12 @@ func rasterOpByteAlignedLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator,
 			sIdx = sFirst + i*src.RowStride
 			dIdx = dFirst + i*dest.RowStride
 			for j = 0; j < fullBytes; j++ {
-				dest.Data[dIdx] |= ^(src.Data[sIdx])
+				dest.Data[dIdx] |= ^src.Data[sIdx]
 				dIdx++
 				sIdx++
 			}
 			if remBits > 0 {
-				dest.Data[dIdx] = mergeBytes(dest.Data[dIdx], ^(src.Data[sIdx])|dest.Data[dIdx], lastMask)
+				dest.Data[dIdx] = mergeBytes(dest.Data[dIdx], ^src.Data[sIdx]|dest.Data[dIdx], lastMask)
 			}
 		}
 	case PixNotSrcAndDst:
@@ -4147,12 +4233,12 @@ func rasterOpByteAlignedLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator,
 			sIdx = sFirst + i*src.RowStride
 			dIdx = dFirst + i*dest.RowStride
 			for j = 0; j < fullBytes; j++ {
-				dest.Data[dIdx] &= ^(src.Data[sIdx])
+				dest.Data[dIdx] &= ^src.Data[sIdx]
 				dIdx++
 				sIdx++
 			}
 			if remBits > 0 {
-				dest.Data[dIdx] = mergeBytes(dest.Data[dIdx], ^(src.Data[sIdx])&dest.Data[dIdx], lastMask)
+				dest.Data[dIdx] = mergeBytes(dest.Data[dIdx], ^src.Data[sIdx]&dest.Data[dIdx], lastMask)
 			}
 		}
 	case PixSrcOrNotDst:
@@ -4160,12 +4246,12 @@ func rasterOpByteAlignedLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator,
 			sIdx = sFirst + i*src.RowStride
 			dIdx = dFirst + i*dest.RowStride
 			for j = 0; j < fullBytes; j++ {
-				dest.Data[dIdx] = src.Data[sIdx] | ^(dest.Data[dIdx])
+				dest.Data[dIdx] = src.Data[sIdx] | ^dest.Data[dIdx]
 				dIdx++
 				sIdx++
 			}
 			if remBits > 0 {
-				dest.Data[dIdx] = mergeBytes(dest.Data[dIdx], src.Data[sIdx]|^(dest.Data[dIdx]), lastMask)
+				dest.Data[dIdx] = mergeBytes(dest.Data[dIdx], src.Data[sIdx]|^dest.Data[dIdx], lastMask)
 			}
 		}
 	case PixSrcAndNotDst:
@@ -4173,12 +4259,12 @@ func rasterOpByteAlignedLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator,
 			sIdx = sFirst + i*src.RowStride
 			dIdx = dFirst + i*dest.RowStride
 			for j = 0; j < fullBytes; j++ {
-				dest.Data[dIdx] = src.Data[sIdx] &^ (dest.Data[dIdx])
+				dest.Data[dIdx] = src.Data[sIdx] &^ dest.Data[dIdx]
 				dIdx++
 				sIdx++
 			}
 			if remBits > 0 {
-				dest.Data[dIdx] = mergeBytes(dest.Data[dIdx], src.Data[sIdx]&^(dest.Data[dIdx]), lastMask)
+				dest.Data[dIdx] = mergeBytes(dest.Data[dIdx], src.Data[sIdx]&^dest.Data[dIdx], lastMask)
 			}
 		}
 	case PixNotPixSrcOrDst:
@@ -4226,6 +4312,7 @@ func rasterOpByteAlignedLow(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator,
 	}
 	return nil
 }
+
 func (bm *Bitmap) SetDefaultPixel() {
 	for i := range bm.Data {
 		bm.Data[i] = byte(0xff)
@@ -4235,11 +4322,13 @@ func (bm *Bitmap) GetByteIndex(x, y int) int { return y*bm.RowStride + (x >> 3) 
 func (bm *Bitmap) createTemplate() *Bitmap {
 	return &Bitmap{Width: bm.Width, Height: bm.Height, RowStride: bm.RowStride, Color: bm.Color, Text: bm.Text, BitmapNumber: bm.BitmapNumber, Special: bm.Special, Data: make([]byte, len(bm.Data))}
 }
+
 func TstVSymbol(t *testing.T, scale ...int) *Bitmap {
 	bm, err := NewWithData(5, 5, []byte{0x88, 0x88, 0x88, 0x50, 0x20})
 	require.NoError(t, err)
 	return TstGetScaledSymbol(t, bm, scale...)
 }
+
 func (s *byWidth) Swap(i, j int) {
 	s.Values[i], s.Values[j] = s.Values[j], s.Values[i]
 	if s.Boxes != nil {
@@ -4269,6 +4358,7 @@ func (bms *Bitmaps) GroupByWidth() (*BitmapsArray, error) {
 	}
 	return result, nil
 }
+
 func blitAligned(src, dst *Bitmap, startLine, endLine, dstIdx, srcStart, srcEnd int, op CombinationOperator) error {
 	var line int
 	advance := func() { line++; dstIdx += dst.RowStride; srcStart += src.RowStride; srcEnd += src.RowStride }
@@ -4319,11 +4409,13 @@ func (bm *Bitmap) removeBorderGeneral(left, right, top, bot int) (*Bitmap, error
 	}
 	return result, nil
 }
+
 func (bm *Bitmap) Copy() *Bitmap {
 	data := make([]byte, len(bm.Data))
 	copy(data, bm.Data)
 	return &Bitmap{Width: bm.Width, Height: bm.Height, RowStride: bm.RowStride, Data: data, Color: bm.Color, Text: bm.Text, BitmapNumber: bm.BitmapNumber, Special: bm.Special}
 }
+
 func TstWordBitmap(t *testing.T, scale ...int) *Bitmap {
 	scaleFactor := 1
 	if len(scale) > 0 {
@@ -4373,6 +4465,7 @@ func TstWordBitmap(t *testing.T, scale ...int) *Bitmap {
 	TstWriteSymbols(t, bms, bm)
 	return bm
 }
+
 func reduceRankBinary2Level2(src, dest *Bitmap, _ int, tab []byte, size int) (err error) {
 	const processName = "reduceRankBinary2Level2"
 	var (
@@ -4428,6 +4521,7 @@ func reduceRankBinary2Level2(src, dest *Bitmap, _ int, tab []byte, size int) (er
 	}
 	return nil
 }
+
 func (bm *Bitmap) Zero() bool {
 	fullBytes := bm.Width / 8
 	remBits := bm.Width & 7
@@ -4451,6 +4545,7 @@ func (bm *Bitmap) Zero() bool {
 	}
 	return true
 }
+
 func (s *byHeight) Less(i, j int) bool                             { return s.Values[i].Height < s.Values[j].Height }
 func Dilate(d *Bitmap, s *Bitmap, sel *Selection) (*Bitmap, error) { return dilate(d, s, sel) }
 func (bm *Bitmap) ClipRectangle(box *image.Rectangle) (result *Bitmap, clipped *image.Rectangle, err error) {
@@ -4487,6 +4582,7 @@ func (bm *Bitmap) setAll() error {
 	}
 	return nil
 }
+
 func (bm *Bitmap) AddBorder(borderSize, val int) (*Bitmap, error) {
 	if borderSize == 0 {
 		return bm.Copy(), nil
@@ -4497,6 +4593,7 @@ func (bm *Bitmap) AddBorder(borderSize, val int) (*Bitmap, error) {
 	}
 	return result, nil
 }
+
 func (bm *Bitmap) addPadBits() (err error) {
 	const processName = "bitmap.addPadBits"
 	remBits := bm.Width % 8
@@ -4529,6 +4626,7 @@ func (bm *Bitmap) addPadBits() (err error) {
 	bm.Data = w.Data()
 	return nil
 }
+
 func erode(dest, src *Bitmap, sel *Selection) (*Bitmap, error) {
 	const processName = "erode"
 	var (
@@ -4589,6 +4687,7 @@ func (bm *Bitmap) setTwoBytes(idx int, val uint16) error {
 	bm.Data[idx+1] = byte(val & 0xff)
 	return nil
 }
+
 func ClipBoxToRectangle(box *image.Rectangle, wi, hi int) (result *image.Rectangle, err error) {
 	const processName = "ClipBoxToRectangle"
 	if box == nil {
@@ -4615,6 +4714,7 @@ func ClipBoxToRectangle(box *image.Rectangle, wi, hi int) (result *image.Rectang
 	}
 	return result, nil
 }
+
 func makeExpandTab2x() (tab [256]uint16) {
 	for i := 0; i < 256; i++ {
 		if i&0x01 != 0 {
@@ -4656,11 +4756,13 @@ func TstRSymbol(t *testing.T, scale ...int) *Bitmap {
 	require.NoError(t, err)
 	return TstGetScaledSymbol(t, bm, scale...)
 }
+
 func TstISymbol(t *testing.T, scale ...int) *Bitmap {
 	bm, err := NewWithData(1, 5, []byte{0x80, 0x80, 0x80, 0x80, 0x80})
 	require.NoError(t, err)
 	return TstGetScaledSymbol(t, bm, scale...)
 }
+
 func expandBinaryFactor4(dest, src *Bitmap) (err error) {
 	const processName = "expandBinaryFactor4"
 	srcStride := src.RowStride
@@ -4703,12 +4805,14 @@ func expandBinaryFactor4(dest, src *Bitmap) (err error) {
 	}
 	return nil
 }
+
 func (bm *Bitmap) GetByte(index int) (byte, error) {
 	if index > len(bm.Data)-1 || index < 0 {
 		return 0, jbig2errors.Errorf("GetByte", "index: %d out of range", index)
 	}
 	return bm.Data[index], nil
 }
+
 func (bms *Bitmaps) GetBitmap(i int) (*Bitmap, error) {
 	const processName = "GetBitmap"
 	if bms == nil {
@@ -4719,6 +4823,7 @@ func (bms *Bitmaps) GetBitmap(i int) (*Bitmap, error) {
 	}
 	return bms.Values[i], nil
 }
+
 func (bm *Bitmap) Equals(s *Bitmap) bool {
 	if len(bm.Data) != len(s.Data) || bm.Width != s.Width || bm.Height != s.Height {
 		return false
@@ -4733,6 +4838,7 @@ func (bm *Bitmap) Equals(s *Bitmap) bool {
 	}
 	return true
 }
+
 func (bm *Bitmap) SetPixel(x, y int, pixel byte) error {
 	idx := bm.GetByteIndex(x, y)
 	if idx > len(bm.Data)-1 {
@@ -4750,6 +4856,7 @@ func (bm *Bitmap) SetPixel(x, y int, pixel byte) error {
 	bm.Data[idx] = newByte
 	return nil
 }
+
 func reduceRankBinary2Level1(src, dest *Bitmap, _ int, tab []byte, size int) (err error) {
 	const processName = "reduceRankBinary2Level1"
 	var (
@@ -4800,6 +4907,7 @@ func reduceRankBinary2Level1(src, dest *Bitmap, _ int, tab []byte, size int) (er
 	}
 	return nil
 }
+
 func TstGetScaledSymbol(t *testing.T, sm *Bitmap, scale ...int) *Bitmap {
 	if len(scale) == 0 {
 		return sm
@@ -4864,6 +4972,7 @@ func (bms *Bitmaps) GetBox(i int) (*image.Rectangle, error) {
 	}
 	return bms.Boxes[i], nil
 }
+
 func (bm *Bitmap) countPixels() int {
 	var (
 		sum      int
@@ -4888,6 +4997,7 @@ func (bm *Bitmap) countPixels() int {
 	}
 	return sum
 }
+
 func (bm *Bitmap) RasterOperation(dx, dy, dw, dh int, op RasterOperator, src *Bitmap, sx, sy int) error {
 	return rasterOperation(bm, dx, dy, dw, dh, op, src, sx, sy)
 }
@@ -4895,6 +5005,7 @@ func (bm *Bitmap) CountPixels() int { return bm.countPixels() }
 func newBitmapNoData(width, height int) *Bitmap {
 	return &Bitmap{Width: width, Height: height, RowStride: (width + 7) >> 3}
 }
+
 func CorrelationScoreSimple(bm1, bm2 *Bitmap, area1, area2 int, delX, delY float32, maxDiffW, maxDiffH int, tab []int) (score float64, err error) {
 	const processName = "CorrelationScoreSimple"
 	if bm1 == nil || bm2 == nil {
@@ -4936,9 +5047,11 @@ func CorrelationScoreSimple(bm1, bm2 *Bitmap, area1, area2 int, delX, delY float
 	score = float64(count) * float64(count) / (float64(area1) * float64(area2))
 	return score, nil
 }
+
 func RasterOperation(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, src *Bitmap, sx, sy int) error {
 	return rasterOperation(dest, dx, dy, dw, dh, op, src, sx, sy)
 }
+
 func TstAddSymbol(t *testing.T, bms *Bitmaps, sym *Bitmap, x *int, y int, space int) {
 	bms.AddBitmap(sym)
 	box := image.Rect(*x, y, *x+sym.Width, y+sym.Height)
@@ -5113,6 +5226,7 @@ func (bm *Bitmap) equivalent(other *Bitmap) bool {
 	}
 	return true
 }
+
 func copyBitmap(dest, src *Bitmap) (*Bitmap, error) {
 	if src == nil {
 		return nil, jbig2errors.Error("copyBitmap", "source not defined")
@@ -5133,6 +5247,7 @@ func copyBitmap(dest, src *Bitmap) (*Bitmap, error) {
 	copy(dest.Data, src.Data)
 	return dest, nil
 }
+
 func blitShifted(src, dst *Bitmap, startLine, endLine, dstIdx, srcStart, srcEnd, padding, xOffset, shift int, op CombinationOperator) error {
 	var line int
 	advance := func() {
@@ -5247,6 +5362,7 @@ func rasterOperation(dest *Bitmap, dx, dy, dw, dh int, op RasterOperator, src *B
 	}
 	return nil
 }
+
 func NewWithData(width, height int, data []byte) (*Bitmap, error) {
 	const processName = "NewWithData"
 	bm := newBitmapNoData(width, height)
@@ -5256,6 +5372,7 @@ func NewWithData(width, height int, data []byte) (*Bitmap, error) {
 	}
 	return bm, nil
 }
+
 func NewWithUnpaddedData(width, height int, data []byte) (*Bitmap, error) {
 	const processName = "NewWithUnpaddedData"
 	bm := newBitmapNoData(width, height)
@@ -5268,6 +5385,7 @@ func NewWithUnpaddedData(width, height int, data []byte) (*Bitmap, error) {
 	}
 	return bm, nil
 }
+
 func CorrelationScore(bm1, bm2 *Bitmap, area1, area2 int, delX, delY float32, maxDiffW, maxDiffH int, tab []int) (score float64, err error) {
 	const processName = "correlationScore"
 	if bm1 == nil || bm2 == nil {
@@ -5395,6 +5513,7 @@ func CorrelationScore(bm1, bm2 *Bitmap, area1, area2 int, delX, delY float32, ma
 	score = float64(count) * float64(count) / (float64(area1) * float64(area2))
 	return score, nil
 }
+
 func TstWordBitmapWithSpaces(t *testing.T, scale ...int) *Bitmap {
 	scaleFactor := 1
 	if len(scale) > 0 {
@@ -5444,6 +5563,7 @@ func TstWordBitmapWithSpaces(t *testing.T, scale ...int) *Bitmap {
 	TstWriteSymbols(t, bms, bm)
 	return bm
 }
+
 func expandBinaryPower2(src *Bitmap, factor int) (*Bitmap, error) {
 	const processName = "expandBinaryPower2"
 	if src == nil {
@@ -5536,6 +5656,7 @@ func (bm *Bitmap) nextOnPixelLow(w, h, stride, x, y int) (pt image.Point, found 
 	}
 	return pt, false, nil
 }
+
 func (bm *Bitmap) centroid(centTab, sumTab []int) (Point, error) {
 	pt := Point{}
 	bm.setPadBits(0)
@@ -5566,6 +5687,7 @@ func (bm *Bitmap) centroid(centTab, sumTab []int) (Point, error) {
 	}
 	return pt, nil
 }
+
 func extractShifted(src, dest *Bitmap, lshift, rshift, trailBits uint, firstIdx, lastIdx int, fullRow bool, srcIdx, dstIdx int) error {
 	for x := firstIdx; x < lastIdx; x++ {
 		if srcIdx+1 < len(src.Data) {
@@ -5629,6 +5751,7 @@ func (bm *Bitmap) setFourBytes(idx int, val uint32) error {
 	bm.Data[idx+3] = byte(val & 0xff)
 	return nil
 }
+
 func (bm *Bitmap) ConnComponents(bms *Bitmaps, connectivity int) (boxes *Boxes, err error) {
 	const processName = "Bitmap.ConnComponents"
 	if bm == nil {
@@ -5648,6 +5771,7 @@ func (bm *Bitmap) ConnComponents(bms *Bitmaps, connectivity int) (boxes *Boxes, 
 	}
 	return boxes, nil
 }
+
 func Centroids(bms []*Bitmap) (*Points, error) {
 	pts := make([]Point, len(bms))
 	centTab := makePixelCentroidTab8()
@@ -5685,6 +5809,7 @@ func init() {
 		panic(jbig2errors.Wrap(err, processName, "imageBitmap"))
 	}
 }
+
 func expandBinaryPower2Low(dest *Bitmap, src *Bitmap, factor int) (err error) {
 	const processName = "expandBinaryPower2Low"
 	switch factor {
@@ -5715,6 +5840,7 @@ func (bm *Bitmap) SetByte(index int, v byte) error {
 	bm.Data[index] = v
 	return nil
 }
+
 func TstWriteSymbols(t *testing.T, bms *Bitmaps, src *Bitmap) {
 	for i := 0; i < bms.Size(); i++ {
 		sym := bms.Values[i]
@@ -5723,6 +5849,7 @@ func TstWriteSymbols(t *testing.T, bms *Bitmaps, src *Bitmap) {
 		require.NoError(t, err)
 	}
 }
+
 func expandBinaryFactor2(dest, src *Bitmap) (err error) {
 	const processName = "expandBinaryFactor2"
 	srcStride := src.RowStride
@@ -5758,6 +5885,7 @@ func expandBinaryFactor2(dest, src *Bitmap) (err error) {
 	}
 	return nil
 }
+
 func seedFillBinary(dest, seed, mask *Bitmap, connectivity int) (*Bitmap, error) {
 	const processName = "seedFillBinary"
 	if seed == nil {
@@ -5790,6 +5918,7 @@ func seedFillBinary(dest, seed, mask *Bitmap, connectivity int) (*Bitmap, error)
 	}
 	return dest, nil
 }
+
 func (ba *BitmapsArray) GetBitmaps(i int) (*Bitmaps, error) {
 	const processName = "BitmapsArray.GetBitmaps"
 	if ba == nil {
@@ -5800,11 +5929,13 @@ func (ba *BitmapsArray) GetBitmaps(i int) (*Bitmaps, error) {
 	}
 	return ba.Values[i], nil
 }
+
 func TstWSymbol(t *testing.T, scale ...int) *Bitmap {
 	bm, err := NewWithData(5, 5, []byte{0x88, 0x88, 0xA8, 0xD8, 0x88})
 	require.NoError(t, err)
 	return TstGetScaledSymbol(t, bm, scale...)
 }
+
 func (bm *Bitmap) clearAll() error {
 	return bm.RasterOperation(0, 0, bm.Width, bm.Height, PixClr, nil, 0, 0)
 }
@@ -5864,6 +5995,7 @@ func rasterOperationLow(dest *Bitmap, dx, dy int, dw, dh int, op RasterOperator,
 	}
 	return nil
 }
+
 func HausTest(p1, p2, p3, p4 *Bitmap, delX, delY float32, maxDiffW, maxDiffH int) (bool, error) {
 	const processName = "HausTest"
 	w1, h1 := p1.Width, p1.Height
@@ -5936,6 +6068,7 @@ func SelCreateBrick(h, w int, cy, cx int, tp SelectionValue) *Selection {
 	}
 	return sel
 }
+
 func (bm *Bitmap) setEightPartlyBytes(idx, n int, val uint64) (err error) {
 	var (
 		b     byte
@@ -5963,6 +6096,7 @@ func (bm *Bitmap) setEightPartlyBytes(idx, n int, val uint64) (err error) {
 	}
 	return nil
 }
+
 func (bm *Bitmap) ThresholdPixelSum(thresh int, tab8 []int) (exceeds bool, err error) {
 	const processName = "Bitmap.ThresholdPixelSum"
 	if tab8 == nil {

@@ -5,13 +5,6 @@ package context
 
 import (
 	"errors"
-	"github.com/OpenMellon/freetype/truetype"
-	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/cmap"
-	"github.com/OpenMellon/openpdf/internal/textencoding"
-	"github.com/OpenMellon/openpdf/internal/transform"
-	"github.com/OpenMellon/openpdf/model"
-	font2 "golang.org/x/image/font"
 	"image"
 	"image/color"
 	"math"
@@ -19,6 +12,14 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/OpenMellon/freetype/truetype"
+	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/internal/cmap"
+	"github.com/OpenMellon/openpdf/internal/textencoding"
+	"github.com/OpenMellon/openpdf/internal/transform"
+	"github.com/OpenMellon/openpdf/model"
+	font2 "golang.org/x/image/font"
 )
 
 func (ts *TextState) ProcTD(tx, ty float64) { ts.Tl = -ty; ts.ProcTd(tx, ty) }
@@ -26,6 +27,7 @@ func (ts *TextState) Reset() {
 	ts.Tm = transform.IdentityMatrix()
 	ts.Tlm = transform.IdentityMatrix()
 }
+
 func (ts *TextState) ProcTd(tx, ty float64) {
 	ts.Tlm.Concat(transform.TranslationMatrix(tx, ty))
 	ts.Tm = ts.Tlm.Clone()
@@ -76,8 +78,10 @@ type TextState struct {
 
 var faceIDCounter atomic.Uint64
 
-type ColorConverter func(r, g, b uint8) (uint8, uint8, uint8)
-type LineCap int
+type (
+	ColorConverter func(r, g, b uint8) (uint8, uint8, uint8)
+	LineCap        int
+)
 
 const (
 	LineCapRound LineCap = iota
@@ -115,6 +119,7 @@ func NewTextFont(pdfFont *model.PdfFont, size float64) (*TextFont, error) {
 	}
 	return &TextFont{Font: pdfFont, Size: size, ttFont: ttf, mu: &sync.Mutex{}, faces: map[int64]font2.Face{}, faceIDs: map[font2.Face]uint64{}}, nil
 }
+
 func (f *TextFont) BytesToCharcodes(data []byte) []textencoding.CharCode {
 	if f.originalFont != nil {
 		return f.originalFont.BytesToCharcodes(data)
@@ -156,6 +161,7 @@ func (f *TextFont) NewFace(size float64) font2.Face {
 	f.faceIDs[newFace] = faceIDCounter.Add(1)
 	return newFace
 }
+
 func (ts *TextState) ProcTm(a, b, c, d, e, f float64) {
 	ts.Tm = transform.NewMatrix(a, b, c, d, e, f)
 	ts.Tlm = ts.Tm.Clone()
@@ -238,6 +244,7 @@ func (f *TextFont) WithSize(size float64, originalFont *model.PdfFont) *TextFont
 	clone.originalFont = originalFont
 	return &clone
 }
+
 func (ts *TextState) ProcTj(data []byte, ctx Context) {
 	fontSize := ts.Tf.Size
 	hScale := ts.Th / 100.0
@@ -276,6 +283,7 @@ func (ts *TextState) ProcTj(data []byte, ctx Context) {
 		ts.Tm = ts.Tm.Mult(transform.TranslationMatrix(tx, 0))
 	}
 }
+
 func NewTextFontFromPath(filePath string, size float64) (*TextFont, error) {
 	pdfFont, err := model.NewPdfFontFromTTFFile(filePath)
 	if err != nil {
@@ -283,13 +291,16 @@ func NewTextFontFromPath(filePath string, size float64) (*TextFont, error) {
 	}
 	return NewTextFont(pdfFont, size)
 }
+
 func (ts *TextState) ProcQ(data []byte, ctx Context) {
 	ts.ProcTStar()
 	ts.ProcTj(data, ctx)
 }
 
-type TextRenderingMode int
-type LineJoin int
+type (
+	TextRenderingMode int
+	LineJoin          int
+)
 
 const (
 	FillRuleWinding FillRule = iota
@@ -314,6 +325,7 @@ func (ts *TextState) ProcDQ(data []byte, aw, ac float64, ctx Context) {
 	ts.Tc = ac
 	ts.ProcQ(data, ctx)
 }
+
 func (f *TextFont) charcodeToRunesSimple(code textencoding.CharCode) (textencoding.CharCode, []rune) {
 	codes := []textencoding.CharCode{code}
 	if f.Font.IsSimple() && f.ttFont != nil {
@@ -335,9 +347,11 @@ func (f *TextFont) charcodeToRunesSimple(code textencoding.CharCode) (textencodi
 	}
 	return code, f.Font.CharcodesToUnicode(codes)
 }
+
 func (ts *TextState) Translate(tx, ty float64) {
 	ts.Tm = ts.Tm.Mult(transform.TranslationMatrix(tx, ty))
 }
+
 func (f *TextFont) FaceID(face font2.Face) (uint64, bool) {
 	f.mu.Lock()
 	id, ok := f.faceIDs[face]
@@ -364,6 +378,7 @@ func (f *TextFont) CharcodeToRunes(charcode textencoding.CharCode) (textencoding
 	}
 	return outCode, runes
 }
+
 func NewTextState() TextState {
 	return TextState{Th: 100, Tm: transform.IdentityMatrix(), Tlm: transform.IdentityMatrix()}
 }

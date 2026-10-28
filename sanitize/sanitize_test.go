@@ -1,8 +1,9 @@
 package sanitize
 
 import (
-	"github.com/OpenMellon/openpdf/core"
 	"testing"
+
+	"github.com/OpenMellon/openpdf/core"
 )
 
 func TestActionClassificationAndJavaScriptClearing(t *testing.T) {

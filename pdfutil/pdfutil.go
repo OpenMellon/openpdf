@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/contentstream/draw"
@@ -14,8 +17,6 @@ import (
 	"github.com/OpenMellon/openpdf/internal/streamlimits"
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/openpdf/ps"
-	"io"
-	"os"
 )
 
 type grayscaleStreamKey struct {
@@ -27,6 +28,7 @@ func isPatternColorspace(cs model.PdfColorspace) bool {
 	_, ok := cs.(*model.PdfColorspaceSpecialPattern)
 	return ok
 }
+
 func (w *grayscaleWalk) transformContentStream(content string, resources *model.PdfPageResources, stream *core.PdfObjectStream) ([]byte, error) {
 	parser := contentstream.NewContentStreamParser(content)
 	ops, err := parser.Parse()
@@ -607,6 +609,7 @@ func MergePdfWithFilePermissionAndOptions(inputPaths []string, outputPath string
 	}
 	return os.WriteFile(outputPath, buf.Bytes(), perm)
 }
+
 func mergeResources(dst, src *model.PdfPageResources) (*model.PdfPageResources, error) {
 	if dst.XObject == nil {
 		dst.XObject = src.XObject
@@ -717,7 +720,6 @@ func mergeResources(dst, src *model.PdfPageResources) (*model.PdfPageResources, 
 
 // MergePdfOptions configures behaviour of the merge operation.
 type MergePdfOptions struct {
-
 	// IsMergingForms controls whether AcroForms from input documents are merged.
 	IsMergingForms bool
 
@@ -782,8 +784,9 @@ func mergeAcroForms(dst, src *model.PdfAcroForm, docIndex int) (*model.PdfAcroFo
 // isMergingForms controls if it is necessary to merge AcroForms from input files.
 // If you are not sure, you can always set isMergingForms to true.
 func MergePdf(inputPaths []string, outputPath string, isMergingForms bool) error {
-	return MergePdfWithFilePermissionAndOptions(inputPaths, outputPath, MergePdfOptions{IsMergingForms: isMergingForms}, os.FileMode(0644))
+	return MergePdfWithFilePermissionAndOptions(inputPaths, outputPath, MergePdfOptions{IsMergingForms: isMergingForms}, os.FileMode(0o644))
 }
+
 func (w *grayscaleWalk) enter(stream *core.PdfObjectStream, resources *model.PdfPageResources) bool {
 	key := grayscaleStreamKey{stream: stream, resources: resources}
 	if _, seen := w.visited[key]; seen {
@@ -802,8 +805,9 @@ func (w *grayscaleWalk) enter(stream *core.PdfObjectStream, resources *model.Pdf
 // MergePdfWithOptions merges several PDF files passed as inputPaths to one PDF file, outputPath,
 // applying the supplied options. See MergePdfOptions for available knobs.
 func MergePdfWithOptions(inputPaths []string, outputPath string, opts MergePdfOptions) error {
-	return MergePdfWithFilePermissionAndOptions(inputPaths, outputPath, opts, os.FileMode(0644))
+	return MergePdfWithFilePermissionAndOptions(inputPaths, outputPath, opts, os.FileMode(0o644))
 }
+
 func shadingToGray(shading *model.PdfShading) (*model.PdfShading, error) {
 	cs := shading.ColorSpace
 	if cs.GetNumComponents() == 1 {
@@ -866,6 +870,7 @@ func shadingToGray(shading *model.PdfShading) (*model.PdfShading, error) {
 		return nil, errors.New("unsupported pattern colorspace for grayscale conversion")
 	}
 }
+
 func contentStreamToGray(content string, resources *model.PdfPageResources) ([]byte, error) {
 	return (&grayscaleWalk{}).transformContentStream(content, resources, nil)
 }

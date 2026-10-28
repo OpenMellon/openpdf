@@ -6,15 +6,16 @@ package unichart
 import (
 	"bytes"
 	"fmt"
+	color2 "image/color"
+	"io"
+	"math"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/contentstream/draw"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/unichart/render"
-	color2 "image/color"
-	"io"
-	"math"
 )
 
 func (r *Renderer) SetFont(font render.Font) {
@@ -42,6 +43,7 @@ func NewRenderer(cc *contentstream.ContentCreator, res *model.PdfPageResources) 
 		return r, nil
 	}
 }
+
 func (r *Renderer) SetStrokeDashArray(dashArray []float64) {
 	dashes := make([]int64, len(dashArray))
 	for i, d := range dashArray {
@@ -74,6 +76,7 @@ func (r *Renderer) Text(text string, x, y int) {
 	r.cc.Add_ET()
 	r.cc.Add_Q()
 }
+
 func (r *Renderer) ArcTo(cx, cy int, rx, ry, startAngle, deltaAngle float64) {
 	startAngle = radToDeg(2.0*math.Pi - startAngle)
 	deltaAngle = radToDeg(-deltaAngle)
@@ -107,6 +110,7 @@ func (r *Renderer) ArcTo(cx, cy int, rx, ry, startAngle, deltaAngle float64) {
 		r.cc.Add_c(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7])
 	}
 }
+
 func (r *Renderer) ResetStyle() {
 	r.SetFillColor(color2.Black)
 	r.SetStrokeColor(color2.Transparent)
@@ -116,6 +120,7 @@ func (r *Renderer) ResetStyle() {
 	r.SetFontSize(12)
 	r.SetTextRotation(0)
 }
+
 func (r *Renderer) SetStrokeColor(color color2.Color) {
 	r.strokeColor = color
 	red, green, blue, _ := colorRGBAFloat(color)
@@ -191,6 +196,7 @@ func (r *Renderer) MeasureText(text string) render.Box {
 	}
 	return box
 }
+
 func (r *Renderer) QuadCurveTo(cx, cy, x, y int) {
 	r.cc.Add_v(float64(x), float64(y), float64(cx), float64(cy))
 }
@@ -206,6 +212,7 @@ func (r *Renderer) getTextWidth(text string) float64 {
 	}
 	return r.fontSize * total / 1000.0
 }
+
 func uniqueFontName(prefix string, start int, exists func(core.PdfObjectName) bool) core.PdfObjectName {
 	name := core.PdfObjectName(fmt.Sprintf("%s%d", prefix, start))
 	for n := start; exists(name); {
@@ -234,6 +241,7 @@ func colorRGBA8(c color2.Color) (uint8, uint8, uint8, uint8) {
 	red, green, blue, alpha := c.RGBA()
 	return uint8(red >> 8), uint8(green >> 8), uint8(blue >> 8), uint8(alpha >> 8)
 }
+
 func (r *Renderer) wrapText(text string) []string {
 	var (
 		lines []string
@@ -252,6 +260,7 @@ func (r *Renderer) wrapText(text string) []string {
 	}
 	return lines
 }
+
 func colorRGBAFloat(c color2.Color) (float64, float64, float64, float64) {
 	red, green, blue, alpha := colorRGBA8(c)
 	return float64(red) / 255, float64(green) / 255, float64(blue) / 255, float64(alpha) / 255

@@ -11,22 +11,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/contentstream"
-	contentdraw "github.com/OpenMellon/openpdf/contentstream/draw"
-	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/graphic2d"
-	chartintegration "github.com/OpenMellon/openpdf/internal/integrations/unichart"
-	"github.com/OpenMellon/openpdf/internal/license"
-	"github.com/OpenMellon/openpdf/internal/linebreak"
-	"github.com/OpenMellon/openpdf/internal/precision"
-	"github.com/OpenMellon/openpdf/internal/transform"
-	"github.com/OpenMellon/openpdf/model"
-	"github.com/OpenMellon/openpdf/ps"
-	"github.com/OpenMellon/typesetting/di"
-	"github.com/OpenMellon/typesetting/shaping"
-	chartrender "github.com/OpenMellon/unichart/render"
-	"golang.org/x/net/html/charset"
 	"image"
 	imagedraw "image/draw"
 	"io"
@@ -44,6 +28,23 @@ import (
 	"text/template/parse"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/contentstream"
+	contentdraw "github.com/OpenMellon/openpdf/contentstream/draw"
+	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/internal/graphic2d"
+	chartintegration "github.com/OpenMellon/openpdf/internal/integrations/unichart"
+	"github.com/OpenMellon/openpdf/internal/license"
+	"github.com/OpenMellon/openpdf/internal/linebreak"
+	"github.com/OpenMellon/openpdf/internal/precision"
+	"github.com/OpenMellon/openpdf/internal/transform"
+	"github.com/OpenMellon/openpdf/model"
+	"github.com/OpenMellon/openpdf/ps"
+	"github.com/OpenMellon/typesetting/di"
+	"github.com/OpenMellon/typesetting/shaping"
+	chartrender "github.com/OpenMellon/unichart/render"
+	"golang.org/x/net/html/charset"
 )
 
 // Margins returns the margins of the component.
@@ -65,6 +66,7 @@ func (i *Invoice) SetBuyerAddress(address *InvoiceAddress) { i.buyerAddress = ad
 func (sp *StyledParagraph) SetDropCapsFirstWord(numLines int, gap float64) {
 	sp.SetDropCaps(DropCapsOptions{Type: DropCapsDrop, Scope: DropCapsFirstWord, NumLines: numLines, Gap: gap})
 }
+
 func (pt *pageTransformations) applyFlip(page *model.PdfPage) error {
 	flipH, flipV := pt.flipH, pt.flipV
 	if !flipH && !flipV {
@@ -105,6 +107,7 @@ func (pt *pageTransformations) applyFlip(page *model.PdfPage) error {
 	page.Contents = array
 	return nil
 }
+
 func (i *Invoice) drawAddress(invoiceAddress *InvoiceAddress) []*StyledParagraph {
 	var paras []*StyledParagraph
 	if invoiceAddress.Heading != "" {
@@ -250,6 +253,7 @@ func (tc *TableCell) SetContent(vd VectorDrawable) error {
 //
 // The default angle would be 0 where the gradient would be rendered from left to right side.
 func (ls *LinearShading) SetAngle(angle float64) { ls.angle = angle }
+
 func (sp *StyledParagraph) createAccessibleLinkChunk(text string, annotation *model.PdfAnnotation, linkTagOptions LinkTagOptions) (*TextChunk, *model.KDict, error) {
 	var kDict2 *model.KDict
 	textChunk := NewTextChunk(text, sp.linkStyle)
@@ -307,6 +311,7 @@ func (tec *TextChunk) Highlight(color Color, alpha float64) *model.PdfAnnotation
 
 // SetTextAlignment sets the horizontal alignment of the text within the space provided.
 func (sp *StyledParagraph) SetTextAlignment(align TextAlignment) { sp.alignment = align }
+
 func (to *TOC) replaceFonts(font3, font, font4, font2 *model.PdfFont) {
 	styles := []*TextStyle{&to.lineNumberStyle, &to.lineTitleStyle, &to.lineSeparatorStyle, &to.linePageStyle, &to.defaultStyle}
 	for _, line := range to.lines {
@@ -338,6 +343,7 @@ func (t *Table) Height() float64 {
 	}
 	return height
 }
+
 func newColorPoint(color Color, point float64) *ColorPoint {
 	return &ColorPoint{color: color, point: point}
 }
@@ -421,6 +427,7 @@ func newBorder(x, y, width, height float64) *border {
 	border2.LineStyle = contentdraw.LineStyleSolid
 	return border2
 }
+
 func (sp *StyledParagraph) getMaxLineWidth() float64 {
 	if sp.lines == nil || (sp.lines != nil && len(sp.lines) == 0) {
 		sp.wrapText()
@@ -578,6 +585,7 @@ func (t *Table) SetPos(x, y float64) {
 	t.xPos = x
 	t.yPos = y
 }
+
 func drawTemplate(creator *Creator, r io.Reader, data interface{}, options *TemplateOptions, renderer componentRenderer) error {
 	if creator == nil {
 		common.Log.Error("Creator instance cannot be nil.")
@@ -607,6 +615,7 @@ type grayColor struct{ gray float64 }
 func parseChapterHeadingTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseChapterHeading(node)
 }
+
 func newLine(x1, y1, x2, y2 float64) *Line {
 	return &Line{x1: x1, y1: y1, x2: x2, y2: y2, color: ColorBlack, opacity: 1.0, lineWidth: 1.0, dashArray: []int64{1, 1}, positioning: PositionAbsolute}
 }
@@ -652,6 +661,7 @@ func newTOCLineFromChunks(number, title, page TextChunk, level uint, style TextS
 func (g *Grid) GetMargins() (float64, float64, float64, float64) {
 	return g.margins.Left, g.margins.Right, g.margins.Top, g.margins.Bottom
 }
+
 func (gse *GraphicSVGElement) drawPolyline(cc *contentstream.ContentCreator, resources *model.PdfPageResources) {
 	cc.Add_q()
 	gse.Style.toContentStream(cc, resources, gse)
@@ -679,6 +689,7 @@ func (gse *GraphicSVGElement) drawPolyline(cc *contentstream.ContentCreator, res
 
 // SetBorderWidth sets the border width.
 func (p *Polygon) SetBorderWidth(borderWidth float64) { p.polygon.BorderWidth = borderWidth }
+
 func (c *Creator) initContext() {
 	c.context.X = precision.RoundDefault(c.pageMargins.Left)
 	c.context.Y = precision.RoundDefault(c.pageMargins.Top)
@@ -692,6 +703,7 @@ func (c *Creator) initContext() {
 
 // SetStyleTop sets border style for top side.
 func (bo *border) SetStyleTop(style CellBorderStyle) { bo.styleTop = style }
+
 func tokenizePathData(s2 string) []token {
 	var (
 		tokens []token
@@ -840,6 +852,7 @@ func (ch *Chapter) drawBackground(background []*Block, ctx2, ctx3 DrawContext, m
 
 // SetBorderColor sets the border color of the ellipse.
 func (e *Ellipse) SetBorderColor(col Color) { e.borderColor = col }
+
 func (t *Table) topHeaderRows() int {
 	if t.hasHeaderRows && t.headerStartRow == 1 {
 		return t.headerEndRow
@@ -932,6 +945,7 @@ func (l *Line) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, error
 	blocks = append(blocks, block)
 	return blocks, ctx, nil
 }
+
 func (tp *templateProcessor) parseRectangle(node *templateNode) (interface{}, error) {
 	rectangle := tp.creator.NewRectangle(0, 0, 0, 0)
 	if err := tp.applyAttrs(node, rectangle, rectangleAttrs); err != nil {
@@ -939,6 +953,7 @@ func (tp *templateProcessor) parseRectangle(node *templateNode) (interface{}, er
 	}
 	return rectangle, nil
 }
+
 func parseRGBColor(s string) (float64, float64, float64) {
 	s2 := strings.TrimPrefix(s, "rgb(")
 	s2 = strings.TrimSuffix(s2, ")")
@@ -1081,6 +1096,7 @@ func (li *List) SetIndent(indent float64) { li.indent = indent; li.defaultIndent
 func (c *Creator) NewRectangle(x, y, width, height float64) *Rectangle {
 	return newRectangle(x, y, width, height)
 }
+
 func generateTablePageBlocks(table *Table, ctx DrawContext) ([]*Block, DrawContext, error) {
 	var blocks []*Block
 	block := NewBlock(ctx.PageWidth, ctx.PageHeight)
@@ -1482,6 +1498,7 @@ func (td *taggedDrawable) SetStructPageNumber(pageNumber *int64) {
 	}
 	td.tagInfo.StructPageNumber = pageNumber
 }
+
 func (t *Table) splitSubtables(i2 int, ctx2 DrawContext, totalWidth, height float64) map[int][2]*Table {
 	row := t.cells[i2].row
 	var subtableSplits []subtableSplit
@@ -1537,6 +1554,7 @@ func (li *List) AddTextItem(text string) (*StyledParagraph, *TextChunk, error) {
 	chunk, err := li.Add(styledParagraph)
 	return styledParagraph, chunk, err
 }
+
 func (tp *templateProcessor) walk(activeParent2 *templateNode, attrs map[string]string, ok2 bool) error {
 	if activeParent2.start.Name.Local == styleElementName {
 		return nil
@@ -1651,6 +1669,7 @@ func (tp *templateProcessor) walk(activeParent2 *templateNode, attrs map[string]
 
 // SetSellerAddress sets the seller address of the invoice.
 func (i *Invoice) SetSellerAddress(address *InvoiceAddress) { i.sellerAddress = address }
+
 func (grc grayColor) ToRGB() (float64, float64, float64) {
 	return grc.gray, grc.gray, grc.gray
 }
@@ -1689,6 +1708,7 @@ func (ch *Chapter) Add(d Drawable) error {
 	}
 	return nil
 }
+
 func (tp *templateProcessor) clampTableHeaderRows(node *templateNode, table *Table) {
 	if !table.hasHeaderRows || table.headerEndRow <= table.rows {
 		return
@@ -1701,6 +1721,7 @@ func (tp *templateProcessor) clampTableHeaderRows(node *templateNode, table *Tab
 		table.headerEndRow = table.rows
 	}
 }
+
 func (tp *templateProcessor) effectiveAttrs(node *templateNode, m map[string]attrApplyFunc) []xml.Attr {
 	var attrs []xml.Attr
 	if _, ok := styledTextTags[node.start.Name.Local]; ok {
@@ -1783,6 +1804,7 @@ func (t *Table) MultiRowCell(rowspan int) *TableCell { return t.MultiCell(rowspa
 
 // SetBorderOpacity sets the border opacity.
 func (p *Polygon) SetBorderOpacity(opacity float64) { p.borderOpacity = opacity }
+
 func parseBorderRadius(s string) (topLeft, topRight, bottomRight, bottomLeft float64, err error) {
 	floatFields, err := parseFloatFields(s)
 	switch len(floatFields) {
@@ -1813,6 +1835,7 @@ func (to *TOC) SetHeading(text string, style TextStyle) {
 	chunk := heading.Append(text)
 	chunk.Style = style
 }
+
 func hasEmojiSequenceMarker(s string) bool {
 	for _, r := range s {
 		switch {
@@ -1842,6 +1865,7 @@ func (l *Line) SetDashPattern(dashArray []int64, dashPhase int64) {
 	l.dashArray = dashArray
 	l.dashPhase = dashPhase
 }
+
 func (r *Rectangle) applyFitMode(borderWidth float64) {
 	borderWidth -= r.margins.Left + r.margins.Right + r.borderWidth
 	switch r.fitMode {
@@ -1901,6 +1925,7 @@ func (g *Grid) NewRow() *GridRow {
 	g.rows = append(g.rows, row)
 	return row
 }
+
 func (gse *GraphicSVGElement) setDefaultScaling(scale float64) {
 	gse.scale = scale
 	if gse.Style != nil && gse.Style.StrokeWidth > 0 {
@@ -1910,6 +1935,7 @@ func (gse *GraphicSVGElement) setDefaultScaling(scale float64) {
 		graphicSVGElement.setDefaultScaling(scale)
 	}
 }
+
 func makeGrayMaskXObject(img3 *model.Image) (*model.XObjectImage, error) {
 	img2 := *img3
 	img2.SetAlpha(nil)
@@ -1936,13 +1962,13 @@ func makeGrayMaskXObject(img3 *model.Image) (*model.XObjectImage, error) {
 
 // Cols returns the total number of columns the table has.
 func (t *Table) Cols() int { return t.cols }
+
 func parseListMarkerTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseListMarker(node)
 }
 
 // TextStyle is a collection of properties that can be assigned to a text chunk.
 type TextStyle struct {
-
 	// Color represents the color of the text.
 	Color Color
 
@@ -2005,6 +2031,7 @@ func (rs *RadialShading) SetExtends(start bool, end bool) { rs.base.SetExtends(s
 
 // Notes returns the notes section of the invoice as a title-content pair.
 func (i *Invoice) Notes() (string, string) { return i.notes[0], i.notes[1] }
+
 func (tp *templateProcessor) resolveColor(s string) (Color, error) {
 	hexStr := strings.TrimSpace(s)
 	if hexStr == "" {
@@ -2109,6 +2136,7 @@ func (b *Block) DrawWithContext(d Drawable, ctx DrawContext) error {
 	}
 	return nil
 }
+
 func (t *Table) splitSpanningCellsAtBreaks(ctx DrawContext, fn func(VectorDrawable, float64, float64, float64) (VectorDrawable, VectorDrawable)) {
 	contentHeight := ctx.contentHeight()
 	headerHeight := t.headerHeight()
@@ -2193,9 +2221,11 @@ func beginTaggedContent(_bedefcd *Block, structureTagInfo *model.StructureTagInf
 	contentCreator.Add_BDC(*core.MakeName(string(structureTagInfo.StructureType)), m)
 	_bedefcd.addContents(contentCreator.Operations())
 }
+
 func parseListItemTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseListItem(node)
 }
+
 func splitDrawableToFit(drawable VectorDrawable, ctx DrawContext) VectorDrawable {
 	switch para := drawable.(type) {
 	case *StyledParagraph:
@@ -2252,6 +2282,7 @@ func (m *Margins) Vertical() float64 { return m.Bottom + m.Top }
 
 // SetOpacity sets opacity for Image.
 func (im *Image) SetOpacity(opacity float64) { im.opacity = opacity }
+
 func templateExtendDict(templateExtendDict map[string]interface{}, vals ...interface{}) (map[string]interface{}, error) {
 	n := len(vals)
 	if n%2 != 0 {
@@ -2360,6 +2391,7 @@ func (gs *GraphicSVG) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext
 // AddressStyle returns the style properties used to render the content of
 // the invoice address sections.
 func (i *Invoice) AddressStyle() TextStyle { return i.addressStyle }
+
 func copyHighlightAnnotation(annotationHighlight *model.PdfAnnotationHighlight) *model.PdfAnnotationHighlight {
 	if annotationHighlight == nil {
 		return nil
@@ -2370,6 +2402,7 @@ func copyHighlightAnnotation(annotationHighlight *model.PdfAnnotationHighlight) 
 	pdfAnnotationHighlight.QuadPoints = annotationHighlight.QuadPoints
 	return pdfAnnotationHighlight
 }
+
 func (gc *GridCell) width(colWidths []float64, totalWidth float64) float64 {
 	width := float64(0.0)
 	for i := 0; i < gc.colSpan; i++ {
@@ -2412,6 +2445,7 @@ func (i *Invoice) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, er
 // GetContent returns the cell's content. Returns nil if no content has been
 // set.
 func (tc *TableCell) GetContent() VectorDrawable { return tc.content }
+
 func (c *Creator) newPage() *model.PdfPage {
 	pdfPage := model.NewPdfPage()
 	urx := c.pageSize[0]
@@ -2450,6 +2484,7 @@ func (gc *GridCell) SetOpacity(opacity float64) { gc.opacity = opacity }
 func (c *Creator) SetViewerPreferences(viewerPreferences *model.ViewerPreferences) {
 	c.viewerPreferences = viewerPreferences
 }
+
 func addShadingPatternResource(block *Block, pattern core.PdfObject) (core.PdfObjectName, error) {
 	i := 1
 	keyName := core.PdfObjectName("P" + strconv.Itoa(i))
@@ -2462,6 +2497,7 @@ func addShadingPatternResource(block *Block, pattern core.PdfObject) (core.PdfOb
 	}
 	return keyName, nil
 }
+
 func (tp *templateProcessor) parseStyledParagraph(node *templateNode) (interface{}, error) {
 	styledParagraph := tp.creator.NewStyledParagraph()
 	if err := tp.applyAttrs(node, styledParagraph, styledParagraphAttrs); err != nil {
@@ -2476,9 +2512,11 @@ func (tc *TableCell) GetPosition() (row, col int) { return tc.row, tc.col }
 
 // MoveTo moves the drawing context to absolute coordinates (x, y).
 func (c *Creator) MoveTo(x, y float64) { c.context.X = x; c.context.Y = y }
+
 func newGraphicSVG(root *GraphicSVGElement) (*GraphicSVG, error) {
 	return &GraphicSVG{root: root, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, taggedDrawable: taggedDrawable{structType: model.StructureTypeFigure}}, nil
 }
+
 func (rc rgbColor) ToRGB() (float64, float64, float64) {
 	return rc.r, rc.g, rc.b
 }
@@ -2525,6 +2563,7 @@ func (sp *StyledParagraph) SetWidth(width float64) { sp.width = width; sp.wrapTe
 // NoteHeadingStyle returns the style properties used to render the heading of
 // the invoice note sections.
 func (i *Invoice) NoteHeadingStyle() TextStyle { return i.noteHeadingStyle }
+
 func newChapter(parent *Chapter, toc *TOC, outline *model.Outline, recordFunc chapterRecordFunc, title string, number int, style TextStyle) *Chapter {
 	var level uint = 1
 	if parent != nil {
@@ -2548,6 +2587,7 @@ func (gs *GraphicSVG) ScaleToWidth(w float64) {
 	gs.root.Height = w * height
 	gs.root.SetScaling(height, height)
 }
+
 func cropImageGeneric(img *model.Image, rect, rect2 image.Rectangle) (*model.Image, error) {
 	goImage, err := img.ToGoImage()
 	if err != nil {
@@ -2588,6 +2628,7 @@ func (tc *TableCell) GetTable() *Table { return tc.table }
 
 // Width returns the Block's width.
 func (b *Block) Width() float64 { return b.width }
+
 func (c *Creator) wrapPageIfNeeded(pageIfNeeded *model.PdfPage) (*model.PdfPage, error) {
 	allContentStreams, err := pageIfNeeded.GetAllContentStreams()
 	if err != nil {
@@ -2637,6 +2678,7 @@ func (sp *StyledParagraph) MarkAsArtifact(artifactType model.ArtifactType) *mode
 	sp.artifact = &model.Artifact{Type: artifactType}
 	return sp.artifact
 }
+
 func (t *Table) insertRows(rowHeightsLen, row int) {
 	if row <= 0 {
 		return
@@ -2674,6 +2716,7 @@ func (i *Invoice) SetColumns(cols []*InvoiceCell) { i.columns = cols }
 
 // MoveX moves the drawing context to absolute position x.
 func (c *Creator) MoveX(x float64) { c.context.X = x }
+
 func reverseFloats(reverseFloats []float64) []float64 {
 	for i, j := 0, len(reverseFloats)-1; i < j; i, j = i+1, j-1 {
 		reverseFloats[i], reverseFloats[j] = reverseFloats[j], reverseFloats[i]
@@ -2686,6 +2729,7 @@ func (p *Polygon) SetFillColor(color Color) {
 	p.fillColor = color
 	p.polygon.FillColor = toPdfColor(color)
 }
+
 func newURILinkAnnotation(s, s2 string) *model.PdfAnnotation {
 	pdfAnnotationLink := model.NewPdfAnnotationLink()
 	borderStyle := model.NewBorderStyle()
@@ -2699,8 +2743,9 @@ func newURILinkAnnotation(s, s2 string) *model.PdfAnnotation {
 	}
 	return pdfAnnotationLink.PdfAnnotation
 }
+
 func (t *Table) moveToNextAvailableCell() int {
-	moveToNextAvailableCell := (t.curCell-1)%(t.cols) + 1
+	moveToNextAvailableCell := (t.curCell-1)%t.cols + 1
 	for {
 		if moveToNextAvailableCell-1 >= len(t.rowSpanRemaining) {
 			if t.rowSpanRemaining[0] == 0 {
@@ -2740,14 +2785,16 @@ func (bo *border) GenerateKDict() (*model.KDict, error) { return nil, nil }
 
 // ScaleToWidth scales the Block to a specified width, maintaining the same aspect ratio.
 func (b *Block) ScaleToWidth(w float64) { sx := w / b.width; b.Scale(sx, sx) }
+
 func newPathCommands() commands {
-	var m = map[string]int{"m": 2, "z": 0, "l": 2, "h": 1, "v": 1, "c": 6, "s": 4, "q": 4, "t": 2, "a": 7}
+	m := map[string]int{"m": 2, "z": 0, "l": 2, "h": 1, "v": 1, "c": 6, "s": 4, "q": 4, "t": 2, "a": 7}
 	var strs []string
 	for key := range m {
 		strs = append(strs, key)
 	}
 	return commands{strs, m, "m", "z"}
 }
+
 func splitGraphemeClusters(s string) []graphemeCluster {
 	const maxTagSequence = 16
 	rs2 := []rune(s)
@@ -2824,6 +2871,7 @@ func splitGraphemeClusters(s string) []graphemeCluster {
 	}
 	return graphemeClusters
 }
+
 func valueToString(i interface{}) (string, error) {
 	if i == nil {
 		return "", nil
@@ -2843,9 +2891,11 @@ func valueToString(i interface{}) (string, error) {
 	}
 	return fmt.Sprint(valueOf.Interface()), nil
 }
+
 func parseListTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseList(node)
 }
+
 func (i *Invoice) drawInformation() *Table {
 	table := newTable(2)
 	rows := append([][2]*InvoiceCell{i.number, i.date, i.dueDate}, i.infoLines...)
@@ -2887,6 +2937,7 @@ func (sp *StyledParagraph) AddInternalLinkWithTag(text string, page int64, x, y,
 	}
 	return accessibleLinkChunk, kDict
 }
+
 func (com *commands) isCommand(s string) bool {
 	for _, name := range com.names {
 		if strings.ToLower(s) == name {
@@ -3001,6 +3052,7 @@ func (g *Grid) GetPos() (float64, float64) { return g.xPos, g.yPos }
 func ColorRGBFrom8bit(r, g, b byte) Color {
 	return rgbColor{r: float64(r) / 255.0, g: float64(g) / 255.0, b: float64(b) / 255.0}
 }
+
 func (tp *templateProcessor) parseList(node *templateNode) (interface{}, error) {
 	list := tp.creator.NewList()
 	if err := tp.applyAttrs(node, list, listAttrs); err != nil {
@@ -3014,6 +3066,7 @@ var gridSectionStructureTypes = map[GridRowSection]model.StructureType{GridRowSe
 // Width returns 0. A page break has no width; the method exists so PageBreak
 // satisfies the VectorDrawable interface and can be added to a Division.
 func (pb *PageBreak) Width() float64 { return 0 }
+
 func (fc *FilledCurve) draw(block *Block, s string) ([]byte, *model.PdfRectangle, error) {
 	cubicBezierPath := contentdraw.NewCubicBezierPath()
 	for _, curve := range fc.curves {
@@ -3081,12 +3134,14 @@ func (fc *FilledCurve) draw(block *Block, s string) ([]byte, *model.PdfRectangle
 	rect.Ury = boundingBox.Y + boundingBox.Height
 	return creator.Bytes(), rect, nil
 }
+
 func parseRectangleTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseRectangle(node)
 }
 
 // SetPositioning sets the positioning of the ellipse (absolute or relative).
 func (e *Ellipse) SetPositioning(position Positioning) { e.positioning = position }
+
 func (tp *templateProcessor) parseEllipse(node *templateNode) (interface{}, error) {
 	ellipse := tp.creator.NewEllipse(0, 0, 0, 0)
 	if err := tp.applyAttrs(node, ellipse, ellipseAttrs); err != nil {
@@ -3244,6 +3299,7 @@ func (po *Polyline) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, 
 	}
 	return []*Block{block}, ctx, nil
 }
+
 func (ch *Chapter) chapterInfo() ChapterInfo {
 	return ChapterInfo{Number: strings.TrimSuffix(ch.headingNumber(), "."), Title: ch.title, Level: ch.level}
 }
@@ -3256,6 +3312,7 @@ func (ch *Chapter) chapterInfo() ChapterInfo {
 // of size). Furthermore, when the fit mode is set to fill the context width,
 // `x2` is set to the right edge coordinate of the context.
 func (c *Creator) NewLine(x1, y1, x2, y2 float64) *Line { return newLine(x1, y1, x2, y2) }
+
 func firstLastTextChild(vals []interface{}) (int, int) {
 	n, n2 := -1, -1
 	for i, v := range vals {
@@ -3272,6 +3329,7 @@ func firstLastTextChild(vals []interface{}) (int, int) {
 // ToRGB implements interface Color.
 // Note: It's not directly used since shading color works differently than regular color.
 func (ls *LinearShading) ToRGB() (float64, float64, float64) { return 0, 0, 0 }
+
 func (pt *pageTransformations) transformBlock(block *Block) {
 	if pt.matrix != nil {
 		block.transform(*pt.matrix)
@@ -3283,6 +3341,7 @@ func (fc *FilledCurve) AppendCurve(curve contentdraw.CubicBezierCurve) *FilledCu
 	fc.curves = append(fc.curves, curve)
 	return fc
 }
+
 func (tp *templateProcessor) parseLinearGradientAttr(creator *Creator, s2 string) (Color, error) {
 	linearGradientAttr := ColorBlack
 	if s2 == "" {
@@ -3331,6 +3390,7 @@ func newPageBreak() *PageBreak                             { return &PageBreak{}
 
 // SetBorderOpacity sets the border opacity of the ellipse.
 func (e *Ellipse) SetBorderOpacity(opacity float64) { e.borderOpacity = opacity }
+
 func parseSVGElementTree(decoder *xml.Decoder) (*GraphicSVGElement, error) {
 	for {
 		token, err := decoder.Token()
@@ -3355,6 +3415,7 @@ func (i *Invoice) NewCell(value string) *InvoiceCell {
 
 // GetOpacity returns the cell's opacity in the range 0-1.
 func (gc *GridCell) GetOpacity() float64 { return gc.opacity }
+
 func fontAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("fontAttr", i, 0, pdfFontPtrType)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -3389,6 +3450,7 @@ func (e *Ellipse) GetMargins() (float64, float64, float64, float64) {
 //
 // The default value is false.
 func (t *Table) SetCompactMode(enable bool) { t.compactMode = enable }
+
 func borderRadiusAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("borderRadiusAttr", i, 0, float64Type, float64Type, float64Type, float64Type)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -3402,6 +3464,7 @@ func borderRadiusAttr(i interface{}) attrApplyFunc {
 		return nil
 	}
 }
+
 func parseColorComponent(s string) (float64, error) {
 	s = strings.TrimSpace(s)
 	var colorComponent float64
@@ -3526,6 +3589,7 @@ func (tec *TextChunk) Width() float64 {
 	}
 	return value / 1000.0
 }
+
 func boolAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("boolAttr", i, 0, boolType)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -3540,6 +3604,7 @@ func boolAttr(i interface{}) attrApplyFunc {
 		return nil
 	}
 }
+
 func (tp *templateProcessor) parseTable(node *templateNode) (interface{}, error) {
 	tableColumns, err := tp.tableColumns(node)
 	if err != nil {
@@ -3584,6 +3649,7 @@ func (t *Table) HasHeader() bool { return t.hasHeaderRows }
 func (sp *StyledParagraph) SetTextVerticalAlignment(align TextVerticalAlignment) {
 	sp.verticalAlignment = align
 }
+
 func newTOC(text string, lineNumberStyle, style2 TextStyle) *TOC {
 	style := style2
 	style.FontSize = 14
@@ -3697,15 +3763,18 @@ func (e *Ellipse) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, er
 	blocks = append(blocks, block)
 	return blocks, ctx, nil
 }
+
 func newTable(cols int) *Table {
 	table := &Table{cols: cols, defaultRowHeight: 10.0, colWidths: []float64{}, rowHeights: []float64{}, cells: []*TableCell{}, rowSpanRemaining: make([]int, cols), enablePageWrap: true}
 	table.structType = model.StructureTypeTable
 	table.resetColumnWidths()
 	return table
 }
+
 func newPolygon(points [][]contentdraw.Point) *Polygon {
 	return &Polygon{polygon: &contentdraw.Polygon{Points: points}, fillOpacity: 1.0, borderOpacity: 1.0}
 }
+
 func drawColorGlyph(ctx DrawContext, add_q *contentstream.ContentCreator, block *Block, text string, x float64, style *TextStyle, propertyList map[string]core.PdfObject, s model.StructureType) (bool, error) {
 	if text == "" {
 		return false, nil
@@ -3786,6 +3855,7 @@ func drawColorGlyph(ctx DrawContext, add_q *contentstream.ContentCreator, block 
 	}
 	return false, nil
 }
+
 func (tp *templateProcessor) strictErr(node *templateNode, s, s2 string, err error) error {
 	if tp.options.Strict {
 		return tp.nodeError(node, "invalid value %q for attribute %q: %v", s2, s, err)
@@ -3809,6 +3879,7 @@ var imageAttrs = map[string]attrApplyFunc{"src": nil, "align": enumAttr(horizont
 func (ch *Chapter) GetMargins() (float64, float64, float64, float64) {
 	return ch.margins.Left, ch.margins.Right, ch.margins.Top, ch.margins.Bottom
 }
+
 func (sp *StyledParagraph) addLine(chunks []*TextChunk) bool {
 	if sp.maxLines > 0 && len(sp.lines)+1 >= sp.maxLines {
 		if len(chunks) > 0 {
@@ -3859,6 +3930,7 @@ func (t *Table) SkipCells(num int) {
 		t.NewCell()
 	}
 }
+
 func (tp *templateProcessor) parseColor(hexStr string) Color {
 	if hexStr == "" {
 		return nil
@@ -3948,6 +4020,7 @@ func (to *TOC) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, error
 
 // SetTitle sets the title of the invoice.
 func (i *Invoice) SetTitle(title string) { i.title = title }
+
 func intArrayAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("intArrayAttr", i, 0, int64SliceType)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -3969,6 +4042,7 @@ func intArrayAttr(i interface{}) attrApplyFunc {
 func (c *Creator) ValidateTemplate(pt *ParsedTemplate, data interface{}) error {
 	return pt.validateWith(c, c, data)
 }
+
 func (t *Table) splitAtRow(rows int) (head, tail *Table) {
 	if rows <= 0 {
 		return nil, t
@@ -4038,6 +4112,7 @@ func (ba *Background) SetBorderRadius(topLeft, topRight, bottomLeft, bottomRight
 	ba.BorderRadiusBottomLeft = bottomLeft
 	ba.BorderRadiusBottomRight = bottomRight
 }
+
 func (b *Block) duplicate() *Block {
 	block := &Block{}
 	*block = *b
@@ -4046,6 +4121,7 @@ func (b *Block) duplicate() *Block {
 	block.contents = &contentStreamOperations
 	return block
 }
+
 func (tc *TableCell) width(colWidths []float64, totalWidth float64) float64 {
 	width := float64(0.0)
 	for i := 0; i < tc.colSpan; i++ {
@@ -4053,6 +4129,7 @@ func (tc *TableCell) width(colWidths []float64, totalWidth float64) float64 {
 	}
 	return width * totalWidth
 }
+
 func (l *Line) computeCoords(ctx DrawContext) (x1, y1, x2, y2 float64) {
 	x1 = ctx.X
 	x2 = x1 + l.x2 - l.x1
@@ -4073,6 +4150,7 @@ func (l *Line) computeCoords(ctx DrawContext) (x1, y1, x2, y2 float64) {
 	}
 	return x1, y1, x2, y2
 }
+
 func (tp *templateProcessor) nodeOwnStyle(node *templateNode) map[string]string {
 	var m map[string]string
 	fn := func(s2, s string) {
@@ -4117,6 +4195,7 @@ var lineAttrs = map[string]attrApplyFunc{"x1": floatAttr(func(line *Line, x1 flo
 func newDivision() *Division {
 	return &Division{enableBreak: true, taggedDrawable: taggedDrawable{structType: model.StructureTypeDivision}}
 }
+
 func (gse *GraphicSVGElement) drawRect(cc *contentstream.ContentCreator, resources *model.PdfPageResources) {
 	cc.Add_q()
 	gse.Style.toContentStream(cc, resources, gse)
@@ -4196,6 +4275,7 @@ func (gse *GraphicSVGElement) parseColorPoints() []*ColorPoint {
 	}
 	return colorPoints
 }
+
 func templateNodeValue(node *templateNode) interface{} {
 	if node == nil {
 		return nil
@@ -4210,6 +4290,7 @@ var (
 	PageSizeLetter = PageSize{8.5 * PPI, 11 * PPI}
 	PageSizeLegal  = PageSize{8.5 * PPI, 14 * PPI}
 )
+
 var styledParagraphAttrs = map[string]attrApplyFunc{"text-align": enumAttr(textAlignmentValues, func(para *StyledParagraph, align TextAlignment) { para.SetTextAlignment(align) }), "vertical-text-align": enumAttr(textVerticalAlignmentValues, func(para *StyledParagraph, align TextVerticalAlignment) { para.SetTextVerticalAlignment(align) }), "line-height": floatAttr(func(para *StyledParagraph, lineheight float64) { para.SetLineHeight(lineheight) }), "margin": marginAttr(func(para *StyledParagraph, margins Margins) {
 	para.SetMargins(margins.Left, margins.Right, margins.Top, margins.Bottom)
 }), "enable-wrap": boolAttr(func(para *StyledParagraph, enableWrap bool) { para.SetEnableWrap(enableWrap) }), "enable-word-wrap": boolAttr(func(para *StyledParagraph, val bool) { para.EnableWordWrap(val) }), "text-overflow": enumAttr(textOverflowValues, func(para *StyledParagraph, textOverflow TextOverflow) { para.SetTextOverflow(textOverflow) }), "x": floatAttr(func(para *StyledParagraph, x float64) { para.SetPos(x, para.yPos) }), "y": floatAttr(func(para *StyledParagraph, y float64) { para.SetPos(para.xPos, y) }), "angle": floatAttr(func(para *StyledParagraph, angle float64) { para.SetAngle(angle) })}
@@ -4224,6 +4305,7 @@ func (tp *templateProcessor) collectStyles(node *templateNode) error {
 func (c *Creator) NewRadialGradientColor(x float64, y float64, innerRadius float64, outerRadius float64, colorPoints []*ColorPoint) *RadialShading {
 	return newRadialShading(x, y, innerRadius, outerRadius, colorPoints)
 }
+
 func pipeEndsWithRaw(pipeNode *parse.PipeNode) bool {
 	if pipeNode == nil || len(pipeNode.Cmds) == 0 {
 		return false
@@ -4244,6 +4326,7 @@ func parseFloatArray(s string) ([]float64, error) { return parseFloatFields(s) }
 
 // Height returns the height of the ellipse.
 func (e *Ellipse) Height() float64 { return e.height }
+
 func (t *Table) updateRowHeights(width float64) {
 	for _, cell := range t.cells {
 		if cell.rowSpan > 1 {
@@ -4292,6 +4375,7 @@ func (l *Line) DashPattern() (dashArray []int64, dashPhase int64) { return l.das
 // corner. The coordinates are only meaningful when the table uses absolute
 // positioning (see GetPositioning).
 func (t *Table) GetPos() (float64, float64) { return t.xPos, t.yPos }
+
 func mergeSubtableSplits(subtableSplits []subtableSplit) ([][2]*Table, bool) {
 	nums := make([]int, len(subtableSplits))
 	nums2 := make([]int, len(subtableSplits))
@@ -4400,6 +4484,7 @@ var (
 
 // Width returns the width of the ellipse.
 func (e *Ellipse) Width() float64 { return e.width }
+
 func (tp *templateProcessor) tableColumns(node *templateNode) (int64, error) {
 	var tableColumns int64
 	if effectiveAttrValue, ok := tp.effectiveAttrValue(node, "columns"); ok {
@@ -4463,7 +4548,6 @@ func (c *Creator) DrawHeader(drawHeaderFunc func(block *Block, headerFunctionArg
 
 // DropCapsOptions contains configuration options for drop caps rendering.
 type DropCapsOptions struct {
-
 	// Type specifies the drop caps type (Drop or Inline).
 	Type DropCapsType
 
@@ -4507,6 +4591,7 @@ func (tp *templateProcessor) parseChapterHeading(node *templateNode) (interface{
 	}
 	return heading, nil
 }
+
 func (sp *StyledParagraph) splitToPieces(ctx DrawContext) ([]*StyledParagraph, error) {
 	if err := sp.wrapChunks(false); err != nil {
 		return nil, err
@@ -4578,6 +4663,7 @@ func (tl *TOCLine) Link() (page int64, x, y float64) {
 
 // SetTitleStyle sets the style properties of the invoice title.
 func (i *Invoice) SetTitleStyle(style TextStyle) { i.titleStyle = style }
+
 func (sp *StyledParagraph) wrapWordChunks() {
 	if !sp.enableWordWrap {
 		return
@@ -4763,6 +4849,7 @@ type FrontpageFunctionArgs struct {
 
 // Lazy gets the lazy mode for the image.
 func (im *Image) Lazy() bool { return im.lazy }
+
 func (gse *GraphicSVGElement) processDefs() {
 	gse.linearShadings = make(map[string]*LinearShading)
 	gse.radialShadings = make(map[string]*RadialShading)
@@ -4811,7 +4898,7 @@ func (gc *GridCell) SetSideBorderColor(side CellBorderSide, col Color) {
 	}
 }
 
-var carrierAttrs = map[string]struct{}{"font": struct{}{}, "font-size": struct{}{}, "color": struct{}{}, "line-height": struct{}{}, "text-align": struct{}{}}
+var carrierAttrs = map[string]struct{}{"font": {}, "font-size": {}, "color": {}, "line-height": {}, "text-align": {}}
 
 func (su *Subpath) compare(subpath *Subpath) bool {
 	if len(su.Commands) != len(subpath.Commands) {
@@ -4824,6 +4911,7 @@ func (su *Subpath) compare(subpath *Subpath) bool {
 	}
 	return true
 }
+
 func (tn *templateNode) activeParent() *templateNode {
 	for parent := tn.parent; parent != nil; parent = parent.parent {
 		if parent.hasHandler {
@@ -4863,6 +4951,7 @@ func (b *Block) SetPos(x, y float64) { b.positioning = PositionAbsolute; b.xPos 
 
 // This method is not supported by Block component and exists solely to satisfy the Drawable interface.
 func (b *Block) SetStructPageNumber(pageNumber *int64) {}
+
 func newLinearShading(colorPoints []*ColorPoint) *LinearShading {
 	return &LinearShading{base: &shading{backgroundColor: ColorWhite, antiAlias: false, extends: []bool{false, false}, colorPoints: colorPoints}, boundingBox: &model.PdfRectangle{}}
 }
@@ -4882,6 +4971,7 @@ type Curve struct {
 
 // SetLogo sets the logo of the invoice.
 func (i *Invoice) SetLogo(logo *Image) { i.logo = logo }
+
 func floatAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("floatAttr", i, 0, float64Type)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -4907,6 +4997,7 @@ func (b *Block) ValidateTemplate(c *Creator, pt *ParsedTemplate, data interface{
 // Sections returns the custom content sections of the invoice as
 // title-content pairs.
 func (i *Invoice) Sections() [][2]string { return i.sections }
+
 func (t *Table) headerHeight() float64 {
 	var headerHeight float64
 	if !t.hasHeaderRows {
@@ -4920,6 +5011,7 @@ func (t *Table) headerHeight() float64 {
 
 // TitleStyle returns the style properties used to render the invoice title.
 func (i *Invoice) TitleStyle() TextStyle { return i.titleStyle }
+
 func newPolyline(points []contentdraw.Point) *Polyline {
 	return &Polyline{polyline: &contentdraw.Polyline{Points: points, LineColor: model.NewPdfColorDeviceRGB(0, 0, 0), LineWidth: 1.0}, lineOpacity: 1.0}
 }
@@ -5156,6 +5248,7 @@ func (tl *TOCLine) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, e
 	}
 	return pageBlocks, ctx, nil
 }
+
 func floatArrayAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("floatArrayAttr", i, 0, float64SliceType)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -5187,6 +5280,7 @@ func (e *Ellipse) SetFillColor(col Color) { e.fillColor = col }
 func (c *Creator) EnableFontSubsetting(font *model.PdfFont) {
 	c.subsetFonts = append(c.subsetFonts, font)
 }
+
 func (pat *ParsedTemplate) renderInto(creator *Creator, renderer componentRenderer, data interface{}) error {
 	if creator == nil {
 		common.Log.Error("Creator instance cannot be nil.")
@@ -5202,7 +5296,6 @@ func (pat *ParsedTemplate) renderInto(creator *Creator, renderer componentRender
 // TextDecorationLineStyle represents the style of lines used to decorate
 // a text chunk (e.g. underline).
 type TextDecorationLineStyle struct {
-
 	// Color represents the color of the line (default: the color of the text).
 	Color Color
 
@@ -5224,6 +5317,7 @@ func (c *Creator) CreateFrontPage(genFrontPageFunc func(frontpageFunctionArgs Fr
 
 // SetBorderColor sets the border color.
 func (cp *CurvePolygon) SetBorderColor(color Color) { cp.polygon.BorderColor = toPdfColor(color) }
+
 func newImageFromGoImage(img image.Image) (*Image, error) {
 	image, err := model.ImageHandling.NewImageFromGoImage(img)
 	if err != nil {
@@ -5310,6 +5404,7 @@ func (pbc *PolyBezierCurve) SetFillColor(color Color) {
 
 // GetBackgroundColor returns the cell's background color.
 func (gc *GridCell) GetBackgroundColor() Color { return gc.backgroundColor }
+
 func (gse *GraphicSVGElement) drawCircle(creator *contentstream.ContentCreator, resources *model.PdfPageResources) {
 	creator.Add_q()
 	gse.Style.toContentStream(creator, resources, gse)
@@ -5354,12 +5449,14 @@ func (tc *TableCell) SetBorderColor(col Color) {
 	tc.borderColorRight = col
 	tc.borderColorTop = col
 }
+
 func (dc DrawContext) contentHeight() float64 {
 	return dc.PageHeight - dc.Margins.Top - dc.Margins.Bottom
 }
 
 // IsWrapEnabled returns whether line wrapping is enabled for the paragraph.
 func (sp *StyledParagraph) IsWrapEnabled() bool { return sp.enableWrap }
+
 func (tp *templateProcessor) validateLink(node *templateNode) error {
 	templateTag := templateTags[node.start.Name.Local]
 	if templateTag == nil {
@@ -5412,6 +5509,7 @@ const (
 func (tp *templateProcessor) nodeError(node *templateNode, format string, a ...interface{}) error {
 	return fmt.Errorf("%s", tp.getNodeErrorLocation(node, format, a...))
 }
+
 func (i *Invoice) generateInformationBlocks(ctx DrawContext) ([]*Block, DrawContext, error) {
 	styledParagraph := newStyledParagraph(i.defaultStyle)
 	styledParagraph.SetMargins(0, 0, 0, 20)
@@ -5437,6 +5535,7 @@ func (i *Invoice) generateInformationBlocks(ctx DrawContext) ([]*Block, DrawCont
 func (im *Image) SetHorizontalAlignment(alignment HorizontalAlignment) {
 	im.horizontalAlignment = alignment
 }
+
 func (g *Grid) insertRowAfter(n int, row *GridRow) {
 	g.rows = append(g.rows, &GridRow{})
 	copy(g.rows[n+2:], g.rows[n+1:])
@@ -5471,6 +5570,7 @@ func (g *Grid) SetStructureType(structureType model.StructureType) {
 		g.tagInfo.ParentKObj.AddKChild(g.tagInfo.ComponentKObj)
 	}
 }
+
 func (b *Block) addContentsByString(contentStr string) error {
 	contentStreamParser := contentstream.NewContentStreamParser(contentStr)
 	contentStreamOperations, err := contentStreamParser.Parse()
@@ -5502,6 +5602,7 @@ func (c *Creator) NewChapter(title string) *Chapter {
 
 // SetFillOpacity sets the fill opacity of the rectangle.
 func (r *Rectangle) SetFillOpacity(opacity float64) { r.fillOpacity = opacity }
+
 func (ts *TextStyle) effectiveLineHeight(effectiveLineHeight float64) float64 {
 	if ts.LineHeight > 0 {
 		return ts.LineHeight
@@ -5545,6 +5646,7 @@ func (im *Image) SetSoftMask(mask *model.Image) error {
 	}
 	return im.setMask(&imageMask{kind: imageMaskSoft, img: mask})
 }
+
 func (tp *templateProcessor) parseChart(node *templateNode) (interface{}, error) {
 	_abcbdab, _ := tp.effectiveAttrValue(node, "src")
 	if _abcbdab == "" {
@@ -5572,6 +5674,7 @@ func (d *Division) SetMargins(left, right, top, bottom float64) {
 	d.margins.Top = top
 	d.margins.Bottom = bottom
 }
+
 func wrapAsPaginationArtifact(block *Block, n int) {
 	contents := (*block.contents)[n:]
 	artifact := model.Artifact{Type: model.ArtifactTypePagination}
@@ -5588,6 +5691,7 @@ func wrapAsPaginationArtifact(block *Block, n int) {
 	operations = append(operations, &contentstream.ContentStreamOperation{Operand: "EMC"})
 	*block.contents = append((*block.contents)[:n], operations...)
 }
+
 func applySVGTransform(graphicSVGElement *GraphicSVGElement, cc *contentstream.ContentCreator) {
 	attribute, ok := graphicSVGElement.Attributes["transform"]
 	if ok {
@@ -5637,6 +5741,7 @@ func (fbs *FunctionBasedShading) ToPdfShadingPattern() (*model.PdfShadingPattern
 
 // FillColor returns the fill color of the rectangle.
 func (r *Rectangle) FillColor() Color { return r.fillColor }
+
 func addShadingResource(block *Block, shadingObj core.PdfObject) (core.PdfObjectName, error) {
 	i := 1
 	keyName := core.PdfObjectName("Sh" + strconv.Itoa(i))
@@ -5765,7 +5870,8 @@ func (c *Creator) SetStructTreeRoot(structTreeRoot *model.StructTreeRoot) {
 
 // This method is not supported by Block component and exists solely to satisfy the Drawable interface.
 func (b *Block) SetStructureType(structureType model.StructureType) {}
-func isTransformSeparator(r rune) bool                              { return r == '(' || r == ',' || r == ')' }
+
+func isTransformSeparator(r rune) bool { return r == '(' || r == ',' || r == ')' }
 
 // IsAbsolute checks if the positioning is absolute.
 func (pos Positioning) IsAbsolute() bool { return pos == PositionAbsolute }
@@ -5800,6 +5906,7 @@ func svgStandardFont(s string) (*model.PdfFont, error) {
 // as quality are not applied. Set a non-DCT encoder (e.g. a FlateEncoder) to
 // force a re-encode.
 func (im *Image) SetEncoder(encoder core.StreamEncoder) { im.encoder = encoder }
+
 func (tp *templateProcessor) parseImage(node *templateNode) (interface{}, error) {
 	effectiveAttrValue, _ := tp.effectiveAttrValue(node, "src")
 	image, s, err := tp.loadImageFromSrc(effectiveAttrValue)
@@ -5821,6 +5928,7 @@ func (tp *templateProcessor) parseImage(node *templateNode) (interface{}, error)
 
 // SetFillColor sets background color for border.
 func (bo *border) SetFillColor(col Color) { bo.fillColor = col }
+
 func newRectangle(x, y, width, height float64) *Rectangle {
 	return &Rectangle{x: x, y: y, width: width, height: height, positioning: PositionAbsolute, fillOpacity: 1.0, borderColor: ColorBlack, borderWidth: 1.0, borderOpacity: 1.0}
 }
@@ -5841,6 +5949,7 @@ func (tl *TOCLine) SetLevel(level uint) {
 func (rs *RadialShading) AddPatternResource(block *Block) (name core.PdfObjectName, err error) {
 	return addShadingPatternResource(block, rs.ToPdfShadingPattern().ToPdfObject())
 }
+
 func (rs *RadialShading) shadingModel() *model.PdfShadingType3 {
 	r, g, b := rs.base.backgroundColor.ToRGB()
 	var point contentdraw.Point
@@ -5901,6 +6010,7 @@ func (rs *RadialShading) shadingModel() *model.PdfShadingType3 {
 	pdfShadingType3.Function = rs.base.generatePdfFunctions()
 	return pdfShadingType3
 }
+
 func readPagesFromFile(r *os.File) ([]*model.PdfPage, error) {
 	pdfReader, err := model.NewPdfReader(r)
 	if err != nil {
@@ -5953,6 +6063,7 @@ func (to *TOC) SetLineStyle(style TextStyle) {
 	to.SetLineSeparatorStyle(style)
 	to.SetLinePageStyle(style)
 }
+
 func (tl *TOCLine) prepareParagraph(para *StyledParagraph, ctx DrawContext) {
 	text := tl.Title.Text
 	if tl.Number.Text != "" {
@@ -6031,9 +6142,11 @@ func (to *TOC) Add(number, title, page string, level uint) *TOCLine {
 	line.Separator.Style = to.lineSeparatorStyle
 	return line
 }
+
 func newChart(chart chartrender.ChartRenderable) *Chart {
 	return &Chart{chart: chart, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, taggedDrawable: taggedDrawable{structType: model.StructureTypeFigure}}
 }
+
 func validateSetter(s string, i interface{}, n int, types ...reflect.Type) reflect.Value {
 	valueOf := reflect.ValueOf(i)
 	if !valueOf.IsValid() || valueOf.Kind() != reflect.Func {
@@ -6060,6 +6173,7 @@ func validateSetter(s string, i interface{}, n int, types ...reflect.Type) refle
 // Width returns the width of the rectangle.
 // NOTE: the returned value does not include the border width of the rectangle.
 func (r *Rectangle) Width() float64 { return r.width }
+
 func (tp *templateProcessor) parseTextChunk(node *templateNode, textChunk *TextChunk) (interface{}, error) {
 	if node.parent == nil {
 		tp.nodeLogError(node, "Text chunk parent cannot be nil.")
@@ -6129,6 +6243,7 @@ func (c *Creator) PageFinalize(pageFinalizeFunc func(pageFinalizeFunctionArgs Pa
 // fractions add up to 1. The returned slice references the table's internal
 // column widths; modifying its elements modifies the table.
 func (t *Table) GetColumnWidths() []float64 { return t.colWidths }
+
 func (tp *templateProcessor) resolveFont(s string) (*model.PdfFont, error) {
 	if font, ok := tp.fontCache[s]; ok {
 		return font, nil
@@ -6187,7 +6302,7 @@ func (gc *GridCell) SetBorder(side CellBorderSide, style CellBorderStyle, width 
 	}
 }
 
-var textContentTags = map[string]struct{}{"paragraph": struct{}{}, "text-chunk": struct{}{}, "chapter-heading": struct{}{}, "list-marker": struct{}{}}
+var textContentTags = map[string]struct{}{"paragraph": {}, "text-chunk": {}, "chapter-heading": {}, "list-marker": {}}
 
 func renderBackground(background *Background, width, height float64) (*Block, error) {
 	rectangle := newRectangle(0, 0, width, height)
@@ -6218,6 +6333,7 @@ func (cha *Chart) SetPos(x, y float64) {
 //
 // Anti alias is disabled by default.
 func (fbs *FunctionBasedShading) SetAntiAlias(enable bool) { fbs.base.SetAntiAlias(enable) }
+
 func parseTableCellTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseTableCell(node)
 }
@@ -6341,11 +6457,13 @@ func (pat *ParsedTemplate) validateWith(creator *Creator, renderer componentRend
 
 // GetHeading returns the chapter heading paragraph. Used to give access to address style: font, sizing etc.
 func (ch *Chapter) GetHeading() *StyledParagraph { return ch.heading }
+
 func (sp *StyledParagraph) appendChunk(chunk *TextChunk) *TextChunk {
 	sp.chunks = append(sp.chunks, chunk)
 	sp.wrapText()
 	return chunk
 }
+
 func newPolyBezierCurve(curves []contentdraw.CubicBezierCurve) *PolyBezierCurve {
 	return &PolyBezierCurve{curve: &contentdraw.PolyBezierCurve{Curves: curves, BorderColor: model.NewPdfColorDeviceRGB(0, 0, 0), BorderWidth: 1.0}, fillOpacity: 1.0, borderOpacity: 1.0}
 }
@@ -6520,9 +6638,11 @@ func (r *Rectangle) ScaleToWidth(w float64) {
 	r.width = w
 	r.height = w * height
 }
+
 func (tp *templateProcessor) nodeLogDebug(node *templateNode, format string, a ...interface{}) {
 	common.Log.Debug(tp.getNodeErrorLocation(node, format, a...))
 }
+
 func (tp *templateProcessor) nodeLogError(node *templateNode, format string, a ...interface{}) {
 	common.Log.Error(tp.getNodeErrorLocation(node, format, a...))
 }
@@ -6595,6 +6715,7 @@ func (r *Rectangle) Positioning() Positioning { return r.positioning }
 
 // This method is not supported by Block component and exists solely to satisfy the Drawable interface.
 func (b *Block) GenerateKDict() (*model.KDict, error) { return nil, nil }
+
 func (li *List) split(ctx2 DrawContext, value float64) (head, tail *List) {
 	var (
 		value2           float64
@@ -6727,6 +6848,7 @@ func (c *Creator) MoveY(y float64) { c.context.Y = y }
 
 // GetOpacity returns the cell's opacity in the range 0-1.
 func (tc *TableCell) GetOpacity() float64 { return tc.opacity }
+
 func colorAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("colorAttr", i, 0, colorType)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -6743,6 +6865,7 @@ func colorAttr(i interface{}) attrApplyFunc {
 
 // NewFilledCurve returns a instance of filled curve.
 func (c *Creator) NewFilledCurve() *FilledCurve { return newFilledCurve() }
+
 func newFontMetrics(font *model.PdfFont, value float64) *fontMetrics {
 	fontMetrics2 := &fontMetrics{}
 	if font == nil {
@@ -6803,6 +6926,7 @@ func newFontMetrics(font *model.PdfFont, value float64) *fontMetrics {
 func (sp *StyledParagraph) SetDropCapsWithStyle(dropType DropCapsType, scope DropCapsScope, numLines int, gap float64, style *TextStyle) {
 	sp.SetDropCaps(DropCapsOptions{Type: dropType, Scope: scope, NumLines: numLines, Gap: gap, Style: style})
 }
+
 func floatArrayAttrErr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("floatArrayAttrErr", i, 1, float64SliceType)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -6985,6 +7109,7 @@ func (d *Division) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, e
 
 // GetVerticalAlignment returns the cell's vertical alignment of content.
 func (tc *TableCell) GetVerticalAlignment() CellVerticalAlignment { return tc.verticalAlignment }
+
 func chunksFontMetrics(chunks []*TextChunk) (maxCapHeight, maxFontSize, minDescent float64) {
 	if len(chunks) == 0 {
 		return 0, 0, 0
@@ -7026,6 +7151,7 @@ func (t *Table) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, erro
 	}
 	return generateTablePageBlocks(table, ctx)
 }
+
 func parseStyledParagraphTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseStyledParagraph(node)
 }
@@ -7060,6 +7186,7 @@ const (
 
 // ScaleToHeight scales the Block to a specified height, maintaining the same aspect ratio.
 func (b *Block) ScaleToHeight(h float64) { sx := h / b.height; b.Scale(sx, sx) }
+
 func (tc *TableCell) height(width float64) float64 {
 	var bottom float64
 	switch content := tc.content.(type) {
@@ -7094,6 +7221,7 @@ func (tc *TableCell) height(width float64) float64 {
 	}
 	return bottom
 }
+
 func alphaToBitmask(img *model.Image) (*model.Image, bool) {
 	var n int
 	switch img.BitsPerComponent {
@@ -7139,6 +7267,7 @@ func (t *Table) SetRowHeight(row int, h float64) error {
 	t.rowHeights[row-1] = h
 	return nil
 }
+
 func (gr *GridRow) updateRowHeight(totalWidth float64) {
 	gr.contentHeight = gr.height
 	for _, cell := range gr.cells {
@@ -7260,6 +7389,7 @@ func (r *Rectangle) GetCoords() (float64, float64) { return r.x, r.y }
 
 // SetStyleLeft sets border style for left side.
 func (bo *border) SetStyleLeft(style CellBorderStyle) { bo.styleLeft = style }
+
 func templateMakeSeq(i2, i3, n int) []int {
 	nums := []int{}
 	for i := i2; i <= n; i += i3 {
@@ -7285,12 +7415,14 @@ func (c *Creator) TagComponents(enableTagging bool) {
 
 // SetBorderColor sets the border color for the path.
 func (fc *FilledCurve) SetBorderColor(color Color) { fc.borderColor = color }
+
 func newTOCLineFromStrings(text, text2, text3 string, level uint, style TextStyle) *TOCLine {
 	return newTOCLineFromChunks(TextChunk{Text: text, Style: style}, TextChunk{Text: text2, Style: style}, TextChunk{Text: text3, Style: style}, level, style)
 }
 
 // FillColor returns the fill color of the ellipse.
 func (e *Ellipse) FillColor() Color { return e.fillColor }
+
 func (i *Invoice) generateHeaderBlocks(ctx DrawContext) ([]*Block, DrawContext, error) {
 	styledParagraph := newStyledParagraph(i.titleStyle)
 	styledParagraph.SetEnableWrap(true)
@@ -7346,6 +7478,7 @@ func (fbs *FunctionBasedShading) AddShadingResource(block *Block) (name core.Pdf
 	}
 	return addShadingResource(block, shadingModel.ToPdfObject())
 }
+
 func (gse *GraphicSVGElement) drawText(cc *contentstream.ContentCreator, resources *model.PdfPageResources) {
 	cc.Add_BT()
 	svgLength, err := parseSVGLength(gse.Attributes["x"], 64)
@@ -7416,6 +7549,7 @@ func (gse *GraphicSVGElement) drawText(cc *contentstream.ContentCreator, resourc
 	cc.Add_Tj(*str)
 	cc.Add_ET()
 }
+
 func newTemplateProcessor(creator *Creator, filename string, data []byte, templateOptions *TemplateOptions, renderer componentRenderer) *templateProcessor {
 	if templateOptions == nil {
 		templateOptions = &TemplateOptions{}
@@ -7433,6 +7567,7 @@ func (t *Table) GetPositioning() Positioning { return t.positioning }
 
 // SetSection sets whether this row is a header row.
 func (gr *GridRow) SetSection(role GridRowSection) { gr.section = role }
+
 func (tp *templateProcessor) parseBackground(node *templateNode) (interface{}, error) {
 	background := &Background{}
 	if err := tp.applyAttrs(node, background, backgroundAttrs); err != nil {
@@ -7440,6 +7575,7 @@ func (tp *templateProcessor) parseBackground(node *templateNode) (interface{}, e
 	}
 	return background, nil
 }
+
 func parseDivisionTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseDivision(node)
 }
@@ -7464,6 +7600,7 @@ func (cu *Curve) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, err
 
 // RemoveArtifact removes the artifact associated with the block, if any.
 func (b *Block) RemoveArtifact() { b.artifact = nil }
+
 func (sp *StyledParagraph) getTextLineWidth(chunks []*TextChunk) float64 {
 	var charSpacing float64
 	n := len(chunks)
@@ -7500,9 +7637,11 @@ func (b *Block) mergeBlocks(block *Block) error {
 	}
 	return nil
 }
+
 func parseImageTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseImage(node)
 }
+
 func allFirstPartsEmpty(rows [][2]*Table) bool {
 	for _, tables := range rows {
 		if tables[0] != nil {
@@ -7511,6 +7650,7 @@ func allFirstPartsEmpty(rows [][2]*Table) bool {
 	}
 	return true
 }
+
 func parseSVGPath(s string) (*Path, error) {
 	svgCommands = newPathCommands()
 	commands, err := parseCommands(tokenizePathData(s))
@@ -7525,6 +7665,7 @@ func (cha *Chart) Height() float64 { return float64(cha.chart.Height()) }
 
 // SetLineWidth sets the line width.
 func (po *Polyline) SetLineWidth(lineWidth float64) { po.polyline.LineWidth = lineWidth }
+
 func (tp *templateProcessor) loadImageFromSrc(s string) (*Image, string, error) {
 	if s == "" {
 		common.Log.Error("Image `src` attribute cannot be empty.")
@@ -7560,12 +7701,14 @@ func (sp *StyledParagraph) SetMaxLines(maxLines int) { sp.maxLines = maxLines }
 
 // GetCoords returns the center coordinates of ellipse (`xc`, `yc`).
 func (e *Ellipse) GetCoords() (float64, float64) { return e.xc, e.yc }
+
 func parseTableTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseTable(node)
 }
 
 // SetHeight sets the height of the rectangle.
 func (r *Rectangle) SetHeight(height float64) { r.height = height }
+
 func (b *Block) setOpacity(val float64, val2 float64) (string, error) {
 	if (val < 0 || val >= 1.0) && (val2 < 0 || val2 >= 1.0) {
 		return "", nil
@@ -7595,6 +7738,7 @@ func (b *Block) setOpacity(val float64, val2 float64) (string, error) {
 func (sp *StyledParagraph) GetTextVerticalAlignment() TextVerticalAlignment {
 	return sp.verticalAlignment
 }
+
 func layoutCellContent(drawable VectorDrawable, left float64, top float64, n CellVerticalAlignment, ok bool, rootKObj *model.KDict, mcid int64, left2 float64) (float64, float64, float64, *model.KDict, bool, error) {
 	var (
 		ok2           bool
@@ -7689,6 +7833,7 @@ func (rs *RadialShading) ToPdfShadingPattern() *model.PdfShadingPatternType3 {
 	pdfShadingPatternType3.Shading = shadingModel
 	return pdfShadingPatternType3
 }
+
 func (tp *templateProcessor) collectClasses(node *templateNode) error {
 	if tp.options.Strict {
 		for _, attr := range node.start.Attr {
@@ -7750,7 +7895,6 @@ func (l *Line) Color() Color { return l.color }
 
 // GraphicSVGElement represents SVG instances.
 type GraphicSVGElement struct {
-
 	// ViewBox represents viewBox value of element.
 	ViewBox struct{ X, Y, W, H float64 }
 
@@ -7786,6 +7930,7 @@ func (sp *StyledParagraph) GetLineHeight() float64 { return sp.lineHeight }
 
 // GetBackgroundColor returns the cell's background color.
 func (tc *TableCell) GetBackgroundColor() Color { return tc.backgroundColor }
+
 func (tp *templateProcessor) parseRadialGradientAttr(creator *Creator, s2 string) (Color, error) {
 	radialGradientAttr := ColorBlack
 	if s2 == "" {
@@ -7845,6 +7990,7 @@ func (tp *templateProcessor) parseRadialGradientAttr(creator *Creator, s2 string
 	}
 	return radialGradientColor, err
 }
+
 func (s *shading) generatePdfFunctions() []model.PdfFunction {
 	if len(s.colorPoints) == 0 {
 		return nil
@@ -7877,6 +8023,7 @@ func (i *Invoice) Columns() []*InvoiceCell { return i.columns }
 
 // SetTotal sets the total of the invoice.
 func (i *Invoice) SetTotal(value string) { i.total[1].Value = value }
+
 func (gss *GraphicSVGStyle) toContentStream(cc *contentstream.ContentCreator, resources *model.PdfPageResources, graphicSVGElement *GraphicSVGElement) {
 	if gss == nil {
 		return
@@ -7945,6 +8092,7 @@ func (gss *GraphicSVGStyle) toContentStream(cc *contentstream.ContentCreator, re
 		cc.Add_w(gss.StrokeWidth)
 	}
 }
+
 func (b *Block) translate(tx, ty float64) {
 	operations := contentstream.NewContentCreator().Translate(tx, -ty).Operations()
 	*b.contents = append(*operations, *b.contents...)
@@ -7979,6 +8127,7 @@ func (sp *StyledParagraph) SetFontSize(fontSize float64) {
 		chunk.Style.FontSize = fontSize
 	}
 }
+
 func (i *Invoice) generateNoteBlocks(ctx DrawContext) ([]*Block, DrawContext, error) {
 	division := newDivision()
 	rows := append([][2]string{i.notes, i.terms}, i.sections...)
@@ -8172,6 +8321,7 @@ func (i *Invoice) InsertColumn(index uint, description string) *InvoiceCell {
 	i.columns = append(i.columns[:index], append([]*InvoiceCell{column}, i.columns[index:]...)...)
 	return column
 }
+
 func (t *Table) wrapRow(i2 int, ctx DrawContext, totalWidth, height float64) (bool, error) {
 	if !t.enableRowWrap {
 		return false, nil
@@ -8369,6 +8519,7 @@ func (b *Block) AddAnnotation(annotation *model.PdfAnnotation) {
 
 // FillOpacity returns the fill opacity of the rectangle (0-1).
 func (r *Rectangle) FillOpacity() float64 { return r.fillOpacity }
+
 func templateDict(vals ...interface{}) (map[string]interface{}, error) {
 	n := len(vals)
 	if n%2 != 0 {
@@ -8407,6 +8558,7 @@ func (im *Image) ScaleToWidth(w float64) {
 // Total returns the invoice total description and value cells.
 // The returned values can be used to customize the styles of the cells.
 func (i *Invoice) Total() (*InvoiceCell, *InvoiceCell) { return i.total[0], i.total[1] }
+
 func (tn *templateNode) classNames() []string {
 	for _, attr := range tn.start.Attr {
 		if attr.Name.Space == "" && attr.Name.Local == classAttrName {
@@ -8415,6 +8567,7 @@ func (tn *templateNode) classNames() []string {
 	}
 	return nil
 }
+
 func applyShapeColor(block *Block, color model.PdfColor, color2 Color, fn func() Rectangle) error {
 	switch colorPatternType1 := color.(type) {
 	case *model.PdfColorPatternType1:
@@ -8456,6 +8609,7 @@ func applyShapeColor(block *Block, color model.PdfColor, color2 Color, fn func()
 	}
 	return nil
 }
+
 func (gc *GridCell) height(value float64) float64 {
 	var bottom float64
 	switch content := gc.content.(type) {
@@ -8491,6 +8645,7 @@ func (gc *GridCell) height(value float64) float64 {
 // GetContent returns the cell's content. Returns nil if no content has been
 // set.
 func (gc *GridCell) GetContent() VectorDrawable { return gc.content }
+
 func copyAnnotations(annotations2 []*model.PdfAnnotation) []*model.PdfAnnotation {
 	var annotations []*model.PdfAnnotation
 	for _, annotation := range annotations2 {
@@ -8498,6 +8653,7 @@ func copyAnnotations(annotations2 []*model.PdfAnnotation) []*model.PdfAnnotation
 	}
 	return annotations
 }
+
 func maxMCID(kDict *model.KDict) int64 {
 	maxMCID2 := int64(-1)
 	if kDict == nil {
@@ -8708,6 +8864,7 @@ func (tc *TableCell) GetColspan() int { return tc.colSpan }
 // GetTextAlignment returns the horizontal alignment of the text within the
 // paragraph.
 func (sp *StyledParagraph) GetTextAlignment() TextAlignment { return sp.alignment }
+
 func flushToken(tokens []token, text string) ([]token, string) {
 	if text != "" {
 		tokens = append(tokens, token{text, false})
@@ -8770,7 +8927,7 @@ var (
 	horizontalAlignmentValues     = map[string]HorizontalAlignment{"left": HorizontalAlignmentLeft, "center": HorizontalAlignmentCenter, "right": HorizontalAlignmentRight}
 	encoderFactories              = map[string]func() core.StreamEncoder{"flate": func() core.StreamEncoder { return core.NewFlateEncoder() }, "dct": func() core.StreamEncoder { return core.NewDCTEncoder() }}
 )
-var templateTags = map[string]*templateTag{"paragraph": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}, "list-item": struct{}{}}, parse: parseStyledParagraphTag, attrs: styledParagraphAttrs}, "text-chunk": &templateTag{allowedParents: map[string]struct{}{"paragraph": struct{}{}}, parse: parseTextChunkTag, attrs: textChunkAttrs}, "division": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}, "list-item": struct{}{}}, parse: parseDivisionTag, attrs: divisionAttrs}, "table": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}, "list-item": struct{}{}}, parse: parseTableTag, attrs: tableAttrs}, "table-cell": &templateTag{allowedParents: map[string]struct{}{"table": struct{}{}}, parse: parseTableCellTag, attrs: tableCellAttrs, singleChild: true}, "line": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}}, parse: parseLineTag, attrs: lineAttrs}, "rectangle": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}}, parse: parseRectangleTag, attrs: rectangleAttrs}, "ellipse": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}}, parse: parseEllipseTag, attrs: ellipseAttrs}, "image": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}, "list-item": struct{}{}}, parse: parseImageTag, attrs: imageAttrs}, "chapter": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "chapter": struct{}{}}, parse: parseChapterTag, attrs: chapterAttrs}, "chapter-heading": &templateTag{allowedParents: map[string]struct{}{"chapter": struct{}{}}, parse: parseChapterHeadingTag, attrs: chapterHeadingAttrs}, "chart": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}}, parse: parseChartTag, attrs: chartAttrs}, "page-break": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "chapter": struct{}{}, "division": struct{}{}}, parse: parsePageBreakTag, attrs: emptyAttrs}, "background": &templateTag{allowedParents: map[string]struct{}{"block": struct{}{}, "division": struct{}{}, "chapter": struct{}{}}, parse: parseBackgroundTag, attrs: backgroundAttrs}, "list": &templateTag{allowedParents: map[string]struct{}{"creator": struct{}{}, "block": struct{}{}, "division": struct{}{}, "table-cell": struct{}{}, "chapter": struct{}{}, "list-item": struct{}{}}, parse: parseListTag, attrs: listAttrs}, "list-item": &templateTag{allowedParents: map[string]struct{}{"list": struct{}{}}, parse: parseListItemTag, attrs: emptyAttrs, singleChild: true}, "list-marker": &templateTag{allowedParents: map[string]struct{}{"list": struct{}{}, "list-item": struct{}{}}, parse: parseListMarkerTag, attrs: textChunkAttrs, allowMultipleChildren: true}}
+var templateTags = map[string]*templateTag{"paragraph": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}, "list-item": {}}, parse: parseStyledParagraphTag, attrs: styledParagraphAttrs}, "text-chunk": {allowedParents: map[string]struct{}{"paragraph": {}}, parse: parseTextChunkTag, attrs: textChunkAttrs}, "division": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}, "list-item": {}}, parse: parseDivisionTag, attrs: divisionAttrs}, "table": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}, "list-item": {}}, parse: parseTableTag, attrs: tableAttrs}, "table-cell": {allowedParents: map[string]struct{}{"table": {}}, parse: parseTableCellTag, attrs: tableCellAttrs, singleChild: true}, "line": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}}, parse: parseLineTag, attrs: lineAttrs}, "rectangle": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}}, parse: parseRectangleTag, attrs: rectangleAttrs}, "ellipse": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}}, parse: parseEllipseTag, attrs: ellipseAttrs}, "image": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}, "list-item": {}}, parse: parseImageTag, attrs: imageAttrs}, "chapter": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "chapter": {}}, parse: parseChapterTag, attrs: chapterAttrs}, "chapter-heading": {allowedParents: map[string]struct{}{"chapter": {}}, parse: parseChapterHeadingTag, attrs: chapterHeadingAttrs}, "chart": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}}, parse: parseChartTag, attrs: chartAttrs}, "page-break": {allowedParents: map[string]struct{}{"creator": {}, "chapter": {}, "division": {}}, parse: parsePageBreakTag, attrs: emptyAttrs}, "background": {allowedParents: map[string]struct{}{"block": {}, "division": {}, "chapter": {}}, parse: parseBackgroundTag, attrs: backgroundAttrs}, "list": {allowedParents: map[string]struct{}{"creator": {}, "block": {}, "division": {}, "table-cell": {}, "chapter": {}, "list-item": {}}, parse: parseListTag, attrs: listAttrs}, "list-item": {allowedParents: map[string]struct{}{"list": {}}, parse: parseListItemTag, attrs: emptyAttrs, singleChild: true}, "list-marker": {allowedParents: map[string]struct{}{"list": {}, "list-item": {}}, parse: parseListMarkerTag, attrs: textChunkAttrs, allowMultipleChildren: true}}
 
 func (d *Division) split(ctx2 DrawContext, value float64) (head, tail *Division) {
 	var (
@@ -8892,6 +9049,7 @@ type Chart struct {
 
 // EnableWordWrap sets the paragraph word wrap flag.
 func (sp *StyledParagraph) EnableWordWrap(val bool) { sp.enableWordWrap = val }
+
 func templateXMLEscape(i interface{}) (string, error) {
 	valueToString2, err := valueToString(i)
 	if err != nil {
@@ -8901,6 +9059,7 @@ func templateXMLEscape(i interface{}) (string, error) {
 	xml.EscapeText(&w, []byte(valueToString2))
 	return w.String(), nil
 }
+
 func (tp *templateProcessor) parseListItem(node *templateNode) (interface{}, error) {
 	componentParent := node.componentParent()
 	if componentParent == nil {
@@ -8924,7 +9083,6 @@ func (tp *templateProcessor) parseListItem(node *templateNode) (interface{}, err
 // drawing the page contents in relative mode.  Keeps track of current X, Y position, available
 // height as well as other page parameters such as margins and dimensions.
 type DrawContext struct {
-
 	// Current page number.
 	Page int
 
@@ -8974,6 +9132,7 @@ func parseInt64List(s string) ([]int64, error) {
 	}
 	return nums, err
 }
+
 func colorspaceForComponents(n int) (model.PdfColorspace, error) {
 	switch n {
 	case 1:
@@ -8985,6 +9144,7 @@ func colorspaceForComponents(n int) (model.PdfColorspace, error) {
 	}
 	return nil, fmt.Errorf("program returns %d values, expected 1, 3 or 4 color components", n)
 }
+
 func (t *Table) clampCut(row int) int {
 	for ok := true; ok && row > 0; {
 		ok = false
@@ -9024,6 +9184,7 @@ func (c *Creator) NewTOC(title string) *TOC {
 	textStyle.Font = c.fontBold
 	return newTOC(title, c.NewTextStyle(), textStyle)
 }
+
 func (g *Grid) resetColumnWidths() {
 	g.colWidths = []float64{}
 	colWidth := float64(1.0) / float64(g.cols)
@@ -9031,6 +9192,7 @@ func (g *Grid) resetColumnWidths() {
 		g.colWidths = append(g.colWidths, colWidth)
 	}
 }
+
 func (im *Image) applyFitMode(left float64) {
 	left -= im.margins.Left + im.margins.Right
 	switch im.fitMode {
@@ -9048,6 +9210,7 @@ func (ls *LinearShading) ToPdfShadingPattern() *model.PdfShadingPatternType2 {
 	pdfShadingPatternType2.Shading = shadingModel
 	return pdfShadingPatternType2
 }
+
 func (sp *StyledParagraph) getTextHeight() float64 {
 	var textHeight float64
 	for _, chunk := range sp.chunks {
@@ -9087,6 +9250,7 @@ func (tec *TextChunk) SetAnnotation(annotation *model.PdfAnnotation) {
 		tec.annotations = []*model.PdfAnnotation{annotation}
 	}
 }
+
 func isHexColor(s string) bool {
 	if (len(s) != 4 && len(s) != 7) || s[0] != '#' {
 		return false
@@ -9132,6 +9296,7 @@ func (c *Creator) NewFunctionBasedGradient(content string) *FunctionBasedShading
 func (ls *LinearShading) SetBoundingBox(x, y, width, height float64) {
 	ls.boundingBox = &model.PdfRectangle{Llx: x, Lly: y, Urx: x + width, Ury: y + height}
 }
+
 func (tp *templateProcessor) checkNodeText(node *templateNode, s string, templateText2 *templateText) (bool, error) {
 	local := node.start.Name.Local
 	if _, ok := textContentTags[local]; ok {
@@ -9192,9 +9357,11 @@ var chapterHeadingAttrs = map[string]attrApplyFunc{"font": fontAttr(func(para *S
 
 // Style returns the style of the line.
 func (l *Line) Style() contentdraw.LineStyle { return l.style }
+
 func newStyledParagraph(defaultStyle TextStyle) *StyledParagraph {
 	return &StyledParagraph{chunks: []*TextChunk{}, defaultStyle: defaultStyle, linkStyle: linkTextStyle(defaultStyle.Font), lineHeight: 1.0, alignment: TextAlignmentLeft, enableWrap: true, defaultWrap: true, enableWordWrap: false, angle: 0, unusedA: 1, unusedB: 1, positioning: PositionRelative, languageID: "", artifact: nil, taggedDrawable: taggedDrawable{structType: model.StructureTypeParagraph}}
 }
+
 func (tp *templateProcessor) effectiveAttrValue(node *templateNode, s string) (string, bool) {
 	var (
 		value string
@@ -9224,6 +9391,7 @@ func (sp *StyledParagraph) Width() float64 {
 	}
 	return sp.getTextWidth() / 1000.0
 }
+
 func copyLinkAnnotation(annotationLink *model.PdfAnnotationLink) *model.PdfAnnotationLink {
 	if annotationLink == nil {
 		return nil
@@ -9271,6 +9439,7 @@ func (tc *TableCell) GetSideBorderColor(side CellBorderSide) Color {
 		return tc.borderColorTop
 	}
 }
+
 func (tp *templateProcessor) parseParagraph(node *templateNode, styledParagraph *StyledParagraph) (interface{}, error) {
 	if styledParagraph == nil {
 		styledParagraph = tp.creator.NewStyledParagraph()
@@ -9283,6 +9452,7 @@ func (tp *templateProcessor) parseParagraph(node *templateNode, styledParagraph 
 
 // GetRowspan returns the number of rows the cell spans.
 func (gc *GridCell) GetRowspan() int { return gc.rowSpan }
+
 func (tp *templateProcessor) setTableHeaderRows(node *templateNode, table *Table, startRow, endRow int) error {
 	if startRow != 0 && endRow == 0 {
 		endRow = startRow
@@ -9301,6 +9471,7 @@ func (tp *templateProcessor) setTableHeaderRows(node *templateNode, table *Table
 	}
 	return nil
 }
+
 func (fbs *FunctionBasedShading) shadingModel() (*model.PdfShadingType1, error) {
 	pdfFunction, colorSpace, err := fbs.pdfFunction()
 	if err != nil {
@@ -9319,6 +9490,7 @@ func (fbs *FunctionBasedShading) shadingModel() (*model.PdfShadingType1, error) 
 // GetPositioning returns the positioning mode (relative or absolute) of the
 // grid.
 func (g *Grid) GetPositioning() Positioning { return g.positioning }
+
 func intAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("intAttr", i, 0, int64Type)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -9397,6 +9569,7 @@ func (sp *StyledParagraph) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawCo
 	}
 	return blocks, ctx2, nil
 }
+
 func (tp *templateProcessor) parseAttrPropList(s string) map[string]string {
 	fields := strings.Fields(s)
 	if len(fields) == 0 {
@@ -9418,7 +9591,8 @@ func (tp *templateProcessor) parseAttrPropList(s string) map[string]string {
 }
 
 // GetOptimizer returns current PDF optimizer.
-func (c *Creator) GetOptimizer() model.Optimizer      { return c.optimizer }
+func (c *Creator) GetOptimizer() model.Optimizer { return c.optimizer }
+
 func roundTo(value float64, multiple float64) float64 { return math.Round(value/multiple) * multiple }
 
 // GeneratePageBlocks generate the Page blocks. Draws the Image on a block, implementing the Drawable interface.
@@ -9468,7 +9642,8 @@ func (im *Image) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, err
 }
 
 // CurCol returns the currently active cell's column number.
-func (t *Table) CurCol() int { curCol := (t.curCell-1)%(t.cols) + 1; return curCol }
+func (t *Table) CurCol() int { curCol := (t.curCell-1)%t.cols + 1; return curCol }
+
 func (tp *templateProcessor) checkTopLevelText(templateText2 *templateText) error {
 	if isBlank(templateText2.text) {
 		return nil
@@ -9612,6 +9787,7 @@ func (im *Image) ConvertToBinary() error { return im.img.ConvertToBinary() }
 
 // GetAngle returns the rotation angle of the text, in degrees.
 func (sp *StyledParagraph) GetAngle() float64 { return sp.angle }
+
 func linkTextStyle(font *model.PdfFont) TextStyle {
 	return TextStyle{Color: ColorRGBFrom8bit(0, 0, 238), Font: font, FontSize: 10, OutlineSize: 1, HorizontalScaling: DefaultHorizontalScaling, UnderlineStyle: TextDecorationLineStyle{Offset: 1, Thickness: 1}}
 }
@@ -9716,6 +9892,7 @@ func parseSVGPoints(s string) ([]float64, error) {
 	}
 	return svgPoints, nil
 }
+
 func normalizeTemplateNumber(v interface{}) (interface{}, error) {
 	switch n := v.(type) {
 	case uint8:
@@ -9812,6 +9989,7 @@ func (c *Creator) AddPage(page *model.PdfPage) error {
 	c.context.Page++
 	return nil
 }
+
 func newCurve(x1, y1, cx, cy, x, y float64) *Curve {
 	curve := &Curve{}
 	curve.x1 = x1
@@ -9824,6 +10002,7 @@ func newCurve(x1, y1, cx, cy, x, y float64) *Curve {
 	curve.width = 1.0
 	return curve
 }
+
 func templateAdd(v, v2 interface{}) (interface{}, error) {
 	v3, err := normalizeTemplateNumber(v)
 	if err != nil {
@@ -9867,6 +10046,7 @@ func templateAdd(v, v2 interface{}) (interface{}, error) {
 func (sp *StyledParagraph) SetDropCapsFirstCharacter(numLines int, gap float64) {
 	sp.SetDropCaps(DropCapsOptions{Type: DropCapsDrop, Scope: DropCapsFirstCharacter, NumLines: numLines, Gap: gap})
 }
+
 func (fbs *FunctionBasedShading) pdfFunction() (model.PdfFunction, model.PdfColorspace, error) {
 	if fbs.psCode == "" {
 		return nil, nil, errors.New("no PostScript program specified")
@@ -9892,15 +10072,18 @@ func (fbs *FunctionBasedShading) pdfFunction() (model.PdfFunction, model.PdfColo
 	}
 	return &model.PdfFunctionType4{Domain: functionDomain, Range: floats, Program: program}, colorspace, nil
 }
+
 func (b *Block) addWrappedContents(contentStreamOperations *contentstream.ContentStreamOperations) {
 	b.contents.WrapIfNeeded()
 	contentStreamOperations.WrapIfNeeded()
 	*b.contents = append(*b.contents, *contentStreamOperations...)
 }
+
 func isGradientExpr(s string) bool {
 	s2 := strings.TrimSpace(s)
 	return (strings.HasPrefix(s2, "linear-gradient(") || strings.HasPrefix(s2, "radial-gradient(")) && strings.HasSuffix(s2, ")") && len(s2) > 17
 }
+
 func (tp *templateProcessor) validateTable(node *templateNode) error {
 	if _, err := tp.tableColumns(node); err != nil {
 		return err
@@ -9912,6 +10095,7 @@ func (tp *templateProcessor) validateTable(node *templateNode) error {
 	}
 	return tp.setTableHeaderRows(node, &Table{}, fn("header-start-row"), fn("header-end-row"))
 }
+
 func newGraphicSVGFromString(svgStr string) (*GraphicSVG, error) {
 	fromSVGString, err := ParseFromSVGString(svgStr)
 	if err != nil {
@@ -10000,6 +10184,7 @@ func (to *TOC) Heading() *StyledParagraph { return to.heading }
 // AddressHeadingStyle returns the style properties used to render the
 // heading of the invoice address sections.
 func (i *Invoice) AddressHeadingStyle() TextStyle { return i.headingStyle }
+
 func collectStructureTags(drawable Drawable, structureTags []*model.StructureTagInfo) []*model.StructureTagInfo {
 	var tagInfo *model.StructureTagInfo
 	var drawables []VectorDrawable
@@ -10096,6 +10281,7 @@ func (td *taggedDrawable) GenerateKDict() (*model.KDict, error) {
 
 // GetArtifact returns the artifact associated with the block, if any.
 func (b *Block) GetArtifact() *model.Artifact { return b.artifact }
+
 func newGrid(cols int) *Grid {
 	grid := &Grid{cols: cols, defaultRowHeight: 10.0, colWidths: []float64{}}
 	grid.structType = model.StructureTypeTable
@@ -10223,6 +10409,7 @@ func (e *Ellipse) ScaleToHeight(h float64) {
 	e.height = h
 	e.width = h * width
 }
+
 func parsePageBreakTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parsePageBreak(node)
 }
@@ -10248,9 +10435,11 @@ func hasTextChunk(v interface{}) bool {
 	}
 	return false
 }
+
 func newList(style TextStyle) *List {
 	return &List{marker: TextChunk{Text: "• ", Style: style}, indent: 0, defaultIndent: true, positioning: PositionRelative, textStyle: style, taggedDrawable: taggedDrawable{structType: model.StructureTypeList}}
 }
+
 func (tc *TableCell) cloneProps(content VectorDrawable) *TableCell {
 	props := *tc
 	props.content = content
@@ -10262,6 +10451,7 @@ func (c *Creator) Width() float64 { return c.pageWidth }
 
 // GetIndent get the cell's left indent.
 func (tc *TableCell) GetIndent() float64 { return tc.indent }
+
 func drawImageBlock(block *Block, img *Image, imageBlock DrawContext) (DrawContext, error) {
 	imageBlock2 := imageBlock
 	n := 1
@@ -10345,12 +10535,14 @@ func drawImageBlock(block *Block, img *Image, imageBlock DrawContext) (DrawConte
 	}
 	return imageBlock2, nil
 }
+
 func isVariationSelector(r rune) bool {
 	return (r >= 0xFE00 && r <= 0xFE0F) || (r >= 0xE0100 && r <= 0xE01EF)
 }
 
 // NewCell makes a new cell and inserts it into the table at the current position.
 func (t *Table) NewCell() *TableCell { return t.MultiCell(1, 1) }
+
 func (t *Table) split(ctx DrawContext, value float64) (head, tail *Table) {
 	headerCut := t.maxFittingRows(ctx.Width, ctx.Height)
 	if !t.enablePageWrap && t.Height()+t.margins.Top+t.margins.Bottom <= value {
@@ -10370,6 +10562,7 @@ func parseFloat64(s string) (float64, error)       { return strconv.ParseFloat(s
 
 // SetAngle sets Image rotation angle in degrees.
 func (im *Image) SetAngle(angle float64) { im.angle = angle }
+
 func newFunctionBasedShading(psCode string) *FunctionBasedShading {
 	return &FunctionBasedShading{base: &shading{antiAlias: false}, psCode: psCode, boundingBox: &model.PdfRectangle{}}
 }
@@ -10379,6 +10572,7 @@ func decoderInputPos(decoder *xml.Decoder) (int, int) { return decoder.InputPos(
 func (li *List) Margins() (float64, float64, float64, float64) {
 	return li.margins.Left, li.margins.Right, li.margins.Top, li.margins.Bottom
 }
+
 func (im *Image) makeXObject() error {
 	mask := im.mask
 	var img2 *model.Image
@@ -10438,6 +10632,7 @@ func (tn *templateNode) componentParent() *templateNode {
 	}
 	return nil
 }
+
 func (tp *templateProcessor) effectiveParentName(node *templateNode) string {
 	if activeParent := node.activeParent(); activeParent != nil {
 		return activeParent.start.Name.Local
@@ -10482,11 +10677,13 @@ func (c *Creator) ChapterForPage(pageNum int) *ChapterInfo {
 	}
 	return nil
 }
+
 func setFirstError(err2 *error, err error) {
 	if *err2 == nil {
 		*err2 = err
 	}
 }
+
 func (ls *LinearShading) shadingModel() *model.PdfShadingType2 {
 	point := contentdraw.NewPoint(ls.boundingBox.Llx+ls.boundingBox.Width()/2, ls.boundingBox.Lly+ls.boundingBox.Height()/2)
 	point2 := contentdraw.NewPoint(ls.boundingBox.Llx, ls.boundingBox.Lly+ls.boundingBox.Height()/2).Add(-point.X, -point.Y).Rotate(ls.angle).Add(point.X, point.Y)
@@ -10515,6 +10712,7 @@ func (tl *TOCLine) SetStyle(style TextStyle) {
 	tl.Separator.Style = style
 	tl.Page.Style = style
 }
+
 func (c *Creator) getActivePage() *model.PdfPage {
 	if c.activePage == nil {
 		if len(c.pages) == 0 {
@@ -10573,7 +10771,6 @@ func (t *Table) AddTag(rootKObj *model.KDict) {
 // header, footer, and page-finalize callbacks so they can render chapter-aware
 // content such as a header like "1.2 Overview".
 type ChapterInfo struct {
-
 	// Number is the dotted chapter number (e.g. "1" for a top-level chapter,
 	// "1.2.3" for a nested subchapter). Unlike the internal heading text, it
 	// has no trailing dot.
@@ -10625,7 +10822,6 @@ func (tec *TextChunk) AddAnnotation(annotation *model.PdfAnnotation) {
 // Creator is a wrapper around functionality for creating PDF reports and/or adding new
 // content onto imported PDF pages, etc.
 type Creator struct {
-
 	// Errors keeps error messages that should not interrupt pdf processing and to be checked later.
 	Errors []error
 
@@ -10730,6 +10926,7 @@ func New() *Creator {
 	license.TrackUse(trackName)
 	return c
 }
+
 func (li *List) ctxHeight(width float64) float64 {
 	itemWidth := li.itemWidth(width, li.markerWidth())
 	var ctxHeight float64
@@ -10738,6 +10935,7 @@ func (li *List) ctxHeight(width float64) float64 {
 	}
 	return ctxHeight
 }
+
 func (tp *templateProcessor) validateCarrierValue(node *templateNode, s2, s string) error {
 	if !tp.options.Strict {
 		return nil
@@ -10752,7 +10950,7 @@ func (tp *templateProcessor) validateCarrierValue(node *templateNode, s2, s stri
 // and inserts it into the table at the current position.
 func (t *Table) MultiCell(rowspan, colspan int) *TableCell {
 	t.curCell++
-	col := (t.moveToNextAvailableCell()-1)%(t.cols) + 1
+	col := (t.moveToNextAvailableCell()-1)%t.cols + 1
 	row := (t.curCell-1)/t.cols + 1
 	for row > t.rows {
 		t.rows++
@@ -10810,6 +11008,7 @@ func (t *Table) MultiCell(rowspan, colspan int) *TableCell {
 	cell.table = t
 	return cell
 }
+
 func (t *Table) withPartialRow(n int, ctx2 DrawContext, value float64) *Table {
 	n2 := n + 1
 	if n2 > t.rows || n2-1 >= len(t.rowHeights) {
@@ -10904,7 +11103,7 @@ func parseChartTag(proc *templateProcessor, node *templateNode) (interface{}, er
 	return proc.parseChart(node)
 }
 
-var styledTextTags = map[string]struct{}{"paragraph": struct{}{}, "text-chunk": struct{}{}, "chapter-heading": struct{}{}, "list-marker": struct{}{}}
+var styledTextTags = map[string]struct{}{"paragraph": {}, "text-chunk": {}, "chapter-heading": {}, "list-marker": {}}
 
 // GeneratePageBlocks generate the Page blocks.  Multiple blocks are generated if the contents wrap
 // over multiple pages.
@@ -11066,6 +11265,7 @@ func (sp *StyledParagraph) AddExternalLink(text, url string) *TextChunk {
 	textChunk.AddAnnotation(newURILinkAnnotation(url, s))
 	return sp.appendChunk(textChunk)
 }
+
 func (im *Image) rotatedSize() (float64, float64) {
 	width := im.width
 	height := im.height
@@ -11076,6 +11276,7 @@ func (im *Image) rotatedSize() (float64, float64) {
 	boundingBox := contentdraw.Path{Points: []contentdraw.Point{contentdraw.NewPoint(0, 0).Rotate(angle), contentdraw.NewPoint(width, 0).Rotate(angle), contentdraw.NewPoint(0, height).Rotate(angle), contentdraw.NewPoint(width, height).Rotate(angle)}}.GetBoundingBox()
 	return boundingBox.Width, boundingBox.Height
 }
+
 func (t *Table) clone() *Table {
 	table := *t
 	table.rowHeights = make([]float64, len(t.rowHeights))
@@ -11119,6 +11320,7 @@ func (g *Grid) addSectionTag(n GridRowSection) *model.KDict {
 	g.tagInfo.ComponentKObj.AddKChild(kDictionary)
 	return kDictionary
 }
+
 func (i *Invoice) drawSection(text, text2 string) []*StyledParagraph {
 	var paras []*StyledParagraph
 	if text != "" {
@@ -11156,6 +11358,7 @@ func (im *Image) Height() float64 { return im.height }
 // to the available width. The returned slice references the paragraph's
 // internal lines; modifying its elements modifies the paragraph.
 func (sp *StyledParagraph) GetLines() [][]*TextChunk { return sp.lines }
+
 func (b *Block) drawToPage(page *model.PdfPage) error {
 	contentStreamOperations := &contentstream.ContentStreamOperations{}
 	if page.Resources == nil {
@@ -11176,11 +11379,13 @@ func (b *Block) drawToPage(page *model.PdfPage) error {
 	}
 	return nil
 }
+
 func (i *Invoice) newColumn(value string, alignment CellHorizontalAlignment) *InvoiceCell {
 	invoiceCell := &InvoiceCell{i.headingCellProps, value}
 	invoiceCell.Alignment = alignment
 	return invoiceCell
 }
+
 func (ch *Chapter) headingText() string {
 	title := ch.title
 	if headingNumber := ch.headingNumber(); headingNumber != "" {
@@ -11222,6 +11427,7 @@ type shading struct {
 
 // Logo returns the logo of the invoice.
 func (i *Invoice) Logo() *Image { return i.logo }
+
 func (b *Block) addContents(contentStreamOperations *contentstream.ContentStreamOperations) {
 	*b.contents = append(*b.contents, *contentStreamOperations...)
 }
@@ -11235,6 +11441,7 @@ func (gse *GraphicSVGElement) SetScaling(xFactor, yFactor float64) {
 		graphicSVGElement.SetScaling(xFactor, yFactor)
 	}
 }
+
 func (tp *templateProcessor) checkStyleText(node *templateNode) error {
 	for _, childValue := range node.childValues {
 		if templateText2, ok := childValue.(*templateText); ok {
@@ -11257,6 +11464,7 @@ func (im *Image) Scale(xFactor, yFactor float64) {
 
 // SetAngle sets the rotation angle of the text.
 func (sp *StyledParagraph) SetAngle(angle float64) { sp.angle = angle }
+
 func (e *Ellipse) applyFitMode(left float64) {
 	left -= e.margins.Left + e.margins.Right
 	switch e.fitMode {
@@ -11320,9 +11528,7 @@ func (cha *Chart) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, er
 	return blocks, ctx, nil
 }
 
-var (
-	ErrContentNotFit = errors.New("cannot fit content into an existing space")
-)
+var ErrContentNotFit = errors.New("cannot fit content into an existing space")
 
 // NewBlock creates a new Block with specified width and height.
 func NewBlock(width float64, height float64) *Block {
@@ -11415,6 +11621,7 @@ func (gc *GridCell) GetSideBorderWidth(side CellBorderSide) float64 {
 		return gc.borderWidthTop
 	}
 }
+
 func (sp *StyledParagraph) split(ctx DrawContext) (head, tail *StyledParagraph, err error) {
 	if err = sp.wrapChunks(false); err != nil {
 		return nil, nil, err
@@ -11477,6 +11684,7 @@ func (sp *StyledParagraph) split(ctx DrawContext) (head, tail *StyledParagraph, 
 
 // SetIndent sets the cell's left indent.
 func (tc *TableCell) SetIndent(indent float64) { tc.indent = indent }
+
 func (gse *GraphicSVGElement) drawEllipse(creator *contentstream.ContentCreator, resources *model.PdfPageResources) {
 	creator.Add_q()
 	gse.Style.toContentStream(creator, resources, gse)
@@ -11516,6 +11724,7 @@ func (gse *GraphicSVGElement) drawEllipse(creator *contentstream.ContentCreator,
 	creator.Add_h()
 	creator.Add_Q()
 }
+
 func collapseWhitespace(s string, ok, ok2 bool) string {
 	if !strings.Contains(s, "\n") {
 		return s
@@ -11567,6 +11776,7 @@ func (r *Rectangle) SetWidth(width float64) { r.width = width }
 
 // RemoveArtifact removes the artifact associated with the image, if any.
 func (im *Image) RemoveArtifact() { im.artifact = nil }
+
 func endMarkedContent(block *Block) {
 	contentCreator := contentstream.NewContentCreator()
 	contentCreator.Add_EMC()
@@ -11596,6 +11806,7 @@ func (t *Table) SetStructureType(structureType model.StructureType) {
 		t.tagInfo.ParentKObj.AddKChild(t.tagInfo.ComponentKObj)
 	}
 }
+
 func parseBackgroundTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseBackground(node)
 }
@@ -11640,6 +11851,7 @@ func (c *Creator) SetStructureNamespace(uri string) {
 	}
 	c.structNamespace = model.NewPdfStructureNamespace(uri)
 }
+
 func addEscapeToPipe(pipeNode *parse.PipeNode) {
 	if pipeNode == nil || len(pipeNode.Decl) > 0 || len(pipeNode.Cmds) == 0 {
 		return
@@ -11704,6 +11916,7 @@ func (c *Creator) SetPageSize(size PageSize) {
 	c.pageMargins.Top = pageWidth
 	c.pageMargins.Bottom = pageWidth
 }
+
 func isNilValue(value reflect.Value) bool {
 	switch value.Kind() {
 	case reflect.Ptr, reflect.Map, reflect.Slice, reflect.Func, reflect.Chan:
@@ -11724,6 +11937,7 @@ func (im *Image) MarkAsArtifact(artifactType model.ArtifactType) *model.Artifact
 	im.artifact = &model.Artifact{Type: artifactType}
 	return im.artifact
 }
+
 func cropAlphaData(img *model.Image, rect, rect2 image.Rectangle) []byte {
 	alphaData := img.AlphaData()
 	ok := rect != rect2
@@ -11862,6 +12076,7 @@ func (im *Image) Crop(x0, y0, x1, y1 int) {
 func (c *Creator) DrawFooter(drawFooterFunc func(block *Block, footerFunctionArgs FooterFunctionArgs)) {
 	c.drawFooterFunc = drawFooterFunc
 }
+
 func splitUnitSuffix(value2 string) (value, unit string) {
 	if value2 == "" || (value2[len(value2)-1] >= '0' && value2[len(value2)-1] <= '9') {
 		return value2, ""
@@ -11875,6 +12090,7 @@ func splitUnitSuffix(value2 string) (value, unit string) {
 	}
 	return
 }
+
 func newCurvePolygon(rings [][]contentdraw.CubicBezierCurve) *CurvePolygon {
 	return &CurvePolygon{polygon: &contentdraw.CurvePolygon{Rings: rings}, fillOpacity: 1.0, borderOpacity: 1.0}
 }
@@ -11888,6 +12104,7 @@ func (g *Grid) SetPos(x, y float64) {
 	g.xPos = x
 	g.yPos = y
 }
+
 func (b *Block) transform(matrix transform.Matrix) {
 	operations := contentstream.NewContentCreator().Add_cm(matrix[0], matrix[1], matrix[3], matrix[4], matrix[6], matrix[7]).Operations()
 	*b.contents = append(*operations, *b.contents...)
@@ -11902,6 +12119,7 @@ func (fbs *FunctionBasedShading) AddPatternResource(block *Block) (name core.Pdf
 	}
 	return addShadingPatternResource(block, pdfShadingPattern.ToPdfObject())
 }
+
 func drawParagraphChunks(block *Block, para *StyledParagraph, rows4 [][]*TextChunk, ctx DrawContext) (DrawContext, [][]*TextChunk, error) {
 	n := 1
 	keyName := core.PdfObjectName(fmt.Sprintf("Font%d", n))
@@ -12734,6 +12952,7 @@ func parseFloatFields(s string) ([]float64, error) {
 func (gs *GraphicSVG) GetMargins() (float64, float64, float64, float64) {
 	return gs.margins.Left, gs.margins.Right, gs.margins.Top, gs.margins.Bottom
 }
+
 func drawableHeight(drawable VectorDrawable, left float64) float64 {
 	switch para := drawable.(type) {
 	case *StyledParagraph:
@@ -12770,6 +12989,7 @@ func (ch *Chapter) SetShowNumbering(show bool) {
 	ch.showNumbering = show
 	ch.heading.SetText(ch.headingText())
 }
+
 func (tp *templateProcessor) resolveFontUncached(s string) (*model.PdfFont, error) {
 	fontRegular := tp.creator.fontRegular
 	if strings.TrimSpace(s) == "" {
@@ -13119,6 +13339,7 @@ func (c *Creator) Draw(d Drawable) error {
 	c.context.Height = precision.RoundDefault(ctx.PageHeight - ctx.Y - ctx.Margins.Bottom)
 	return nil
 }
+
 func (tp *templateProcessor) collectStylesNode(node *templateNode) error {
 	for _, node2 := range node.children {
 		if node2.start.Name.Local == styleElementName {
@@ -13133,6 +13354,7 @@ func (tp *templateProcessor) collectStylesNode(node *templateNode) error {
 	}
 	return nil
 }
+
 func (t *Table) maxFittingRows(value, top float64) int {
 	t.sortCells()
 	t.updateRowHeights(value - t.margins.Left - t.margins.Right)
@@ -13155,6 +13377,7 @@ func (bo *border) GetCoords() (float64, float64) { return bo.x, bo.y }
 // Width is not used. Not used as a Table element is designed to fill into
 // available width depending on the context. Returns 0.
 func (t *Table) Width() float64 { return 0 }
+
 func (gse *GraphicSVGElement) getGradientAngle() float64 {
 	attribute, ok := gse.Attributes["gradientTransform"]
 	if ok {
@@ -13198,6 +13421,7 @@ func (tp *templateProcessor) validate() error { return tp.process(true) }
 
 // Lines returns all the lines the table of contents has.
 func (to *TOC) Lines() []*TOCLine { return to.lines }
+
 func defaultTextStyle(font *model.PdfFont) TextStyle {
 	return TextStyle{Color: ColorRGBFrom8bit(0, 0, 0), Font: font, FontSize: 10, OutlineSize: 1, HorizontalScaling: DefaultHorizontalScaling, UnderlineStyle: TextDecorationLineStyle{Offset: 1, Thickness: 1}}
 }
@@ -13271,6 +13495,7 @@ func (tc *TableCell) SetBorder(side CellBorderSide, style CellBorderStyle, width
 
 // IsRelative checks if the positioning is relative.
 func (pos Positioning) IsRelative() bool { return pos == PositionRelative }
+
 func (co *Command) compare(command *Command) bool {
 	if co.Symbol != command.Symbol {
 		return false
@@ -13297,7 +13522,7 @@ func (c *Creator) RotateDeg(angleDeg int64) error {
 	}
 	var rotate int64
 	if activePage.Rotate != nil {
-		rotate = *(activePage.Rotate)
+		rotate = *activePage.Rotate
 	}
 	rotate += angleDeg
 	activePage.Rotate = &rotate
@@ -13306,6 +13531,7 @@ func (c *Creator) RotateDeg(angleDeg int64) error {
 
 // SetWidthTop sets border width for top.
 func (bo *border) SetWidthTop(bw float64) { bo.widthTop = bw }
+
 func (tp *templateProcessor) parseChapter(node *templateNode) (interface{}, error) {
 	fn := tp.creator.NewChapter
 	if componentParent := node.componentParent(); componentParent != nil {
@@ -13330,6 +13556,7 @@ func (im *Image) SetAlternateText(text string) { im.altText = text }
 func (c *Creator) NewPolyBezierCurve(curves []contentdraw.CubicBezierCurve) *PolyBezierCurve {
 	return newPolyBezierCurve(curves)
 }
+
 func init() {
 	for _, templateTag := range templateTags {
 		for allowedParentKey := range templateTag.allowedParents {
@@ -13337,6 +13564,7 @@ func init() {
 		}
 	}
 }
+
 func (gss *GraphicSVGStyle) fillStroke(cc *contentstream.ContentCreator) {
 	if gss.FillColor != "" && gss.StrokeColor != "" {
 		cc.Add_B()
@@ -13366,6 +13594,7 @@ func (li *List) Height() float64 {
 	}
 	return ctxHeight
 }
+
 func (tp *templateProcessor) childStyle(node *templateNode) map[string]string {
 	nodeOwnStyle := tp.nodeOwnStyle(node)
 	if len(nodeOwnStyle) == 0 {
@@ -13384,7 +13613,6 @@ func (tp *templateProcessor) childStyle(node *templateNode) map[string]string {
 // LinkTagOptions represents optional parameters for tagged link annotations,
 // providing flexibility for adding accessibility features.
 type LinkTagOptions struct {
-
 	// MCID is the marked content identifier for structure tree association
 	MCID int64
 
@@ -13434,6 +13662,7 @@ func (b *Block) MarkAsArtifact(artifactType model.ArtifactType) *model.Artifact 
 	b.artifact = &model.Artifact{Type: artifactType}
 	return b.artifact
 }
+
 func newInvoice(defaultStyle, textStyle TextStyle) *Invoice {
 	invoice := &Invoice{title: "INVOICE", addressSeparator: ", ", defaultStyle: defaultStyle, headingStyle: textStyle}
 	invoice.sellerAddress = &InvoiceAddress{Separator: invoice.addressSeparator}
@@ -13546,6 +13775,7 @@ func (po *Polyline) SetLineOpacity(opacity float64) { po.lineOpacity = opacity }
 
 // CurRow returns the currently active cell's row number.
 func (t *Table) CurRow() int { curRow := (t.curCell-1)/t.cols + 1; return curRow }
+
 func (t *Table) headerCut(headerCut int) int {
 	if t.hasHeaderRows && headerCut == t.headerEndRow && headerCut < t.rows {
 		return t.headerStartRow - 1
@@ -13557,6 +13787,7 @@ func (t *Table) headerCut(headerCut int) int {
 // grid's internal rows; modifying its elements modifies the grid. Use
 // len(GetRows()) to obtain the row count.
 func (g *Grid) GetRows() []*GridRow { return g.rows }
+
 func (tp *templateProcessor) pageBreakInvalidContext(node *templateNode) string {
 	for activeParent := node.activeParent(); activeParent != nil; activeParent = activeParent.activeParent() {
 		switch activeParent.start.Name.Local {
@@ -13581,6 +13812,7 @@ func (r *Rectangle) BorderOpacity() float64 { return r.borderOpacity }
 // enabled automatically in order to avoid unwanted behavior.
 // Currently, page wrapping can only be disabled for vertical divisions.
 func (d *Division) EnablePageWrap(enable bool) { d.enableBreak = enable }
+
 func parseMargins(s string) (Margins, error) {
 	floatFields, err := parseFloatFields(s)
 	var margins Margins
@@ -13652,6 +13884,7 @@ func (c *Creator) setActivePage(activePage *model.PdfPage) { c.activePage = acti
 // GetTextOverflow returns the behavior applied to paragraph text which does
 // not fit in the available space.
 func (sp *StyledParagraph) GetTextOverflow() TextOverflow { return sp.textOverflow }
+
 func (tp *templateProcessor) addNodeText(parent *templateNode, text string, templateText2 *templateText) error {
 	value := parent.value
 	if value == nil {
@@ -13714,6 +13947,7 @@ func (cp *CurvePolygon) SetFillColor(color Color) {
 	cp.fillColor = color
 	cp.polygon.FillColor = toPdfColor(color)
 }
+
 func (tp *templateProcessor) applyAttrs(node *templateNode, target interface{}, m map[string]attrApplyFunc) error {
 	if err := tp.checkClasses(node); err != nil {
 		return err
@@ -13748,6 +13982,7 @@ func (tp *templateProcessor) applyAttrs(node *templateNode, target interface{}, 
 	}
 	return nil
 }
+
 func newGraphicSVGStyle() *GraphicSVGStyle {
 	return &GraphicSVGStyle{FillColor: "#000000", StrokeColor: "", StrokeWidth: 0, FillOpacity: 1.0}
 }
@@ -14116,11 +14351,13 @@ func (ch *Chapter) SetMargins(left, right, top, bottom float64) {
 	ch.margins.Top = top
 	ch.margins.Bottom = bottom
 }
+
 func (tec *TextChunk) clone() *TextChunk {
 	clone := *tec
 	clone.annotations = copyAnnotations(tec.annotations)
 	return &clone
 }
+
 func (i *Invoice) generateTotalBlocks(ctx DrawContext) ([]*Block, DrawContext, error) {
 	table := newTable(4)
 	table.SetMargins(0, 0, 10, 10)
@@ -14155,6 +14392,7 @@ func (i *Invoice) generateTotalBlocks(ctx DrawContext) ([]*Block, DrawContext, e
 
 // SetAngle sets the rotation angle in degrees.
 func (b *Block) SetAngle(angleDeg float64) { b.angle = angleDeg }
+
 func (tp *templateProcessor) getNodeErrorLocation(node *templateNode, format string, a ...interface{}) string {
 	s := fmt.Sprintf(format, a...)
 	s2 := fmt.Sprintf("%d", node.offset)
@@ -14172,6 +14410,7 @@ var functionDomain = []float64{0, 1, 0, 1}
 func parseTextChunkTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseTextChunk(node, nil)
 }
+
 func (tp *templateProcessor) resolveLink(s string) (*model.PdfAnnotation, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -14258,6 +14497,7 @@ func newInternalLinkAnnotation(val int64, val2, val3, val4 float64, s string) *m
 	}
 	return pdfAnnotationLink.PdfAnnotation
 }
+
 func parseLineTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseLine(node)
 }
@@ -14313,6 +14553,7 @@ func (gse *GraphicSVGElement) drawPolygon(cc *contentstream.ContentCreator, reso
 	cc.Add_h()
 	cc.Add_Q()
 }
+
 func buildPath(commands2 []*Command) *Path {
 	path := &Path{}
 	var commands []*Command
@@ -14351,6 +14592,7 @@ func (tp *templateProcessor) checkClasses(node *templateNode) error {
 	}
 	return nil
 }
+
 func encoderAttr(i interface{}) attrApplyFunc {
 	value2 := validateSetter("encoderAttr", i, 0, streamEncoderType)
 	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
@@ -14502,6 +14744,7 @@ func (tl *TOCLine) getLineLink() *model.PdfAnnotation {
 
 // SetColPosition sets cell column position.
 func (tc *TableCell) SetColPosition(col int) { tc.col = col }
+
 func (tp *templateProcessor) parsePageBreak(node *templateNode) (interface{}, error) {
 	pageBreak := newPageBreak()
 	if err := tp.applyAttrs(node, pageBreak, emptyAttrs); err != nil {
@@ -14509,6 +14752,7 @@ func (tp *templateProcessor) parsePageBreak(node *templateNode) (interface{}, er
 	}
 	return pageBreak, nil
 }
+
 func (sp *StyledParagraph) getLineMetrics(n int) (maxCapHeight, maxFontSize, minDescent float64) {
 	if sp.lines == nil || (sp.lines != nil && len(sp.lines) == 0) {
 		sp.wrapText()
@@ -14519,10 +14763,12 @@ func (sp *StyledParagraph) getLineMetrics(n int) (maxCapHeight, maxFontSize, min
 	}
 	return chunksFontMetrics(sp.lines[n])
 }
+
 func (li *List) itemWidth(width, markerWidth float64) float64 {
 	indent := width - li.margins.Horizontal() - li.indent
 	return indent * (1 - markerWidth/width)
 }
+
 func (tp *templateProcessor) validateFontValue(s string) error {
 	if strings.TrimSpace(s) == "" {
 		return nil
@@ -14571,6 +14817,7 @@ func (t *Table) GetCells() []*TableCell { return t.cells }
 // GetHeaderRows returns the inclusive start and end rows of the table header.
 // The returned values are only meaningful when HasHeader returns true.
 func (t *Table) GetHeaderRows() (startRow, endRow int) { return t.headerStartRow, t.headerEndRow }
+
 func (sp *StyledParagraph) wrapChunks(ok2 bool) error {
 	if !sp.enableWrap || int(sp.width) <= 0 {
 		sp.lines = [][]*TextChunk{sp.chunks}
@@ -14898,6 +15145,7 @@ func (li *List) SetMargins(left, right, top, bottom float64) {
 	li.margins.Top = top
 	li.margins.Bottom = bottom
 }
+
 func parseCommands(tokens []token) ([]*Command, error) {
 	var (
 		commands []*Command
@@ -14992,6 +15240,7 @@ func (p *Polygon) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, er
 
 // Width returns Image's document width.
 func (im *Image) Width() float64 { return im.width }
+
 func (ia *InvoiceAddress) fmtLine(s, s2 string, ok bool) string {
 	if ok {
 		s2 = ""
@@ -15019,6 +15268,7 @@ func (g *Grid) Cols() int { return g.cols }
 
 // SetInline sets the inline mode of the division.
 func (d *Division) SetInline(inline bool) { d.inline = inline }
+
 func (d *Division) drawBackground(background []*Block, ctx2, ctx3 DrawContext, ok2 bool, m map[int]float64, m2 map[int]bool) ([]*Block, error) {
 	backgroundLen := len(background)
 	if backgroundLen == 0 || d.background == nil {
@@ -15127,6 +15377,7 @@ func (pat *ParsedTemplate) execute(data interface{}) ([]byte, error) {
 	}
 	return buffer.Bytes(), nil
 }
+
 func (tp *templateProcessor) parseTableCell(node *templateNode) (interface{}, error) {
 	componentParent := node.componentParent()
 	if componentParent == nil {
@@ -15177,9 +15428,11 @@ func (s *shading) SetAntiAlias(enable bool) { s.antiAlias = enable }
 
 // MoveRight moves the drawing context right by relative displacement dx (negative goes left).
 func (c *Creator) MoveRight(dx float64) { c.context.X += dx }
+
 func parseChapterTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseChapter(node)
 }
+
 func newRadialShading(x0 float64, y0 float64, r0 float64, r1 float64, colorPoints []*ColorPoint) *RadialShading {
 	return &RadialShading{base: &shading{backgroundColor: ColorWhite, antiAlias: false, extends: []bool{false, false}, colorPoints: colorPoints}, x0: x0, y0: y0, r0: r0, r1: r1, anchor: AnchorCenter}
 }
@@ -15445,6 +15698,7 @@ func (to *TOC) SetLineMargins(left, right, top, bottom float64) {
 	lineMargins.Top = top
 	lineMargins.Bottom = bottom
 }
+
 func (t *Table) addRowTag() *model.KDict {
 	kDictionary := model.NewKDictionary()
 	kDictionary.S = core.MakeName(string(model.StructureTypeTableRow))
@@ -15469,6 +15723,7 @@ func (t *Table) SetHeaderRows(startRow, endRow int) error {
 	t.headerEndRow = endRow
 	return nil
 }
+
 func parseSVGLength(value string, bitSize int) (float64, error) {
 	s, unit := splitUnitSuffix(value)
 	float, err := strconv.ParseFloat(s, bitSize)
@@ -15482,6 +15737,7 @@ func parseSVGLength(value string, bitSize int) (float64, error) {
 	}
 	return float, nil
 }
+
 func (i *Invoice) setCellBorder(cell *TableCell, invoiceCell *InvoiceCell) {
 	for _, borderSide := range invoiceCell.BorderSides {
 		cell.SetBorder(borderSide, CellBorderStyleSingle, invoiceCell.BorderWidth)
@@ -15623,13 +15879,15 @@ var (
 )
 
 // CellHorizontalAlignment defines the table cell's horizontal alignment.
-type CellHorizontalAlignment int
-type imageMask struct {
-	kind      imageMaskKind
-	img       *model.Image
-	threshold *uint8
-	colorKey  []int
-}
+type (
+	CellHorizontalAlignment int
+	imageMask               struct {
+		kind      imageMaskKind
+		img       *model.Image
+		threshold *uint8
+		colorKey  []int
+	}
+)
 
 // Draw draws the drawable d on the block.
 // Note that the drawable must not wrap, i.e. only return one block. Otherwise an error is returned.
@@ -15671,6 +15929,7 @@ func (tl *TOCLine) SetLevelOffset(levelOffset float64) {
 	tl.levelOffset = levelOffset
 	tl.paragraph.margins.Left = tl.left + float64(tl.level-1)*tl.levelOffset
 }
+
 func argOrZero(argOrZero reflect.Value, typ reflect.Type) reflect.Value {
 	if !argOrZero.IsValid() {
 		return reflect.Zero(typ)
@@ -15798,6 +16057,7 @@ func (i *Invoice) generateLineBlocks(ctx DrawContext) ([]*Block, DrawContext, er
 	}
 	return table.GeneratePageBlocks(ctx)
 }
+
 func newTemplateText(data []byte, text string, line, col int, offset int64) *templateText {
 	text2 := text[:len(text)-len(strings.TrimLeft(text, whitespaceChars))]
 	offset2 := offset + int64(len(text2))
@@ -15828,6 +16088,7 @@ func ColorGrayFromArithmetic(g float64) Color { return grayColor{g} }
 func (ls *LinearShading) SetBackgroundColor(backgroundColor Color) {
 	ls.base.SetBackgroundColor(backgroundColor)
 }
+
 func (tp *templateProcessor) parseLine(node *templateNode) (interface{}, error) {
 	line := tp.creator.NewLine(0, 0, 0, 0)
 	if err := tp.applyAttrs(node, line, lineAttrs); err != nil {
@@ -15945,10 +16206,12 @@ func splitIntoWords(s string) ([]string, error) {
 func (c *Creator) NewEllipse(xc, yc, width, height float64) *Ellipse {
 	return newEllipse(xc, yc, width, height)
 }
+
 func (cc cmykColor) ToRGB() (float64, float64, float64) {
 	k := cc.k
 	return 1 - (cc.c*(1-k) + k), 1 - (cc.m*(1-k) + k), 1 - (cc.y*(1-k) + k)
 }
+
 func rotatedCorners(rect *model.PdfRectangle, value float64) [4]contentdraw.Point {
 	x := value * math.Pi / 180.0
 	width := rect.Width()
@@ -16012,6 +16275,7 @@ func (i *Invoice) NewCellProps() InvoiceCellProps {
 	colorRGBFrom8bit := ColorRGBFrom8bit(255, 255, 255)
 	return InvoiceCellProps{TextStyle: i.defaultStyle, Alignment: CellHorizontalAlignmentLeft, BackgroundColor: colorRGBFrom8bit, BorderColor: colorRGBFrom8bit, BorderWidth: 1, BorderSides: []CellBorderSide{CellBorderSideAll}}
 }
+
 func (lii *listItem) ctxHeight(width float64) float64 {
 	var height float64
 	switch content := lii.content.(type) {
@@ -16035,6 +16299,7 @@ func (lii *listItem) ctxHeight(width float64) float64 {
 	}
 	return height
 }
+
 func (tp *templateProcessor) parseListMarker(node *templateNode) (interface{}, error) {
 	componentParent := node.componentParent()
 	if componentParent == nil {
@@ -16103,6 +16368,7 @@ func (gr *GridRow) NewMultiCell(colspan, rowspan int) (*GridCell, error) {
 	cell.structType = model.StructureTypeTableData
 	return cell, nil
 }
+
 func (tp *templateProcessor) typographyValueErr(s2, s string) error {
 	switch s2 {
 	case "font-size", "line-height":
@@ -16138,6 +16404,7 @@ func (m *Margins) Horizontal() float64 { return m.Left + m.Right }
 // SetLinePageStyle sets the style for the page part of all new lines
 // of the table of contents.
 func (to *TOC) SetLinePageStyle(style TextStyle) { to.linePageStyle = style }
+
 func uniqueFontName(s string, obj core.PdfObject, resources *model.PdfPageResources) core.PdfObjectName {
 	s2 := strings.TrimRightFunc(strings.TrimSpace(s), func(r rune) bool { return unicode.IsNumber(r) })
 	if s2 == "" {
@@ -16209,6 +16476,7 @@ func (im *Image) ScaleToHeight(h float64) {
 	im.height = h
 	im.width = h * width
 }
+
 func toPdfColor(color Color) model.PdfColor {
 	if color == nil {
 		color = ColorBlack
@@ -16227,6 +16495,7 @@ func toPdfColor(color Color) model.PdfColor {
 	}
 	return model.NewPdfColorDeviceRGB(color.ToRGB())
 }
+
 func (gse *GraphicSVGElement) drawPath(cc *contentstream.ContentCreator, resources *model.PdfPageResources) {
 	cc.Add_q()
 	gse.Style.toContentStream(cc, resources, gse)
@@ -16318,7 +16587,7 @@ func (gse *GraphicSVGElement) drawPath(cc *contentstream.ContentCreator, resourc
 				}
 				ellipseToCubicBeziers := graphic2d.EllipseToCubicBeziers(startX, startY, param, ry, rot, large, sweep, endX, endY)
 				for _, ellipseToCubicBezier := range ellipseToCubicBeziers {
-					cc.Add_c(precision.RoundFloat(ellipseToCubicBezier[1].X, 3), precision.RoundFloat((ellipseToCubicBezier[1].Y), 3), precision.RoundFloat((ellipseToCubicBezier[2].X), 3), precision.RoundFloat((ellipseToCubicBezier[2].Y), 3), precision.RoundFloat((ellipseToCubicBezier[3].X), 3), precision.RoundFloat((ellipseToCubicBezier[3].Y), 3))
+					cc.Add_c(precision.RoundFloat(ellipseToCubicBezier[1].X, 3), precision.RoundFloat(ellipseToCubicBezier[1].Y, 3), precision.RoundFloat(ellipseToCubicBezier[2].X, 3), precision.RoundFloat(ellipseToCubicBezier[2].Y, 3), precision.RoundFloat(ellipseToCubicBezier[3].X, 3), precision.RoundFloat(ellipseToCubicBezier[3].Y, 3))
 				}
 				startX, startY = endX, endY
 			case "z":
@@ -16334,7 +16603,6 @@ func (gse *GraphicSVGElement) drawPath(cc *contentstream.ContentCreator, resourc
 
 // Drawable is a widget that can be used to draw with the Creator.
 type Drawable interface {
-
 	// GeneratePageBlocks draw onto blocks representing Page contents. As the content can wrap over many pages, multiple
 	// templates are returned, one per Page.  The function also takes a draw context containing information
 	// where to draw (if relative positioning) and the available height to draw on accounting for Margins etc.
@@ -16406,11 +16674,13 @@ func (d *Division) SetPadding(left, right, top, bottom float64) {
 	d.padding.Top = top
 	d.padding.Bottom = bottom
 }
+
 func (g *Grid) updateRowHeights(totalWidth float64) {
 	for _, row := range g.rows {
 		row.updateRowHeight(totalWidth)
 	}
 }
+
 func parseSVGStyle(m map[string]string, value2 float64) (*GraphicSVGStyle, error) {
 	graphicSVGStyle := newGraphicSVGStyle()
 	fillColor, ok := m["fill"]
@@ -16445,11 +16715,13 @@ func parseSVGStyle(m map[string]string, value2 float64) (*GraphicSVGStyle, error
 	}
 	return graphicSVGStyle, nil
 }
+
 func newFilledCurve() *FilledCurve {
 	filledCurve := FilledCurve{}
 	filledCurve.curves = []contentdraw.CubicBezierCurve{}
 	return &filledCurve
 }
+
 func (d *Division) ctxHeight(right float64) float64 {
 	right -= d.margins.Left + d.margins.Right + d.padding.Left + d.padding.Right
 	var ctxHeight float64
@@ -16458,6 +16730,7 @@ func (d *Division) ctxHeight(right float64) float64 {
 	}
 	return ctxHeight
 }
+
 func newEllipse(xc, yc, width, height float64) *Ellipse {
 	return &Ellipse{xc: xc, yc: yc, width: width, height: height, positioning: PositionAbsolute, fillOpacity: 1.0, borderColor: ColorBlack, borderWidth: 1.0, borderOpacity: 1.0}
 }
@@ -16466,6 +16739,7 @@ func newEllipse(xc, yc, width, height float64) *Ellipse {
 // coordinates are only meaningful when the paragraph uses absolute
 // positioning (see GetPositioning).
 func (sp *StyledParagraph) GetPos() (float64, float64) { return sp.xPos, sp.yPos }
+
 func (pa *Path) compare(path *Path) bool {
 	if len(pa.Subpaths) != len(path.Subpaths) {
 		return false
@@ -16477,6 +16751,7 @@ func (pa *Path) compare(path *Path) bool {
 	}
 	return true
 }
+
 func (tp *templateProcessor) processGradientColorPair(strs []string) (colors []Color, positions []float64, err error) {
 	var flags []bool
 	for _, s := range strs {
@@ -16556,6 +16831,7 @@ func (tp *templateProcessor) processGradientColorPair(strs []string) (colors []C
 
 // Width returns the width of the graphic svg.
 func (gs *GraphicSVG) Width() float64 { return gs.root.Width }
+
 func parseNumberList(s string) (numbers []float64, err error) {
 	var value float64
 	n := 0
@@ -16581,6 +16857,7 @@ func parseNumberList(s string) (numbers []float64, err error) {
 	numbers = append(numbers, value)
 	return
 }
+
 func (t *Table) sortCells() {
 	sort.Slice(t.cells, func(i, j int) bool {
 		row := t.cells[i].row
@@ -16619,9 +16896,11 @@ type Block struct {
 func parseEllipseTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
 	return proc.parseEllipse(node)
 }
+
 func (i *Invoice) newCell(value string, invoiceCellProps InvoiceCellProps) *InvoiceCell {
 	return &InvoiceCell{invoiceCellProps, value}
 }
+
 func (im *Image) applyMask(xObjectImage *model.XObjectImage, img2 *model.Image) error {
 	switch im.mask.kind {
 	case imageMaskSoft:
@@ -16674,6 +16953,7 @@ const (
 	TextRenderingModeFillStrokeClip
 	TextRenderingModeClip
 )
+
 const (
 	DefaultHorizontalScaling = 100
 )
@@ -16683,7 +16963,6 @@ const (
 // All the resources in the map fields can be referenced by their
 // name/key in the template which is rendered using the options instance.
 type TemplateOptions struct {
-
 	// HelperFuncMap is used to define functions which can be accessed
 	// inside the rendered templates by their assigned names.
 	HelperFuncMap template.FuncMap
@@ -16771,6 +17050,7 @@ func (sp *StyledParagraph) SetFontColor(color Color) {
 		chunk.Style.Color = color
 	}
 }
+
 func callSetter(value reflect.Value, i interface{}, values2 ...reflect.Value) []reflect.Value {
 	if i == nil {
 		return nil
@@ -16783,6 +17063,7 @@ func callSetter(value reflect.Value, i interface{}, values2 ...reflect.Value) []
 	}
 	return value.Call(values)
 }
+
 func mergeColorspaces(resources, resources2 *model.PdfPageResources) error {
 	colorspaces, _ := resources.GetColorspaces()
 	if colorspaces != nil && len(colorspaces.Colorspaces) > 0 {

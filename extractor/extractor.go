@@ -9,16 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/contentstream"
-	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/license"
-	"github.com/OpenMellon/openpdf/internal/streamlimits"
-	"github.com/OpenMellon/openpdf/internal/textencoding"
-	"github.com/OpenMellon/openpdf/internal/transform"
-	"github.com/OpenMellon/openpdf/model"
-	imagedraw "golang.org/x/image/draw"
-	"golang.org/x/text/unicode/norm"
 	"image"
 	"image/color"
 	"io"
@@ -29,6 +19,17 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/contentstream"
+	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/internal/license"
+	"github.com/OpenMellon/openpdf/internal/streamlimits"
+	"github.com/OpenMellon/openpdf/internal/textencoding"
+	"github.com/OpenMellon/openpdf/internal/transform"
+	"github.com/OpenMellon/openpdf/model"
+	imagedraw "golang.org/x/image/draw"
+	"golang.org/x/text/unicode/norm"
 )
 
 func truncate(s string, maxLen int) string {
@@ -47,6 +48,7 @@ func (tma *TextMarkArray) Len() int {
 	}
 	return len(tma.marks)
 }
+
 func (to *textObject) getFontDict(name string) (fontObj core.PdfObject, err error) {
 	resources := to.resources
 	if resources == nil {
@@ -60,6 +62,7 @@ func (to *textObject) getFontDict(name string) (fontObj core.PdfObject, err erro
 	}
 	return fontObj, nil
 }
+
 func (tt *textTable) getComposite(col, row int) (paraList, model.PdfRectangle) {
 	cell, ok := tt.compositeCells[cellKey(col, row)]
 	if debugTables {
@@ -70,6 +73,7 @@ func (tt *textTable) getComposite(col, row int) (paraList, model.PdfRectangle) {
 	}
 	return cell.parasBBox()
 }
+
 func trimLastMarkRune(marks []TextMark, offset *int) []TextMark {
 	last := marks[len(marks)-1]
 	runes := []rune(last.Text)
@@ -84,6 +88,7 @@ func trimLastMarkRune(marks []TextMark, offset *int) []TextMark {
 	}
 	return marks
 }
+
 func topEdgeRuling(rect model.PdfRectangle) *ruling {
 	return &ruling{kind: rulingHorz, xy: rect.Ury, lo: rect.Llx, hi: rect.Urx}
 }
@@ -156,6 +161,7 @@ func (pt *PageText) FormContents() []FormContent { return pt.forms }
 func (ss *shapesState) String() string {
 	return fmt.Sprintf("{%d subpaths fresh=%t}", len(ss.subpaths), ss.fresh)
 }
+
 func (tt *textTable) compositeRowCorridors() map[int][]float64 {
 	corridors := make(map[int][]float64, tt.h)
 	if debugTables {
@@ -187,6 +193,7 @@ func (to *textObject) setHorizScaling(scale float64) {
 	}
 	to.state.th = scale
 }
+
 func (rl rulingList) toTilings() (rulingList, []gridTiling) {
 	rl.log("toTilings")
 	if len(rl) == 0 {
@@ -214,15 +221,18 @@ func (e *Editor) Search(pattern string, pages []int) (map[int]Match, error) {
 	matches, _, err := e.getMatches(pattern, pages)
 	return matches, err
 }
+
 func (to *textObject) setTextRise(rise float64) {
 	if to == nil {
 		return
 	}
 	to.state.trise = rise
 }
+
 func rightEdgeRuling(rect model.PdfRectangle) *ruling {
 	return &ruling{kind: rulingVert, xy: rect.Urx, lo: rect.Lly, hi: rect.Ury}
 }
+
 func depthBinIndex(depth float64) int {
 	var idx int
 	if depth >= 0 {
@@ -232,9 +242,11 @@ func depthBinIndex(depth float64) int {
 	}
 	return idx
 }
+
 func hasDirectObject(marks *TextMarkArray) bool {
 	return len(marks.marks) > 0 && marks.marks[0].DirectObject != nil
 }
+
 func medianCharWidth(words []*textWord) float64 {
 	widths := make([]float64, 0, len(words))
 	for _, word := range words {
@@ -294,6 +306,7 @@ func (e *Editor) Replace(pattern string, replacement string, pages []int) error 
 	}
 	return nil
 }
+
 func isAdjacentRight(bag *wordBag, word *textWord, gap float64) bool {
 	return bag.Urx <= word.Llx && word.Llx < bag.Urx+gap
 }
@@ -309,6 +322,7 @@ var (
 func (cc compositeCell) parasBBox() (paraList, model.PdfRectangle) {
 	return cc.paraList, cc.PdfRectangle
 }
+
 func (sp *subpath) isQuadrilateral() bool {
 	if len(sp.points) < 4 || len(sp.points) > 5 {
 		return false
@@ -333,6 +347,7 @@ func (ss *shapesState) lastpointEstablished() (transform.Point, bool) {
 	}
 	return transform.Point{}, true
 }
+
 func (wb *wordBag) removeDuplicates() {
 	if debugRemoveDuplicates {
 		common.Log.Info("removeDuplicates: %q", wb.text())
@@ -379,7 +394,6 @@ func (wb *wordBag) removeDuplicates() {
 
 // Options extractor options.
 type Options struct {
-
 	// DisableDocumentTags specifies whether to use the document tags during list extraction.
 	DisableDocumentTags bool
 
@@ -419,6 +433,7 @@ func (pl paraList) inTile(tile gridTile) paraList {
 	}
 	return paras
 }
+
 func (to *textObject) getFontDirect(name string) (*model.PdfFont, error) {
 	fontDict, err := to.getFontDict(name)
 	if err != nil {
@@ -475,6 +490,7 @@ func collectListItems(listV *list) []*list {
 	}
 	return items
 }
+
 func groupLinesByDepth(lines []*textLine) map[float64][]*textLine {
 	sort.Slice(lines, func(i, j int) bool { return lines[i].depth < lines[j].depth })
 	byStartX := map[float64][]*textLine{}
@@ -485,6 +501,7 @@ func groupLinesByDepth(lines []*textLine) map[float64][]*textLine {
 	}
 	return byStartX
 }
+
 func listsFromStructTree(kvs []*model.KValue, linesByMCID map[int][]*textLine, pageObj core.PdfObject) []*list {
 	items := []*list{}
 	for _, kv := range kvs {
@@ -507,6 +524,7 @@ func listsFromStructTree(kvs []*model.KValue, linesByMCID map[int][]*textLine, p
 	}
 	return items
 }
+
 func (tp *textPara) toTextMarks(offset *int, ctx *textContext) []TextMark {
 	if tp.table == nil {
 		return tp.toCellTextMarks(offset, ctx)
@@ -534,6 +552,7 @@ func (tp *textPara) toTextMarks(offset *int, ctx *textContext) []TextMark {
 	}
 	return marks
 }
+
 func (rl rulingList) secMinMax() (float64, float64) {
 	lo, hi := rl[0].lo, rl[0].hi
 	for _, r := range rl[1:] {
@@ -558,6 +577,7 @@ func setStringFromText(str *core.PdfObjectString, text string, font *model.PdfFo
 	pdfStr := core.MakeStringFromBytes(codes)
 	*str = *pdfStr
 }
+
 func newTextPara(rect model.PdfRectangle, lines []*textLine) *textPara {
 	return &textPara{PdfRectangle: rect, lines: lines}
 }
@@ -573,6 +593,7 @@ func (gt gridTile) String() string {
 	}
 	return fmt.Sprintf("%6.2f %1s%1s%1s%1s", gt.PdfRectangle, show(gt.llx, "L"), show(gt.urx, "R"), show(gt.lly, "B"), show(gt.ury, "T"))
 }
+
 func compareDepthThenLlx(a, b bounded) float64 {
 	d := compareDepth(a, b)
 	if !isZero(d) {
@@ -580,6 +601,7 @@ func compareDepthThenLlx(a, b bounded) float64 {
 	}
 	return compareLlx(a, b)
 }
+
 func (to *textObject) advanceTextMatrix(buf []byte) {
 	if to.unsupportedFont {
 		return
@@ -611,6 +633,7 @@ func (to *textObject) advanceTextMatrix(buf []byte) {
 		to.tm.Concat(trans)
 	}
 }
+
 func lineToRuling(p0, p1 transform.Point, col color.Color) (*ruling, bool) {
 	lr := lineRuling{p0: p0, p1: p1, kind: rulingKindOfLine(p0, p1), Color: col}
 	if lr.kind == rulingNone {
@@ -618,6 +641,7 @@ func lineToRuling(p0, p1 transform.Point, col color.Color) (*ruling, bool) {
 	}
 	return lr.asRuling()
 }
+
 func (tt *textTable) reduce() *textTable {
 	rows := make([]int, 0, tt.h)
 	cols := make([]int, 0, tt.w)
@@ -654,6 +678,7 @@ func (tt *textTable) reduce() *textTable {
 	}
 	return &reduced
 }
+
 func (pl paraList) findTextTables() []*textTable {
 	var tables []*textTable
 	for _, para := range pl {
@@ -682,6 +707,7 @@ type PageFonts struct{ Fonts []Font }
 func (tm *textMark) ToTextMark() TextMark {
 	return TextMark{Text: tm.text, Original: tm.original, BBox: tm.origBBox, Font: tm.font, FontSize: tm.fontSize, FillColor: tm.fillColor, StrokeColor: tm.strokeColor, Orientation: tm.orientation, DirectObject: tm.directObject, ObjString: tm.objString, Tw: tm.Tw, Th: tm.Th, Tc: tm.charSpacing, Tfs: tm.tfs, Index: tm.index}
 }
+
 func (e *Extractor) isTextOnly() bool {
 	if e.collectPaths {
 		return false
@@ -691,12 +717,14 @@ func (e *Extractor) isTextOnly() bool {
 	}
 	return e.options.ExtractionMode == ExtractionModeGrid
 }
+
 func sortLinesByDepth(lines []*textLine) {
 	sort.Slice(lines, func(i, j int) bool {
 		a, b := lines[i], lines[j]
 		return a.depth < b.depth
 	})
 }
+
 func checkLicense(pageText *PageText) error {
 	key := license.GetLicenseKey()
 	if key != nil && key.IsLicensed() || licenseBypass {
@@ -799,6 +827,7 @@ func (iec *imageExtractContext) extractXObjectImage(name *core.PdfObjectName, gs
 	iec.xObjectCount++
 	return nil
 }
+
 func (r *ruling) alignsSec(other *ruling) bool {
 	const secondaryAlignSlack = alignTolerance + 1.0
 	return r.lo-secondaryAlignSlack <= other.hi && other.lo-secondaryAlignSlack <= r.hi
@@ -827,6 +856,7 @@ func removeWordFromSlice(words []*textWord, word *textWord) []*textWord {
 	common.Log.Error("removeWord: words doesn't contain word=%s", word)
 	return nil
 }
+
 func (sp *subpath) removeDuplicates() {
 	if len(sp.points) == 0 {
 		return
@@ -839,6 +869,7 @@ func (sp *subpath) removeDuplicates() {
 	}
 	sp.points = pts
 }
+
 func loadMaskImage(obj core.PdfObject, maskColor color.Color) (image.Image, error) {
 	stream, ok := core.GetStream(obj)
 	if !ok {
@@ -854,6 +885,7 @@ func loadMaskImage(obj core.PdfObject, maskColor color.Color) (image.Image, erro
 	}
 	return maskToImage(img, maskColor), nil
 }
+
 func (pl paraList) lines() []*textLine {
 	var lines []*textLine
 	for _, para := range pl {
@@ -861,6 +893,7 @@ func (pl paraList) lines() []*textLine {
 	}
 	return lines
 }
+
 func reverseInts(in []int) []int {
 	out := make([]int, len(in))
 	for i, v := range in {
@@ -879,12 +912,14 @@ type textLine struct {
 func (fpe *formProcessingError) Error() string {
 	return fmt.Sprintf("form %s: %v", fpe.name, fpe.err)
 }
+
 func replaceRange(s string, start, end int, repl string) string {
 	if end > len(s)-1 {
 		return s[:start] + repl
 	}
 	return s[:start] + repl + s[end:]
 }
+
 func (rr rectRuling) asRuling() (*ruling, bool) {
 	r := ruling{kind: rr.kind, Color: rr.Color, mark: markKindFill}
 	switch rr.kind {
@@ -918,6 +953,7 @@ func (rr rectRuling) asRuling() (*ruling, bool) {
 	}
 	return &r, true
 }
+
 func (tp *textPara) writeCellText(writer io.Writer, ctx *textContext) {
 	for i, line := range tp.lines {
 		text := line.text()
@@ -1019,6 +1055,7 @@ func makeTextWords(marks []*textMark, pageRect model.PdfRectangle, adjustTilt bo
 	flush()
 	return words
 }
+
 func appendMarkWithOffset(marks []TextMark, offset *int, mark TextMark) []TextMark {
 	mark.Offset = *offset
 	marks = append(marks, mark)
@@ -1055,6 +1092,7 @@ func (tp *textPara) writeText(writer io.Writer, ctx *textContext) {
 		}
 	}
 }
+
 func (rl rulingList) connections(adj map[int]intSet, start int) intSet {
 	connected := make(intSet)
 	visited := make(intSet)
@@ -1077,6 +1115,7 @@ func (rl rulingList) connections(adj map[int]intSet, start int) intSet {
 	visit(start)
 	return connected
 }
+
 func (ss *shapesState) quadraticTo(x1, y1, x2, y2 float64) {
 	if debugShapes {
 		common.Log.Info("quadraticTo:")
@@ -1107,6 +1146,7 @@ func singleFloatOperand(op *contentstream.ContentStreamOperation) (float64, erro
 	}
 	return core.GetNumberAsFloat(op.Params[0])
 }
+
 func (tp *textPara) isAtom() *textTable {
 	topLeft := tp
 	right := tp.right
@@ -1120,6 +1160,7 @@ func (tp *textPara) isAtom() *textTable {
 	}
 	return newTwoByTwoTable(topLeft, right, below, diag)
 }
+
 func containsFont(fonts []Font, name string) bool {
 	for _, font := range fonts {
 		if font.FontName == name {
@@ -1128,6 +1169,7 @@ func containsFont(fonts []Font, name string) bool {
 	}
 	return false
 }
+
 func (pt *PageText) getParagraphs() paraList {
 	var rulings rulingList
 	if useStrokeRulings {
@@ -1171,6 +1213,7 @@ func (rl rulingList) primaries() []float64 {
 	sort.Float64s(out)
 	return out
 }
+
 func (pl paraList) merge() *textPara {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("merge: paras=%d ===========x=============", len(pl))
@@ -1187,6 +1230,7 @@ func (pl paraList) merge() *textPara {
 	}
 	return newTextPara(rect, lines)
 }
+
 func newColorStateKey(cs model.PdfColorspace, c model.PdfColor) colorStateKey {
 	key := colorStateKey{}
 	switch typed := cs.(type) {
@@ -1229,6 +1273,7 @@ func (tt *textTable) emptyCompositeColumn(col int) bool {
 	}
 	return true
 }
+
 func (tl *textLine) appendWord(word *textWord) {
 	tl.words = append(tl.words, word)
 	tl.PdfRectangle = unionRects(tl.PdfRectangle, word.PdfRectangle)
@@ -1239,6 +1284,7 @@ func (tl *textLine) appendWord(word *textWord) {
 		tl.depth = word.depth
 	}
 }
+
 func addInterval(vals []float64, lo, hi float64) []float64 {
 	a, b := lo, hi
 	if b < a {
@@ -1257,6 +1303,7 @@ func addInterval(vals []float64, lo, hi float64) []float64 {
 	out = append(out, hi)
 	return out
 }
+
 func (to *textObject) setFont(name string, size float64) error {
 	if to == nil {
 		return nil
@@ -1269,6 +1316,7 @@ func (to *textObject) setFont(name string, size float64) error {
 	to.state.tfont = font
 	return nil
 }
+
 func (gt gridTiling) log(msg string) {
 	if !debugGrids {
 		return
@@ -1291,9 +1339,11 @@ func (gt gridTiling) log(msg string) {
 		}
 	}
 }
+
 func (tt *textTable) get(col, row int) *textPara {
 	return tt.cells[cellKey(col, row)]
 }
+
 func (wb *wordBag) applyRemovals(removals map[int]map[*textWord]struct{}) {
 	for idx, rm := range removals {
 		if len(rm) == 0 {
@@ -1316,6 +1366,7 @@ func (wb *wordBag) applyRemovals(removals map[int]map[*textWord]struct{}) {
 		wb.bins[idx] = kept
 	}
 }
+
 func getMatchMarks(loc []int, marks *TextMarkArray, pattern string) (*TextMarkArray, Box, error) {
 	box := Box{}
 	start := loc[0]
@@ -1367,6 +1418,7 @@ func horizontalGap(a, b bounded) float64 { return a.bbox().Llx - b.bbox().Urx }
 
 // Marks returns the TextMark collection for a page. It represents all the text on the page.
 func (pt PageText) Marks() *TextMarkArray { return &TextMarkArray{marks: pt.viewMarks} }
+
 func fillStrings(strs []string, from int, to int, s string) {
 	for i := from; i < to; i++ {
 		strs[i] = s
@@ -1381,6 +1433,7 @@ func (rk rulingKind) String() string {
 	}
 	return name
 }
+
 func (tt *textTable) putComposite(col, row int, paras paraList, rect model.PdfRectangle) {
 	if len(paras) == 0 {
 		common.Log.Error("textTable) putComposite: empty paras")
@@ -1393,6 +1446,7 @@ func (tt *textTable) putComposite(col, row int, paras paraList, rect model.PdfRe
 	cell.updateBBox()
 	tt.compositeCells[cellKey(col, row)] = cell
 }
+
 func subTextForMark(s string, start, length, limit int) string {
 	if length == 0 {
 		return ""
@@ -1409,6 +1463,7 @@ func subTextForMark(s string, start, length, limit int) string {
 	}
 	return s[from:end]
 }
+
 func rowCorridors(cells []compositeCell) []float64 {
 	var lines []*textLine
 	numParas := 0
@@ -1499,6 +1554,7 @@ func rowCorridors(cells []compositeCell) []float64 {
 	}
 	return corridors
 }
+
 func (pl paraList) list() []*list {
 	var listLines []*textLine
 	var allLines []*textLine
@@ -1511,6 +1567,7 @@ func (pl paraList) list() []*list {
 	items := buildListsFromLines(allLines, byStartX)
 	return items
 }
+
 func groupLinesByMCID(paras *paraList) map[int][]*textLine {
 	byMCID := map[int][]*textLine{}
 	for _, para := range *paras {
@@ -1592,6 +1649,7 @@ func buildList(root *model.StructTreeRoot, linesByMCID map[int][]*textLine, page
 	}
 	return out
 }
+
 func makeWordBag(words []*textWord, pageHeight float64, vertRulings, horzRulings rulingList) *wordBag {
 	bag := newWordBag(words[0], pageHeight, vertRulings, horzRulings)
 	for _, word := range words[1:] {
@@ -1602,6 +1660,7 @@ func makeWordBag(words []*textWord, pageHeight float64, vertRulings, horzRulings
 	bag.sort()
 	return bag
 }
+
 func mergeWordBags(bags []*wordBag) []*wordBag {
 	if len(bags) <= 1 {
 		return bags
@@ -1691,6 +1750,7 @@ func (wb *wordBag) blocked(word *textWord) bool {
 	}
 	return false
 }
+
 func (ss *shapesState) stroke(sections *[]pathSection) {
 	section := pathSection{subpaths: ss.subpaths, Color: ss.textObj.getStrokeColor()}
 	*sections = append(*sections, section)
@@ -1745,6 +1805,7 @@ func (wb *wordBag) depthIndexes() []int {
 	sort.Ints(idxs)
 	return idxs
 }
+
 func replaceSingleByteString(marks *TextMarkArray, repl string, offset *int, limit int) error {
 	var prevMark TextMark
 	for _, mark := range marks.Elements() {
@@ -1807,6 +1868,7 @@ func (pt PageText) GridText() string {
 	}
 	return pt.makeGridText(pt.marks)
 }
+
 func (pl paraList) yNeighbours(tol float64) map[*textPara][]int {
 	evs := make([]event, 2*len(pl))
 	if tol == 0 {
@@ -1822,6 +1884,7 @@ func (pl paraList) yNeighbours(tol float64) map[*textPara][]int {
 	}
 	return pl.eventNeighbours(evs)
 }
+
 func (wb *wordBag) allWords() []*textWord {
 	var words []*textWord
 	for _, bin := range wb.bins {
@@ -1839,6 +1902,7 @@ func corridorOffsets(n int, corridors map[int][]float64) ([]int, int) {
 	}
 	return offsets, total
 }
+
 func (pl paraList) extractTables(tilings []gridTiling) paraList {
 	if debugTables {
 		common.Log.Debug("extractTables=%d ===========x=============", len(pl))
@@ -1855,6 +1919,7 @@ func (pl paraList) extractTables(tilings []gridTiling) paraList {
 	}
 	return pl.applyTables(tables)
 }
+
 func linesWithBullets(lines []*textLine) []*textLine {
 	out := []*textLine{}
 	for _, line := range lines {
@@ -1866,6 +1931,7 @@ func linesWithBullets(lines []*textLine) []*textLine {
 	}
 	return out
 }
+
 func (pl paraList) computeEBBoxes() {
 	if debugEBBoxes {
 		common.Log.Info("computeEBBoxes:")
@@ -1907,6 +1973,7 @@ func (pl paraList) computeEBBoxes() {
 		}
 	}
 }
+
 func (pl paraList) tables(ctx *textContext) []TextTable {
 	var tables []TextTable
 	if debugTables {
@@ -1920,6 +1987,7 @@ func (pl paraList) tables(ctx *textContext) []TextTable {
 	}
 	return tables
 }
+
 func newBidiText(s string, ltr bool, vertical bool) BidiText {
 	dir := "ltr"
 	if vertical {
@@ -1929,9 +1997,11 @@ func newBidiText(s string, ltr bool, vertical bool) BidiText {
 	}
 	return BidiText{text: s, direction: dir}
 }
+
 func (to *textObject) showText(obj core.PdfObject, raw []byte, mcid int, actualText string) error {
 	return to.renderText(obj, raw, mcid, actualText)
 }
+
 func (wb *wordBag) pullWord(word *textWord, idx int, removals map[int]map[*textWord]struct{}) {
 	wb.PdfRectangle = unionRects(wb.PdfRectangle, word.PdfRectangle)
 	if word.fontSize > wb.maxFontSize {
@@ -1954,6 +2024,7 @@ func (tt *textTable) emptyCompositeRow(row int) bool {
 	}
 	return true
 }
+
 func (wb *wordBag) advanceBinStart(idx int) int {
 	binStart := wb.binStart[idx]
 	bin := wb.bins[idx]
@@ -1966,6 +2037,7 @@ func (wb *wordBag) advanceBinStart(idx int) int {
 	wb.binStart[idx] = binStart
 	return binStart
 }
+
 func compositeImages(src, mask image.Image) image.Image {
 	maskSize, srcSize := mask.Bounds().Size(), src.Bounds().Size()
 	w, h := maskSize.X, maskSize.Y
@@ -1990,6 +2062,7 @@ func compositeImages(src, mask image.Image) image.Image {
 	imagedraw.DrawMask(out, rect, src, image.Point{}, mask, image.Point{}, imagedraw.Over)
 	return out
 }
+
 func findAllMatches(pattern string, text string) ([][]int, error) {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
@@ -2005,6 +2078,7 @@ type Editor struct{ reader *model.PdfReader }
 func (tt *textTable) put(col, row int, para *textPara) {
 	tt.cells[cellKey(col, row)] = para
 }
+
 func (wb *wordBag) text() string {
 	words := wb.allWords()
 	strs := make([]string, len(words))
@@ -2013,6 +2087,7 @@ func (wb *wordBag) text() string {
 	}
 	return strings.Join(strs, " ")
 }
+
 func (to *textObject) getFont(name string) (*model.PdfFont, error) {
 	if to.extractor.fonts != nil {
 		dict, err := to.getFontDict(name)
@@ -2051,6 +2126,7 @@ func (to *textObject) getFont(name string) (*model.PdfFont, error) {
 	}
 	return fontDirect, nil
 }
+
 func (rl rulingList) log(label string) {
 	if !debugRulings {
 		return
@@ -2087,6 +2163,7 @@ func roundToMultiple(v float64, multiple int) int {
 	m := float64(multiple)
 	return int(math.Round(v/m) * m)
 }
+
 func (rl rulingList) toGrids() []rulingList {
 	if debugRulings {
 		common.Log.Info("toGrids: %s", rl)
@@ -2166,6 +2243,7 @@ nextIndex:
 	}
 	return actual
 }
+
 func (tt *textTable) isExportable() bool {
 	if tt.exportable {
 		return true
@@ -2187,6 +2265,7 @@ func (tt *textTable) isExportable() bool {
 	}
 	return false
 }
+
 func (ss *shapesState) addPoint(x, y float64) {
 	sp := ss.establishSubpath()
 	pt := ss.devicePoint(x, y)
@@ -2197,6 +2276,7 @@ func (ss *shapesState) addPoint(x, y float64) {
 		sp.add(pt)
 	}
 }
+
 func (pl paraList) reorder(idxs []int) {
 	paras := make(paraList, len(pl))
 	for i, idx := range idxs {
@@ -2204,6 +2284,7 @@ func (pl paraList) reorder(idxs []int) {
 	}
 	copy(pl, paras)
 }
+
 func joinLinesText(lines []*textLine, prefix string) string {
 	var builder strings.Builder
 	nextDepth := 0.0
@@ -2225,6 +2306,7 @@ func joinLinesText(lines []*textLine, prefix string) string {
 	}
 	return builder.String()
 }
+
 func sortedLineDepths(m map[float64][]*textLine) []float64 {
 	depths := []float64{}
 	for d := range m {
@@ -2233,6 +2315,7 @@ func sortedLineDepths(m map[float64][]*textLine) []float64 {
 	sort.Float64s(depths)
 	return depths
 }
+
 func (to *textObject) setCharSpacing(spacing float64) {
 	if to == nil {
 		return
@@ -2283,6 +2366,7 @@ func (rl rulingList) intersections() map[int]intSet {
 	}
 	return inter
 }
+
 func makeTextPage(marks []*textMark, pageSize model.PdfRectangle, rulings rulingList, tilings []gridTiling, noBreaks bool) paraList {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("makeTextPage: %d elements pageSize=%.2f", len(marks), pageSize)
@@ -2347,12 +2431,14 @@ func (ss *stateStack) pop() *textState {
 	*ss = (*ss)[:len(*ss)-1]
 	return &state
 }
+
 func newLineFromBag(bag *wordBag, n int) *textLine {
 	word := bag.firstWord(n)
 	line := textLine{PdfRectangle: word.PdfRectangle, fontSize: word.fontSize, depth: word.depth}
 	line.pullWord(bag, word, n)
 	return &line
 }
+
 func writeListText(listV *list, builder *strings.Builder, indent *string) {
 	s := indentListText(listV, indent)
 	builder.WriteString(s)
@@ -2405,6 +2491,7 @@ func (rl rulingList) isActualGrid() (rulingList, bool) {
 	all := append(verts, horzs...)
 	return all, true
 }
+
 func buildListsFromLines(lines []*textLine, byStartX map[float64][]*textLine) []*list {
 	depths := sortedLineDepths(byStartX)
 	items := []*list{}
@@ -2441,6 +2528,7 @@ func buildListsFromLines(lines []*textLine, byStartX map[float64][]*textLine) []
 	}
 	return items
 }
+
 func sortedIndexes(n int, less func(int, int) bool) []int {
 	idxs := make([]int, n)
 	for i := range idxs {
@@ -2449,6 +2537,7 @@ func sortedIndexes(n int, less func(int, int) bool) []int {
 	sort.Slice(idxs, func(n2, n3 int) bool { return less(idxs[n2], idxs[n3]) })
 	return idxs
 }
+
 func (tt *textTable) subdivide() *textTable {
 	tt.logComposite("subdivide")
 	rowCorr := tt.compositeRowCorridors()
@@ -2496,6 +2585,7 @@ func (tt *textTable) subdivide() *textTable {
 	}
 	return out
 }
+
 func decodeBytes(buf []byte, font *model.PdfFont) string {
 	codes := font.BytesToCharcodes(buf)
 	strs, numChars, numMisses := font.CharcodesToStrings(codes, "")
@@ -2513,9 +2603,11 @@ func (rr rectRuling) checkWidth(lo, hi float64) (float64, bool) {
 	ok := w <= alignTolerance
 	return w, ok
 }
+
 func overlapsHorizontally(bag *wordBag, word *textWord, gap float64) bool {
 	return word.Llx < bag.Urx+gap && bag.Llx-gap < word.Urx
 }
+
 func minLlx(words []gridWord) float64 {
 	minX := words[0].llx
 	for _, word := range words[1:] {
@@ -2538,9 +2630,11 @@ func (ss *stateStack) String() string {
 	}
 	return strings.Join(lines, "\n")
 }
+
 func (to *textObject) getFillColor() color.Color {
 	return colorToRGB(to.gs.ColorspaceNonStroking, to.gs.ColorNonStroking)
 }
+
 func nextLineDepth(line *textLine, lines []*textLine) float64 {
 	var next float64 = -1
 	for _, l := range lines {
@@ -2699,9 +2793,11 @@ func alignToRuneStart(s string, i int) int {
 	}
 	return i
 }
+
 func yOverlap(a, b model.PdfRectangle) bool {
 	return a.Lly <= b.Ury && b.Lly <= a.Ury
 }
+
 func (pl paraList) xNeighbours(tol float64) map[*textPara][]int {
 	evs := make([]event, 2*len(pl))
 	if tol == 0 {
@@ -2717,23 +2813,27 @@ func (pl paraList) xNeighbours(tol float64) map[*textPara][]int {
 	}
 	return pl.eventNeighbours(evs)
 }
+
 func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
 }
+
 func (to *textObject) setTextRenderMode(mode int) {
 	if to == nil {
 		return
 	}
 	to.state.tmode = RenderMode(mode)
 }
+
 func (to *textObject) reset() {
 	to.tm = transform.IdentityMatrix()
 	to.tlm = transform.IdentityMatrix()
 	to.marks = nil
 }
+
 func newTextWord(marks []*textMark, pageRect model.PdfRectangle) *textWord {
 	bbox := marks[0].PdfRectangle
 	fontSize := marks[0].fontSize
@@ -2757,15 +2857,18 @@ func (tl *textLine) pullWord(bag *wordBag, word *textWord, idx int) {
 	tl.appendWord(word)
 	bag.removeWord(word, idx)
 }
+
 func newList(lines []*textLine, kind string, children []*list) *list {
 	return &list{lines: lines, kind: kind, children: children}
 }
 
-type paraList []*textPara
-type patternWalk struct {
-	stream *core.PdfObjectStream
-	ctm    transform.Matrix
-}
+type (
+	paraList    []*textPara
+	patternWalk struct {
+		stream *core.PdfObjectStream
+		ctm    transform.Matrix
+	}
+)
 
 func compareLlx(a, b bounded) float64 { return a.bbox().Llx - b.bbox().Llx }
 func (to *textObject) showTextAdjusted(arr *core.PdfObjectArray, mcid int, actualText string) error {
@@ -2820,7 +2923,6 @@ func (lr lineRuling) yMean() float64 { return 0.5 * (lr.p0.Y + lr.p1.Y) }
 // Options.IncludeAnnotations) are not covered: the objects they reference
 // belong to appearance stream parses that are not reported here.
 type FormContent struct {
-
 	// Name is the resource name the form was first painted under.
 	Name string
 
@@ -2922,6 +3024,7 @@ func (pt PageText) List() lists {
 	}
 	return items
 }
+
 func sortedTileKeys(m map[float64]gridTile) []float64 {
 	keys := make([]float64, 0, len(m))
 	for x := range m {
@@ -2930,6 +3033,7 @@ func sortedTileKeys(m map[float64]gridTile) []float64 {
 	sort.Float64s(keys)
 	return keys
 }
+
 func spacesForGap(gap, charW float64) string {
 	if gap <= 0 {
 		return " "
@@ -2943,6 +3047,7 @@ func spacesForGap(gap, charW float64) string {
 	}
 	return strings.Repeat(" ", n)
 }
+
 func sortedIntSetKeys(m map[int]intSet) []int {
 	keys := make([]int, 0, len(m))
 	for i := range m {
@@ -2951,6 +3056,7 @@ func sortedIntSetKeys(m map[int]intSet) []int {
 	sort.Ints(keys)
 	return keys
 }
+
 func (r *ruling) gridIntersecting(other *ruling) bool {
 	return approxEqual(r.lo, other.lo) && approxEqual(r.hi, other.hi)
 }
@@ -2980,7 +3086,6 @@ type TextMarkArray struct{ marks []TextMark }
 //	 bbox, ok := spanMarks.BBox()
 //	 // handle errors
 type TextMark struct {
-
 	// Text is the extracted text.
 	Text string
 
@@ -3077,6 +3182,7 @@ func (e *Extractor) ExtractPageText() (*PageText, int, int, error) {
 	}
 	return pageText, numChars, numMisparsed, nil
 }
+
 func newTwoByTwoTable(tl, tr, bl, br *textPara) *textTable {
 	table := &textTable{w: 2, h: 2, cells: make(map[uint64]*textPara, 4)}
 	table.put(0, 0, tl)
@@ -3132,11 +3238,13 @@ func (wb *wordBag) removeWord(word *textWord, idx int) {
 		wb.bins[idx] = bin
 	}
 }
+
 func unpoolImage(img model.Image) *model.Image {
 	img.Data = core.UnpooledBytes(img.Data)
 	img.SetAlpha(core.UnpooledBytes(img.AlphaData()))
 	return &img
 }
+
 func (tl *textLine) endsInHyphen() bool {
 	word := tl.words[len(tl.words)-1]
 	text := word.text
@@ -3149,9 +3257,11 @@ func (tl *textLine) endsInHyphen() bool {
 	}
 	return endsWithHyphen(tl.text())
 }
+
 func bottomEdgeRuling(rect model.PdfRectangle) *ruling {
 	return &ruling{kind: rulingHorz, xy: rect.Lly, lo: rect.Llx, hi: rect.Urx}
 }
+
 func (rl rulingList) removeDuplicates() rulingList {
 	if len(rl) == 0 {
 		return nil
@@ -3166,6 +3276,7 @@ func (rl rulingList) removeDuplicates() rulingList {
 	}
 	return out
 }
+
 func (tt *textTable) log(msg string) {
 	if !debugTables {
 		return
@@ -3181,6 +3292,7 @@ func (tt *textTable) log(msg string) {
 		}
 	}
 }
+
 func (tt *textTable) compositeColCorridors() map[int][]float64 {
 	out := make(map[int][]float64, tt.w)
 	if debugTables {
@@ -3191,6 +3303,7 @@ func (tt *textTable) compositeColCorridors() map[int][]float64 {
 	}
 	return out
 }
+
 func (rl rulingList) bbox() model.PdfRectangle {
 	var rect model.PdfRectangle
 	if len(rl) == 0 {
@@ -3206,6 +3319,7 @@ func (rl rulingList) bbox() model.PdfRectangle {
 	}
 	return rect
 }
+
 func dedupeGridWords(words []gridWord) []gridWord {
 	if len(words) < 2 {
 		return words
@@ -3300,6 +3414,7 @@ func isDuplicateGridWord(words []gridWord, word *textWord) bool {
 	}
 	return false
 }
+
 func (rl rulingList) snapToGroupsDirection() rulingList {
 	rl.sortStrict()
 	groups := make(map[*ruling]rulingList, len(rl))
@@ -3345,11 +3460,13 @@ func (rl rulingList) snapToGroupsDirection() rulingList {
 	out.sortStrict()
 	return out
 }
+
 func rulingKindOfLine(p0, p1 transform.Point) rulingKind {
 	dx := math.Abs(p0.X - p1.X)
 	dy := math.Abs(p0.Y - p1.Y)
 	return kindFromDeltas(dx, dy, minRulingLength)
 }
+
 func (gt gridTile) contains(rect model.PdfRectangle) bool {
 	if gt.numBorders() < 3 {
 		return false
@@ -3368,6 +3485,7 @@ func (gt gridTile) contains(rect model.PdfRectangle) bool {
 	}
 	return true
 }
+
 func (rl rulingList) aligned() bool {
 	if len(rl) < 2 {
 		return false
@@ -3400,11 +3518,13 @@ func (rl rulingList) aligned() bool {
 	}
 	return ok
 }
+
 func (ss *shapesState) devicePoint(x, y float64) transform.Point {
 	m := ss.parentCTM.Mult(ss.ctm)
 	x, y = m.Transform(x, y)
 	return transform.NewPoint(x, y)
 }
+
 func (tw *textWord) computeText() string {
 	texts := make([]string, len(tw.marks))
 	for i, mark := range tw.marks {
@@ -3412,6 +3532,7 @@ func (tw *textWord) computeText() string {
 	}
 	return strings.Join(texts, "")
 }
+
 func (tt *textTable) growTable() {
 	addRow := func(row paraList) {
 		tt.h++
@@ -3463,6 +3584,7 @@ func (tt *textTable) growTable() {
 		}
 	}
 }
+
 func (ss *shapesState) moveTo(x, y float64) {
 	ss.fresh = true
 	ss.currentPoint = ss.devicePoint(x, y)
@@ -3470,6 +3592,7 @@ func (ss *shapesState) moveTo(x, y float64) {
 		common.Log.Info("moveTo: %.2f,%.2f device=%.2f", x, y, ss.currentPoint)
 	}
 }
+
 func marksToString(marks *TextMarkArray) string {
 	out := ""
 	for _, mark := range marks.Elements() {
@@ -3477,6 +3600,7 @@ func marksToString(marks *TextMarkArray) string {
 	}
 	return out
 }
+
 func (rl rulingList) merge() *ruling {
 	sumXY := rl[0].xy
 	lo := rl[0].lo
@@ -3499,6 +3623,7 @@ func (rl rulingList) merge() *ruling {
 	}
 	return merged
 }
+
 func (pl paraList) findTables(tilings []gridTiling) []*textTable {
 	pl.addNeighbours()
 	sort.Slice(pl, func(n, n2 int) bool { return compareLlxThenDepth(pl[n], pl[n2]) < 0 })
@@ -3527,6 +3652,7 @@ func (mk markKind) String() string {
 func (tw *textWord) String() string {
 	return fmt.Sprintf("%.2f %6.2f fontsize=%.2f \"%s\"", tw.depth, tw.PdfRectangle, tw.fontSize, tw.text)
 }
+
 func reverseStrings(strs []string, from int, to int) {
 	for i, j := from, to-1; i < j; i, j = i+1, j-1 {
 		tmp := strs[i]
@@ -3534,6 +3660,7 @@ func reverseStrings(strs []string, from int, to int) {
 		strs[j] = tmp
 	}
 }
+
 func (tl *textLine) text() string {
 	var parts []string
 	for _, word := range tl.words {
@@ -3546,6 +3673,7 @@ func (tl *textLine) text() string {
 	bidi := reorderBidi([]rune(text))
 	return bidi.text
 }
+
 func groupGridRows(words []gridWord, charWidth float64) []gridRow {
 	rows := groupWordsIntoRows(words)
 	sort.Slice(rows, func(i, j int) bool { return rows[i].y > rows[j].y })
@@ -3605,6 +3733,7 @@ func bulletContinuationLines(line *textLine, lines []*textLine, startDepth, endD
 	}
 	return out
 }
+
 func (to *textObject) getCurrentFont() *model.PdfFont {
 	tfont := to.state.tfont
 	if tfont == nil {
@@ -3614,9 +3743,7 @@ func (to *textObject) getCurrentFont() *model.PdfFont {
 	return tfont
 }
 
-var (
-	accentToCombining = map[rune]string{0x0060: "̀", 0x02CB: "̀", 0x0027: "́", 0x00B4: "́", 0x02B9: "́", 0x02CA: "́", 0x005E: "̂", 0x02C6: "̂", 0x007E: "̃", 0x02DC: "̃", 0x00AF: "̄", 0x02C9: "̄", 0x02D8: "̆", 0x02D9: "̇", 0x00A8: "̈", 0x00B0: "̊", 0x02DA: "̊", 0x02BA: "̋", 0x02DD: "̋", 0x02C7: "̌", 0x02C8: "̍", 0x0022: "̎", 0x02BB: "̒", 0x02BC: "̓", 0x0486: "̓", 0x055A: "̓", 0x02BD: "̔", 0x0485: "̔", 0x0559: "̔", 0x02D4: "̝", 0x02D5: "̞", 0x02D6: "̟", 0x02D7: "̠", 0x02B2: "̡", 0x00B8: "̧", 0x02CC: "̩", 0x02B7: "̫", 0x02CD: "̱", 0x005F: "̲", 0x204E: "͙"}
-)
+var accentToCombining = map[rune]string{0x0060: "̀", 0x02CB: "̀", 0x0027: "́", 0x00B4: "́", 0x02B9: "́", 0x02CA: "́", 0x005E: "̂", 0x02C6: "̂", 0x007E: "̃", 0x02DC: "̃", 0x00AF: "̄", 0x02C9: "̄", 0x02D8: "̆", 0x02D9: "̇", 0x00A8: "̈", 0x00B0: "̊", 0x02DA: "̊", 0x02BA: "̋", 0x02DD: "̋", 0x02C7: "̌", 0x02C8: "̍", 0x0022: "̎", 0x02BB: "̒", 0x02BC: "̓", 0x0486: "̓", 0x055A: "̓", 0x02BD: "̔", 0x0485: "̔", 0x0559: "̔", 0x02D4: "̝", 0x02D5: "̞", 0x02D6: "̟", 0x02D7: "̠", 0x02B2: "̡", 0x00B8: "̧", 0x02CC: "̩", 0x02B7: "̫", 0x02CD: "̱", 0x005F: "̲", 0x204E: "͙"}
 
 type ruling struct {
 	kind rulingKind
@@ -3689,10 +3816,12 @@ func (pt *PageText) ApplyArea(bbox model.PdfRectangle) {
 		pt.tables = paras.tables(ctx)
 	}
 }
+
 func (to *textObject) moveLP(tx, ty float64) {
 	to.tlm.Concat(transform.NewMatrix(1, 0, 0, 1, tx, ty))
 	to.tm = to.tlm
 }
+
 func (cc compositeCell) hasLines(lines []*textLine) bool {
 	for i, line := range lines {
 		overlaps := rectsOverlap(cc.PdfRectangle, line.PdfRectangle)
@@ -3765,6 +3894,7 @@ func (wb *wordBag) scanBand(label string, bag *wordBag, accept func(b *wordBag, 
 	}
 	return numPulled
 }
+
 func replaceMultiByteString(marks *TextMarkArray, repl string, offset *int, limit int) error {
 	obj := marks.Elements()[0].DirectObject
 	pdfStr, ok := core.GetString(obj)
@@ -3792,6 +3922,7 @@ func replaceMultiByteString(marks *TextMarkArray, repl string, offset *int, limi
 	*offset += len(markText)
 	return nil
 }
+
 func (tw *textWord) appendMark(mark *textMark, pageRect model.PdfRectangle) {
 	tw.marks = append(tw.marks, mark)
 	tw.PdfRectangle = unionRects(tw.PdfRectangle, mark.PdfRectangle)
@@ -3812,7 +3943,6 @@ func (pt PageText) Tables() []TextTable {
 // ImageMark represents an image drawn on a page and its position in device coordinates.
 // All coordinates are in device coordinates.
 type ImageMark struct {
-
 	// Image is the image converted to RGB. Each mark has its own Image, but
 	// marks of the same image drawn more than once on a page share its Data
 	// and alpha. Release on one mark leaves the others intact; changing the
@@ -3861,6 +3991,7 @@ func makeStrokeRulings(sections []pathSection) rulingList {
 	}
 	return rulings
 }
+
 func (e *Extractor) extractPageText(contents string, resources *model.PdfPageResources, ctm transform.Matrix, formDepth int, isAnnotation bool, gs *contentstream.GraphicsState) (*PageText, int, int, error) {
 	contentStreamParser, err := contentstream.NewContentStreamParser(contents).Parse()
 	if err != nil {
@@ -3892,6 +4023,7 @@ func (pt PageText) String() string {
 	parts = append(parts, "+"+header)
 	return strings.Join(parts, "\n")
 }
+
 func (tt *textTable) getDown() paraList {
 	paras := make(paraList, tt.w)
 	for i := 0; i < tt.w; i++ {
@@ -3908,6 +4040,7 @@ func (tt *textTable) getDown() paraList {
 	}
 	return paras
 }
+
 func (wb *wordBag) getDepthIdx(depth float64) int {
 	idxs := wb.depthIndexes()
 	idx := depthBinIndex(depth)
@@ -3924,6 +4057,7 @@ func (wb *wordBag) getDepthIdx(depth float64) int {
 func (pt *PageText) GetContentStreamOps() *contentstream.ContentStreamOperations {
 	return pt.ops
 }
+
 func (pl paraList) eventNeighbours(evs []event) map[*textPara][]int {
 	sort.Slice(evs, func(i, j int) bool {
 		a, b := evs[i], evs[j]
@@ -3969,6 +4103,7 @@ func (pl paraList) eventNeighbours(evs []event) map[*textPara][]int {
 	}
 	return out
 }
+
 func (e *Editor) getMatches(pattern string, pages []int) (map[int]Match, map[int][]*TextMarkArray, error) {
 	matches := map[int]Match{}
 	marksByPage := map[int][]*TextMarkArray{}
@@ -4007,6 +4142,7 @@ func (e *Editor) getMatches(pattern string, pages []int) (map[int]Match, map[int
 	}
 	return matches, marksByPage, nil
 }
+
 func xOverlap(a, b model.PdfRectangle) bool {
 	return b.Llx <= a.Urx && a.Llx <= b.Urx
 }
@@ -4023,9 +4159,11 @@ type stateStack []*textState
 
 // Append appends `mark` to the mark array.
 func (tma *TextMarkArray) Append(mark TextMark) { tma.marks = append(tma.marks, mark) }
+
 func (to *textObject) getStrokeColor() color.Color {
 	return colorToRGB(to.gs.ColorspaceStroking, to.gs.ColorStroking)
 }
+
 func (wb *wordBag) highestWord(idx int, lo, hi float64) *textWord {
 	bin := wb.bins[idx]
 	start := 0
@@ -4045,6 +4183,7 @@ func (wb *wordBag) highestWord(idx int, lo, hi float64) *textWord {
 	}
 	return nil
 }
+
 func (r *ruling) intersects(other *ruling) bool {
 	perp := (r.kind == rulingVert && other.kind == rulingHorz) || (other.kind == rulingVert && r.kind == rulingHorz)
 	spans := func(a, b *ruling) bool {
@@ -4057,6 +4196,7 @@ func (r *ruling) intersects(other *ruling) bool {
 	}
 	return perp && ab && ba
 }
+
 func (pl paraList) readBefore(llyIdx []int, i, j int) bool {
 	a, b := pl[i], pl[j]
 	if paraXOverlaps(a, b) && a.Lly > b.Lly {
@@ -4083,6 +4223,7 @@ func (pl paraList) readBefore(llyIdx []int, i, j int) bool {
 	}
 	return true
 }
+
 func maxInt(a, b int) int {
 	if a > b {
 		return a
@@ -4111,6 +4252,7 @@ func (pt *PageText) appendFormContent(name string, form *model.XObjectForm, ops 
 	}
 	pt.forms = append(pt.forms, FormContent{Name: name, Form: form, Operations: ops})
 }
+
 func (rl rulingList) findPrimSec(xy, sec float64) *ruling {
 	for _, r := range rl {
 		if isZero(r.xy-xy) && r.lo-approxTolerance <= sec && sec <= r.hi+approxTolerance {
@@ -4147,6 +4289,7 @@ func (pl paraList) topoOrder() []int {
 	}
 	return reverseInts(order)
 }
+
 func startsWithBulletByte(b byte) bool {
 	for _, bc := range bulletChars {
 		if []byte(bc)[0] == b {
@@ -4155,6 +4298,7 @@ func startsWithBulletByte(b byte) bool {
 	}
 	return false
 }
+
 func (wb *wordBag) firstWord(idx int) *textWord {
 	bin := wb.bins[idx]
 	if wb.removed == nil {
@@ -4166,6 +4310,7 @@ func (wb *wordBag) firstWord(idx int) *textWord {
 	}
 	return bin[start]
 }
+
 func (tc *textContext) isDehyphenationDisabled() bool {
 	if tc == nil {
 		return false
@@ -4195,12 +4340,14 @@ func (is intSet) String() string {
 	sort.Ints(idxs)
 	return fmt.Sprintf("%+v", idxs)
 }
+
 func (to *textObject) setWordSpacing(spacing float64) {
 	if to == nil {
 		return
 	}
 	to.state.tw = spacing
 }
+
 func adjacentObjStringIndex(marks *TextMarkArray, idx int) int {
 	elems := marks.Elements()
 	prev := idx - 1
@@ -4227,6 +4374,7 @@ func adjacentObjStringIndex(marks *TextMarkArray, idx int) int {
 	}
 	return found
 }
+
 func newTextState(mediaBox model.PdfRectangle) textState {
 	return textState{th: 100, tmode: RenderModeFill, rect: mediaBox}
 }
@@ -4287,6 +4435,7 @@ func (iec *imageExtractContext) extractFormImages(stream *core.PdfObjectStream, 
 	iec.formCount++
 	return nil
 }
+
 func (iec *imageExtractContext) extractContentStreamImages(contents string, resources *model.PdfPageResources, gs *contentstream.GraphicsState) error {
 	parser := contentstream.NewContentStreamParser(contents)
 	ops, err := parser.Parse()
@@ -4302,6 +4451,7 @@ func logGrids(msg string, grids []rulingList) {
 		fmt.Printf("%4d: %s\n", i, grid.String())
 	}
 }
+
 func (rl rulingList) splitSec() []rulingList {
 	sort.Slice(rl, func(i, j int) bool {
 		a, b := rl[i], rl[j]
@@ -4376,6 +4526,7 @@ func NewFromContents(contents string, resources *model.PdfPageResources) (*Extra
 	license.TrackUse(funcName)
 	return ex, nil
 }
+
 func (pl paraList) toTextMarks(ctx *textContext) []TextMark {
 	offset := 0
 	var marks []TextMark
@@ -4410,6 +4561,7 @@ func endsWithHyphen(s string) bool {
 	last, size = utf8.DecodeLastRuneInString(s[:len(s)-size])
 	return size > 0 && !unicode.IsSpace(last)
 }
+
 func tileRowKeys(m map[float64]map[float64]gridTile) []float64 {
 	keys := make([]float64, 0, len(m))
 	for v := range m {
@@ -4422,6 +4574,7 @@ func tileRowKeys(m map[float64]map[float64]gridTile) []float64 {
 	}
 	return keys
 }
+
 func (to *textObject) moveTextSetLeading(tx, ty float64) {
 	to.state.tl = -ty
 	to.moveLP(tx, ty)
@@ -4437,6 +4590,7 @@ func (sp *subpath) String() string {
 	}
 	return fmt.Sprintf("%d: %6.2f %6.2f ... %6.2f", numPoints, points[0], points[1], points[numPoints-1])
 }
+
 func (ss *shapesState) lineTo(x, y float64) {
 	if debugShapes {
 		common.Log.Info("lineTo(%.2f,%.2f p=%.2f", x, y, ss.devicePoint(x, y))
@@ -4446,6 +4600,7 @@ func (ss *shapesState) lineTo(x, y float64) {
 
 // Elements returns the TextMarks in `ma`.
 func (tma *TextMarkArray) Elements() []TextMark { return tma.marks }
+
 func separatorFor(d1, d2 float64) string {
 	newLine := !isZero(d1 - d2)
 	if newLine {
@@ -4453,6 +4608,7 @@ func separatorFor(d1, d2 float64) string {
 	}
 	return " "
 }
+
 func (iec *imageExtractContext) extractInlineImage(inline *contentstream.ContentStreamInlineImage, gs contentstream.GraphicsState, resources *model.PdfPageResources) error {
 	key := inlineImageKey{image: inline, resources: resources}
 	rgbImg, ok := iec.inlineImages[key]
@@ -4482,6 +4638,7 @@ func (iec *imageExtractContext) extractInlineImage(inline *contentstream.Content
 	iec.inlineCount++
 	return nil
 }
+
 func (rl rulingList) mergePrimary() float64 {
 	sum := rl[0].xy
 	for _, r := range rl[1:] {
@@ -4489,6 +4646,7 @@ func (rl rulingList) mergePrimary() float64 {
 	}
 	return sum / float64(len(rl))
 }
+
 func (wb *wordBag) depthRange(lo, hi int) []int {
 	var idxs []int
 	for idx := range wb.bins {
@@ -4549,6 +4707,7 @@ func (rl rulingList) blocks(a, b *ruling) bool {
 	}
 	return false
 }
+
 func (sp *subpath) makeRectRuling(col color.Color) (*ruling, bool) {
 	if debugRectRulings {
 		common.Log.Info("makeRectRuling: path=%v", sp)
@@ -4643,6 +4802,7 @@ func (sp *subpath) makeRectRuling(col color.Color) (*ruling, bool) {
 	}
 	return r, true
 }
+
 func (rl rulingList) augmentGrid() (rulingList, rulingList) {
 	verts, horzs := rl.vertsHorzs()
 	if len(verts) == 0 || len(horzs) == 0 {
@@ -4680,6 +4840,7 @@ func (rl rulingList) augmentGrid() (rulingList, rulingList) {
 	all.log("augmented")
 	return verts, horzs
 }
+
 func (pl paraList) llyOrdering() []int {
 	order := make([]int, len(pl))
 	for i := range pl {
@@ -4691,6 +4852,7 @@ func (pl paraList) llyOrdering() []int {
 	})
 	return order
 }
+
 func rectContains(a, b model.PdfRectangle) bool {
 	return a.Llx <= b.Llx && b.Urx <= a.Urx && a.Lly <= b.Lly && b.Ury <= a.Ury
 }
@@ -4706,12 +4868,14 @@ func (tp *textPara) String() string {
 	}
 	return fmt.Sprintf("%6.2f %s%d lines %q", tp.PdfRectangle, dims, len(tp.lines), truncate(tp.text(), 50))
 }
+
 func (to *textObject) setTextLeading(leading float64) {
 	if to == nil {
 		return
 	}
 	to.state.tl = leading
 }
+
 func (ss *shapesState) drawRectangle(x, y, w, h float64) {
 	if debugShapes {
 		p0 := ss.devicePoint(x, y)
@@ -4726,18 +4890,22 @@ func (ss *shapesState) drawRectangle(x, y, w, h float64) {
 	ss.lineTo(x, y+h)
 	ss.closePath()
 }
+
 func (r *ruling) alignsPrimary(other *ruling) bool {
 	return r.kind == other.kind && math.Abs(r.xy-other.xy) < alignTolerance*0.5
 }
+
 func (tm *textMark) inDiacriticArea(mark *textMark) bool {
 	dllx := tm.Llx - mark.Llx
 	durx := tm.Urx - mark.Urx
 	dlly := tm.Lly - mark.Lly
 	return math.Abs(dllx+durx) < tm.Width()*diacriticAreaFactor && math.Abs(dlly) < tm.Height()*diacriticAreaFactor
 }
+
 func (r *ruling) encloses(lo, hi float64) bool {
 	return r.lo-approxTolerance <= lo && hi <= r.hi+approxTolerance
 }
+
 func (tt *textTable) depth() float64 {
 	minDepth := 1e10
 	for i := 0; i < tt.w; i++ {
@@ -4749,6 +4917,7 @@ func (tt *textTable) depth() float64 {
 	}
 	return minDepth
 }
+
 func tileColumnKeys(m map[float64]map[float64]gridTile) []float64 {
 	keys := make([]float64, 0, len(m))
 	seen := make(map[float64]struct{}, len(m))
@@ -4764,6 +4933,7 @@ func tileColumnKeys(m map[float64]map[float64]gridTile) []float64 {
 	sort.Float64s(keys)
 	return keys
 }
+
 func buildChildLists(lines []*textLine, m map[float64][]*textLine, depths []float64, level int, parentDepth, nextDepth float64) []*list {
 	items := []*list{}
 	lvl := level
@@ -4798,6 +4968,7 @@ func buildChildLists(lines []*textLine, m map[float64][]*textLine, depths []floa
 	}
 	return items
 }
+
 func (e *Extractor) extractPageTextFromOps(ops *contentstream.ContentStreamOperations, resources *model.PdfPageResources, parentCTM transform.Matrix, formDepth int, isAnnotation bool, initGS *contentstream.GraphicsState) (*PageText, int, int, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("extractPageTextFromOps: level=%d", formDepth)
@@ -5379,6 +5550,7 @@ func (e *Extractor) extractPageTextFromOps(ops *contentstream.ContentStreamOpera
 	}
 	return pageText, state.numChars, state.numMisparsedChars, err3
 }
+
 func rulingKindOfSegment(p0, p1 transform.Point) rulingKind {
 	dx := math.Abs(p0.X - p1.X)
 	dy := math.Abs(p0.Y - p1.Y)
@@ -5405,6 +5577,7 @@ func (wb *wordBag) absorb(bag *wordBag) {
 	}
 	bag.applyRemovals(removals)
 }
+
 func (tw *textWord) addDiacritic(s string) {
 	mark := tw.marks[len(tw.marks)-1]
 	mark.text += s
@@ -5597,6 +5770,7 @@ func (to *textObject) renderText(obj core.PdfObject, raw []byte, mcid int, actua
 	}
 	return nil
 }
+
 func (to *textObject) setTextMatrix(vals []float64) {
 	if len(vals) != 6 {
 		common.Log.Debug("ERROR: len(f) != 6 (%d)", len(vals))
@@ -5606,6 +5780,7 @@ func (to *textObject) setTextMatrix(vals []float64) {
 	to.tm = transform.NewMatrix(a, b, c, d, e, f)
 	to.tlm = to.tm
 }
+
 func leftEdgeRuling(rect model.PdfRectangle) *ruling {
 	return &ruling{kind: rulingVert, xy: rect.Llx, lo: rect.Lly, hi: rect.Ury}
 }
@@ -5628,6 +5803,7 @@ func (e *Extractor) ExtractPageImages(options *ImageExtractOptions) (*PageImages
 func (tm *textMark) String() string {
 	return fmt.Sprintf("%.2f fontsize=%.2f \"%s\"", tm.PdfRectangle, tm.fontSize, tm.text)
 }
+
 func (pl paraList) findTableGrid(tiling gridTiling) (*textTable, map[*textPara]struct{}) {
 	numLlx := len(tiling.llx)
 	numLly := len(tiling.lly)
@@ -5683,6 +5859,7 @@ func (pl paraList) findTableGrid(tiling gridTiling) (*textTable, map[*textPara]s
 	reduced = reduced.subdivide()
 	return reduced, used
 }
+
 func (tt *textTable) getRight() paraList {
 	paras := make(paraList, tt.h)
 	for i := 0; i < tt.h; i++ {
@@ -5708,6 +5885,7 @@ type parsedForm struct {
 func (r *ruling) equals(other *ruling) bool {
 	return r.kind == other.kind && approxEqual(r.xy, other.xy) && approxEqual(r.lo, other.lo) && approxEqual(r.hi, other.hi)
 }
+
 func reorderBidi(runes []rune) BidiText {
 	baseLevel := -1
 	vertical := false
@@ -5913,6 +6091,7 @@ func reorderBidi(runes []rune) BidiText {
 	}
 	return newBidiText(strings.Join(chars, ""), ltr, false)
 }
+
 func (tma *TextMarkArray) exists(m TextMark) bool {
 	for _, other := range tma.Elements() {
 		if reflect.DeepEqual(m.DirectObject, other.DirectObject) && reflect.DeepEqual(m.BBox, other.BBox) && other.Text == m.Text {
@@ -5994,6 +6173,7 @@ func (ps pathSection) bbox() model.PdfRectangle {
 	}
 	return rect
 }
+
 func attachTable(marks []TextMark, table *TextTable) []TextMark {
 	var out []TextMark
 	for _, mark := range marks {
@@ -6003,6 +6183,7 @@ func attachTable(marks []TextMark, table *TextTable) []TextMark {
 	}
 	return out
 }
+
 func (rl rulingList) sortStrict() {
 	sort.Slice(rl, func(i, j int) bool {
 		a, b := rl[i], rl[j]
@@ -6168,6 +6349,7 @@ func colorToRGB(cs model.PdfColorspace, c model.PdfColor) color.Color {
 	}
 	return color.NRGBA{R: uint8(rgb.R() * 255), G: uint8(rgb.G() * 255), B: uint8(rgb.B() * 255), A: uint8(255)}
 }
+
 func (cc compositeCell) String() string {
 	txt := ""
 	if len(cc.paraList) > 0 {
@@ -6175,6 +6357,7 @@ func (cc compositeCell) String() string {
 	}
 	return fmt.Sprintf("%6.2f %d paras %q", cc.PdfRectangle, len(cc.paraList), txt)
 }
+
 func (pl paraList) writeText(writer io.Writer, ctx *textContext) {
 	for i, para := range pl {
 		if para.isEmpty {
@@ -6197,6 +6380,7 @@ func (ss *stateStack) size() int { return len(*ss) }
 func translateBy(d transform.Point) transform.Matrix {
 	return transform.TranslationMatrix(d.X, d.Y)
 }
+
 func (tt *textTable) computeBbox() model.PdfRectangle {
 	var rect model.PdfRectangle
 	set := false
@@ -6254,6 +6438,7 @@ func (tma *TextMarkArray) RangeOffset(start, end int) (*TextMarkArray, error) {
 	}
 	return &TextMarkArray{marks: tma.marks[iStart:iEnd]}, nil
 }
+
 func (to *textObject) checkOp(op *contentstream.ContentStreamOperation, numParams int, strict bool) (ok bool, err error) {
 	if to == nil {
 		var params []core.PdfObject
@@ -6276,6 +6461,7 @@ func (to *textObject) checkOp(op *contentstream.ContentStreamOperation, numParam
 	}
 	return true, nil
 }
+
 func indentListText(listV *list, indent *string) string {
 	lines := strings.Split(listV.text, "\n")
 	builder := &strings.Builder{}
@@ -6288,6 +6474,7 @@ func indentListText(listV *list, indent *string) string {
 	}
 	return builder.String()
 }
+
 func splitRulingLists(rulings []rulingList) (rulingList, rulingList) {
 	var all rulingList
 	for _, l := range rulings {
@@ -6328,6 +6515,7 @@ func loadSoftMaskImage(obj core.PdfObject, c color.Color) (image.Image, error) {
 	}
 	return softMaskToImage(img, c), nil
 }
+
 func paraDepthEqual(a, b *textPara) bool {
 	if a.isEmpty || b.isEmpty {
 		return true
@@ -6385,12 +6573,14 @@ func (tt *textTable) logComposite(msg string) {
 		fmt.Println("")
 	}
 }
+
 func makeFormCacheKey(stream *core.PdfObjectStream, ctm transform.Matrix, resources *model.PdfPageResources, gs contentstream.GraphicsState) formCacheKey {
 	return formCacheKey{stream: stream, ctm: ctm, resources: resources, strokeColor: newColorStateKey(gs.ColorspaceStroking, gs.ColorStroking), fillColor: newColorStateKey(gs.ColorspaceNonStroking, gs.ColorNonStroking)}
 }
 
 // Text returns the extracted page text.
 func (pt PageText) Text() string { return pt.text }
+
 func (rl rulingList) snapToGroups() rulingList {
 	vertsHorzs, rulings := rl.vertsHorzs()
 	if len(vertsHorzs) > 0 {
@@ -6413,6 +6603,7 @@ func (tl *textLine) String() string {
 func (tt *textTable) String() string {
 	return fmt.Sprintf("%d x %d %t", tt.w, tt.h, tt.exportable)
 }
+
 func (rl rulingList) primMinMax() (float64, float64) {
 	lo, hi := rl[0].xy, rl[0].xy
 	for _, r := range rl[1:] {
@@ -6424,6 +6615,7 @@ func (rl rulingList) primMinMax() (float64, float64) {
 	}
 	return lo, hi
 }
+
 func granularize(sections []pathSection) {
 	if coordGranularity < 0.0 {
 		return
@@ -6517,6 +6709,7 @@ func (e *Extractor) ExtractFonts(previousPageFonts *PageFonts) (*PageFonts, erro
 	}
 	return &PageFonts{Fonts: fonts.Fonts}, nil
 }
+
 func (wb *wordBag) makeRemovals() map[int]map[*textWord]struct{} {
 	removals := make(map[int]map[*textWord]struct{}, len(wb.bins))
 	for i := range wb.bins {
@@ -6524,6 +6717,7 @@ func (wb *wordBag) makeRemovals() map[int]map[*textWord]struct{} {
 	}
 	return removals
 }
+
 func (tt *textTable) markCells() {
 	for row := 0; row < tt.h; row++ {
 		for col := 0; col < tt.w; col++ {
@@ -6534,6 +6728,7 @@ func (tt *textTable) markCells() {
 		}
 	}
 }
+
 func corridorsString(corridors map[int][]float64) string {
 	idxs := sortedIntKeys(corridors)
 	parts := make([]string, len(corridors))
@@ -6574,6 +6769,7 @@ func (wb *wordBag) endDeferredRemoval() {
 	wb.removedCount = nil
 	wb.binStart = nil
 }
+
 func (tl *textLine) markWordBoundaries() {
 	minGap := wordBoundaryGapFactor * tl.fontSize
 	for i, word := range tl.words[1:] {
@@ -6582,6 +6778,7 @@ func (tl *textLine) markWordBoundaries() {
 		}
 	}
 }
+
 func (pl paraList) findGridTables(tilings []gridTiling) []*textTable {
 	if debugTables {
 		common.Log.Info("findGridTables: %d paras", len(pl))
@@ -6606,12 +6803,14 @@ func (pl paraList) findGridTables(tilings []gridTiling) []*textTable {
 	}
 	return tables
 }
+
 func (ss *shapesState) cubicTo(x1, y1, x2, y2, x3, y3 float64) {
 	if debugShapes {
 		common.Log.Info("cubicTo:")
 	}
 	ss.addPoint(x3, y3)
 }
+
 func rowSpacing(rows []gridRow, charWidth float64) float64 {
 	if len(rows) < 3 {
 		return charWidth * defaultRowSpacingFactor
@@ -6628,6 +6827,7 @@ func rowSpacing(rows []gridRow, charWidth float64) float64 {
 	sort.Float64s(gaps)
 	return gaps[len(gaps)/2] * medianSpacingFactor
 }
+
 func (tma *TextMarkArray) getTextMarkAtOffset(offset int) *TextMark {
 	for _, mark := range tma.marks {
 		if mark.Offset == offset {
@@ -6636,6 +6836,7 @@ func (tma *TextMarkArray) getTextMarkAtOffset(offset int) *TextMark {
 	}
 	return nil
 }
+
 func (iec *imageExtractContext) extractOperationImages(ops *contentstream.ContentStreamOperations, resources *model.PdfPageResources, gs *contentstream.GraphicsState) error {
 	if iec.xObjectImages == nil {
 		iec.xObjectImages = map[*core.PdfObjectStream]*model.Image{}
@@ -6659,6 +6860,7 @@ func (iec *imageExtractContext) extractOperationImages(ops *contentstream.Conten
 	proc.AddHandler(contentstream.HandlerConditionEnumAllOperands, "", iec.processOperand)
 	return proc.Process(resources)
 }
+
 func groupWordsIntoRows(words []gridWord) []gridRow {
 	if len(words) == 0 {
 		return nil
@@ -6686,6 +6888,7 @@ func groupWordsIntoRows(words []gridWord) []gridRow {
 	rows = append(rows, cur)
 	return rows
 }
+
 func isNearlyHorizontal(a, b transform.Point) bool {
 	dx := math.Abs(a.X - b.X)
 	dy := math.Abs(a.Y - b.Y)
@@ -6713,9 +6916,11 @@ func (pl paraList) applyTables(tables []*textTable) paraList {
 	}
 	return paras
 }
+
 func unionRects(a, b model.PdfRectangle) model.PdfRectangle {
 	return model.PdfRectangle{Llx: math.Min(a.Llx, b.Llx), Lly: math.Min(a.Lly, b.Lly), Urx: math.Max(a.Urx, b.Urx), Ury: math.Max(a.Ury, b.Ury)}
 }
+
 func (gt gridTile) numBorders() int {
 	count := 0
 	if gt.llx {
@@ -6745,6 +6950,7 @@ func sortedIntKeys(m map[int][]float64) []int {
 	sort.Ints(keys)
 	return keys
 }
+
 func makeGridWords(words []*textWord) []gridWord {
 	out := make([]gridWord, 0, len(words))
 	for i, word := range words {
@@ -6771,11 +6977,13 @@ func isFlatSegment(p0, p1 transform.Point) bool {
 	dy := math.Abs(p0.Y - p1.Y)
 	return isRatioSmall(dx, dy)
 }
+
 func (cc *compositeCell) updateBBox() {
 	for _, para := range cc.paraList {
 		cc.PdfRectangle = unionRects(cc.PdfRectangle, para.PdfRectangle)
 	}
 }
+
 func (tt *textTable) reduceTiling(tiling gridTiling, tol float64) *textTable {
 	rows := make([]int, 0, tt.h)
 	cols := make([]int, 0, tt.w)
@@ -6855,6 +7063,7 @@ func replaceTextMarks(marks []*TextMarkArray, s string) error {
 	}
 	return nil
 }
+
 func newGridTile(rect model.PdfRectangle, left, right, bottom, top *ruling) gridTile {
 	llx := rect.Llx
 	urx := rect.Urx
@@ -6871,6 +7080,7 @@ func (ts *textState) String() string {
 	}
 	return fmt.Sprintf("tc=%.2f tw=%.2f tfs=%.2f font=%q", ts.tc, ts.tw, ts.tfs, s)
 }
+
 func splitWordBag(src *wordBag, pageHeight float64, vertRulings, horzRulings rulingList, noBreaks bool) []*wordBag {
 	var out []*wordBag
 	for _, binIdx := range src.depthIndexes() {
@@ -6918,6 +7128,7 @@ func splitWordBag(src *wordBag, pageHeight float64, vertRulings, horzRulings rul
 	}
 	return out
 }
+
 func (sp *subpath) close() {
 	if !pointsEqual(sp.points[0], sp.last()) {
 		sp.add(sp.points[0])
@@ -6925,13 +7136,16 @@ func (sp *subpath) close() {
 	sp.closed = true
 	sp.removeDuplicates()
 }
+
 func withGap(test func(*wordBag, *textWord, float64) bool, gap float64) func(*wordBag, *textWord) bool {
 	return func(bag *wordBag, w *textWord) bool { return test(bag, w, gap) }
 }
+
 func isPatternColorspace(cs model.PdfColorspace) bool {
 	_, ok := cs.(*model.PdfColorspaceSpecialPattern)
 	return ok
 }
+
 func (tt TextTable) getCellInfo(mark TextMark) [][]int {
 	for i, cell := range tt.Cells {
 		for j := range cell {
@@ -7054,6 +7268,7 @@ func makeSimpleText(marks []*textMark, pageSize model.PdfRectangle) string {
 	}
 	return out
 }
+
 func renderGrid(rows []gridRow, minX, unit, spacing float64) string {
 	var builder strings.Builder
 	for k, row := range rows {
@@ -7078,6 +7293,7 @@ func renderGrid(rows []gridRow, minX, unit, spacing float64) string {
 	}
 	return builder.String()
 }
+
 func (pl paraList) addNeighbours() {
 	splitLR := func(idxs []int, para *textPara) ([]*textPara, []*textPara) {
 		left := make([]*textPara, 0, len(idxs)-1)
@@ -7217,6 +7433,7 @@ func (wb *wordBag) depthBand(lo, hi float64) []int {
 	}
 	return wb.depthRange(wb.getDepthIdx(lo), wb.getDepthIdx(hi))
 }
+
 func refineGridRows(rows []gridRow, charWidth float64) []gridRow {
 	var out []gridRow
 	for _, row := range rows {
@@ -7261,6 +7478,7 @@ func refineGridRows(rows []gridRow, charWidth float64) []gridRow {
 	}
 	return out
 }
+
 func (rl rulingList) comp(i, j int) bool {
 	a, b := rl[i], rl[j]
 	ka, kb := a.kind, b.kind
@@ -7286,6 +7504,7 @@ func (rl rulingList) comp(i, j int) bool {
 	}
 	return orient(a.hi < b.hi)
 }
+
 func (lr lineRuling) asRuling() (*ruling, bool) {
 	r := ruling{kind: lr.kind, Color: lr.Color, mark: markKindStroke}
 	switch lr.kind {
@@ -7303,6 +7522,7 @@ func (lr lineRuling) asRuling() (*ruling, bool) {
 	}
 	return &r, true
 }
+
 func (tp *textPara) text() string {
 	buf := new(bytes.Buffer)
 	tp.writeText(buf, &textContext{})
@@ -7374,12 +7594,14 @@ func (to *textObject) newTextMark(text string, trm transform.Matrix, end transfo
 	}
 	return mark, inPage
 }
+
 func newWordBag(word *textWord, pageHeight float64, vertRulings, horzRulings rulingList) *wordBag {
 	idx := depthBinIndex(word.depth)
 	words := []*textWord{word}
 	bag := wordBag{bins: map[int][]*textWord{idx: words}, PdfRectangle: word.PdfRectangle, maxFontSize: word.fontSize, pageHeight: pageHeight, vertRulings: vertRulings, horzRulings: horzRulings}
 	return &bag
 }
+
 func isBlank(s string) bool {
 	for _, r := range s {
 		if !unicode.IsSpace(r) {
@@ -7403,6 +7625,7 @@ func spacesForOffset(offset, unit float64) string {
 	}
 	return strings.Repeat(" ", n)
 }
+
 func groupMarksByObject(marks *TextMarkArray) []*TextMarkArray {
 	elems := marks.Elements()
 	numMarks := len(elems)
@@ -7440,6 +7663,7 @@ func groupMarksByObject(marks *TextMarkArray) []*TextMarkArray {
 	}
 	return groups
 }
+
 func (ss *shapesState) clearPath() {
 	ss.subpaths = nil
 	ss.fresh = false
@@ -7447,6 +7671,7 @@ func (ss *shapesState) clearPath() {
 		common.Log.Info("CLEAR: ss=%s", ss)
 	}
 }
+
 func twoFloatOperands(objs []core.PdfObject) (x, x2 float64, err error) {
 	if len(objs) != 2 {
 		return 0, 0, fmt.Errorf("invalid number of params: %d", len(objs))
@@ -7485,6 +7710,7 @@ func (r *ruling) String() string {
 	}
 	return fmt.Sprintf("%10s %s=%6.2f %s=%6.2f - %6.2f (%6.2f) %s %v%s", r.kind, primAxis, r.xy, secAxis, r.lo, r.hi, r.hi-r.lo, r.mark, r.Color, widthStr)
 }
+
 func (tt *textTable) newTablePara() *textPara {
 	rect := tt.computeBbox()
 	para := &textPara{PdfRectangle: rect, eBBox: rect, table: tt}
@@ -7493,6 +7719,7 @@ func (tt *textTable) newTablePara() *textPara {
 	}
 	return para
 }
+
 func (rl rulingList) tidied(label string) rulingList {
 	uniq := rl.removeDuplicates()
 	uniq.log("uniques")
@@ -7521,6 +7748,7 @@ func (l *list) Text() string {
 	writeListText(l, b, &indent)
 	return b.String()
 }
+
 func makeFillRulings(sections []pathSection) rulingList {
 	granularize(sections)
 	if debugRulings {
@@ -7725,6 +7953,7 @@ func (pf *PageFonts) extractPageResourcesToFont(resources *model.PdfPageResource
 	}
 	return nil
 }
+
 func (rl rulingList) asTiling() gridTiling {
 	if debugGrids {
 		common.Log.Info("rulingList.asTiling: vecs=%d ==================+++ ==================", len(rl))
@@ -7867,11 +8096,13 @@ func (rl rulingList) asTiling() gridTiling {
 	tiling.log("Created")
 	return tiling
 }
+
 func removeWordAt(words []*textWord, idx int) []*textWord {
 	numWords := len(words)
 	copy(words[idx:], words[idx+1:])
 	return words[:numWords-1]
 }
+
 func rectRulingKind(rect model.PdfRectangle) rulingKind {
 	width := rect.Width()
 	height := rect.Height()
@@ -7886,9 +8117,11 @@ func rectRulingKind(rect model.PdfRectangle) rulingKind {
 	}
 	return rulingNone
 }
+
 func newTextObject(ex *Extractor, resources *model.PdfPageResources, gs contentstream.GraphicsState, state *textState, stack *stateStack) *textObject {
 	return &textObject{extractor: ex, resources: resources, gs: gs, savedStates: stack, state: state, tm: transform.IdentityMatrix(), tlm: transform.IdentityMatrix()}
 }
+
 func kindFromDeltas(dx, dy, minLen float64) rulingKind {
 	if dx >= minLen && isRatioSmall(dy, dx) {
 		return rulingHorz
@@ -7898,15 +8131,18 @@ func kindFromDeltas(dx, dy, minLen float64) rulingKind {
 	}
 	return rulingNone
 }
+
 func appendMetaMark(marks []TextMark, offset *int, text string) []TextMark {
 	mark := metaMark
 	mark.Text = text
 	return appendMarkWithOffset(marks, offset, mark)
 }
+
 func translationPoint(m transform.Matrix) transform.Point {
 	tx, ty := m.Translation()
 	return transform.Point{X: tx, Y: ty}
 }
+
 func (tp *textPara) depth() float64 {
 	if tp.isEmpty {
 		return -1.0
@@ -7916,6 +8152,7 @@ func (tp *textPara) depth() float64 {
 	}
 	return tp.table.depth()
 }
+
 func (pl paraList) llyRange(idxs []int, lo, hi float64) []int {
 	n := len(pl)
 	if hi < pl[idxs[0]].Lly || lo > pl[idxs[n-1]].Lly {
@@ -7925,6 +8162,7 @@ func (pl paraList) llyRange(idxs []int, lo, hi float64) []int {
 	end := sort.Search(n, func(i int) bool { return pl[idxs[i]].Lly > hi })
 	return idxs[start:end]
 }
+
 func (wb *wordBag) firstReadingIndex(idx int) int {
 	fontSize := wb.firstWord(idx).fontSize
 	binBottom := float64(idx+1) * depthBinWidth
@@ -7963,6 +8201,7 @@ func (tp *textPara) toCellTextMarks(offset *int, ctx *textContext) []TextMark {
 	}
 	return marks
 }
+
 func (ss *stateStack) top() *textState {
 	if ss.empty() {
 		return nil
@@ -8009,6 +8248,7 @@ func (tt *textTable) toTextTable(ctx *textContext) TextTable {
 	table.PdfRectangle = tt.bbox()
 	return table
 }
+
 func (pt *PageText) computeViews() {
 	if pt.options.mode == ExtractionModePlain {
 		pt.text = pt.getText()
@@ -8087,6 +8327,7 @@ func (rl rulingList) String() string {
 	rect := model.PdfRectangle{Llx: vertsHorzs[0].xy, Urx: vertsHorzs[numVertsHorzs-1].xy, Lly: rulings[numRulings-1].xy, Ury: rulings[0].xy}
 	return fmt.Sprintf("{%d x %d: %6.2f}", numVertsHorzs, numRulings, rect)
 }
+
 func (ss *shapesState) establishSubpath() *subpath {
 	lastpointEstablished, ok := ss.lastpointEstablished()
 	if !ok {
@@ -8098,6 +8339,7 @@ func (ss *shapesState) establishSubpath() *subpath {
 	ss.fresh = false
 	return ss.subpaths[len(ss.subpaths)-1]
 }
+
 func linesBetweenDepths(lines []*textLine, maxDepth, minDepth float64) []*textLine {
 	var lines2 []*textLine
 	for _, line := range lines {
@@ -8113,6 +8355,7 @@ func linesBetweenDepths(lines []*textLine, maxDepth, minDepth float64) []*textLi
 	}
 	return lines2
 }
+
 func (pt *PageText) getText() string {
 	out := ""
 	numMarks := len(pt.marks)
@@ -8130,6 +8373,7 @@ func (pt *PageText) getText() string {
 	}
 	return out
 }
+
 func (wb *wordBag) beginDeferredRemoval() {
 	wb.removed = make(map[*textWord]struct{})
 	wb.removedCount = make(map[int]int, len(wb.bins))

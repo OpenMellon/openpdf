@@ -10,9 +10,10 @@ import (
 	"crypto/rand"
 	"crypto/rc4"
 	"fmt"
+	"io"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core/security"
-	"io"
 )
 
 func init() { registerFilter("AESV2", newFilterAESV2) }
@@ -58,8 +59,10 @@ func (filterAESV3) KeyLength() int { return 256 / 8 }
 
 type filterV2 struct{ keyLength int }
 
-var _ Filter = filterAESV3{}
-var _ Filter = filterAESV2{}
+var (
+	_ Filter = filterAESV3{}
+	_ Filter = filterAESV2{}
+)
 
 // NewFilterAESV3 creates an AES-based filter with a 256 bit key (AESV3).
 func NewFilterAESV3() Filter {
@@ -77,7 +80,6 @@ func init() { registerFilter("AESV3", newFilterAESV3) }
 
 // Filter is a common interface for crypt filter methods.
 type Filter interface {
-
 	// Name returns a name of the filter that should be used in CFM field of Encrypt dictionary.
 	Name() string
 
@@ -113,6 +115,7 @@ func (filterIdentity) Name() string { return "Identity" }
 
 // KeyLength implements Filter interface.
 func (filterAESV2) KeyLength() int { return 128 / 8 }
+
 func (filterAES) DecryptBytes(buf []byte, okey []byte) ([]byte, error) {
 	block, err := aes.NewCipher(okey)
 	if err != nil {
@@ -176,6 +179,7 @@ func NewFilter(d FilterDict) (Filter, error) {
 	}
 	return filter, nil
 }
+
 func registerFilter(name string, ctor filterFunc) {
 	if _, exists := filterRegistry[name]; exists {
 		panic("already registered")
@@ -188,6 +192,7 @@ func init() { registerFilter("V2", newFilterV2) }
 func (filterAESV2) MakeKey(objNum, genNum uint32, ekey []byte) ([]byte, error) {
 	return makeObjectKey(objNum, genNum, ekey, true)
 }
+
 func lookupFilter(name string) (filterFunc, error) {
 	ctor := filterRegistry[name]
 	if ctor == nil {
@@ -213,9 +218,7 @@ func newFilterV2(dict FilterDict) (Filter, error) {
 
 type filterAESV3 struct{ filterAES }
 
-var (
-	filterRegistry = make(map[string]filterFunc)
-)
+var filterRegistry = make(map[string]filterFunc)
 
 func (filterIdentity) MakeKey(objNum, genNum uint32, fkey []byte) ([]byte, error) { return fkey, nil }
 
@@ -234,6 +237,7 @@ func (filterAESV3) Name() string { return "AESV3" }
 
 // Name implements Filter interface.
 func (filterV2) Name() string { return "V2" }
+
 func newFilterAESV3(dict FilterDict) (Filter, error) {
 	if dict.Length == 256 {
 		common.Log.Debug("AESV3 crypt filter length appears to be in bits rather than bytes - assuming bits (%d)", dict.Length)
@@ -306,6 +310,7 @@ func (filterV2) DecryptBytes(buf []byte, okey []byte) ([]byte, error) {
 	}
 	return buf, nil
 }
+
 func (filterAES) EncryptBytes(buf []byte, okey []byte) ([]byte, error) {
 	block, err := aes.NewCipher(okey)
 	if err != nil {

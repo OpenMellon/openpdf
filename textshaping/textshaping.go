@@ -4,9 +4,10 @@
 package textshaping
 
 import (
+	"strings"
+
 	"github.com/OpenMellon/garabic"
 	"golang.org/x/text/unicode/bidi"
-	"strings"
 )
 
 // ArabicShape returns shaped arabic glyphs string.

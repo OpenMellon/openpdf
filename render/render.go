@@ -6,6 +6,19 @@ package render
 import (
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
+	imagedraw "image/draw"
+	"image/jpeg"
+	"image/png"
+	"math"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"sync/atomic"
+
 	"github.com/OpenMellon/openpdf/annotator"
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
@@ -20,18 +33,6 @@ import (
 	"github.com/OpenMellon/openpdf/render/internal/context/imagerender"
 	"github.com/adrg/sysfont"
 	xdraw "golang.org/x/image/draw"
-	"image"
-	"image/color"
-	imagedraw "image/draw"
-	"image/jpeg"
-	"image/png"
-	"math"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
-	"sync"
-	"sync/atomic"
 )
 
 func savePNG(path string, img image.Image) error {
@@ -56,6 +57,7 @@ func tilingBBox(pattern *model.PdfTilingPattern) ([4]float64, error) {
 	}
 	return [4]float64{bbox.Llx, bbox.Lly, bbox.Urx, bbox.Ury}, nil
 }
+
 func (r *renderer) scnPattern(ctx context.Context, scnOp, csOp *contentstream.ContentStreamOperation, cs model.PdfColorspace, color model.PdfColor, res *model.PdfPageResources) (pattern context.Pattern, isShading bool) {
 	if csOp != nil && len(scnOp.Params) > 0 && len(csOp.Params) > 0 {
 		if csName, ok := core.GetName(csOp.Params[0]); ok && csName.String() == "Pattern" {
@@ -145,6 +147,7 @@ func (d *ImageDevice) RenderWithOpts(page *model.PdfPage, skipFlattening bool) (
 	}
 	return img, nil
 }
+
 func (r *renderer) processFunctionShading(ctx context.Context, shading *model.PdfShading, patternMatrix *core.PdfObjectArray) (context.Pattern, *core.PdfObjectArray, error) {
 	fnShading, ok := shading.GetContext().(*model.PdfShadingType1)
 	if !ok {
@@ -211,6 +214,7 @@ func floatVal(f *core.PdfObjectFloat) float64 {
 	}
 	return float64(*f)
 }
+
 func (r *renderer) tilingCell(ctx context.Context, pattern *model.PdfTilingPattern, rgb *model.PdfColorDeviceRGB, bbox [4]float64, sx, sy float64, w, h int) (*image.RGBA, error) {
 	key := tilingCellKey{pattern: pattern.GetContainingPdfObject(), width: w, height: h}
 	if rgb != nil {
@@ -269,9 +273,11 @@ func (r *renderer) tilingCell(ctx context.Context, pattern *model.PdfTilingPatte
 	r.tilingCache[key] = img
 	return img, nil
 }
+
 func (s *meshShadingSpec) vertexBits() int {
 	return 2*s.bitsPerCoordinate + s.numComps*s.bitsPerComponent
 }
+
 func stitchBoundsIn(fns []model.PdfFunction, t0, t1 float64) []float64 {
 	lo, hi := math.Min(t0, t1), math.Max(t0, t1)
 	var bounds []float64
@@ -289,6 +295,7 @@ func stitchBoundsIn(fns []model.PdfFunction, t0, t1 float64) []float64 {
 	sort.Float64s(bounds)
 	return bounds
 }
+
 func systemFontFinder() *sysfont.Finder {
 	if f := systemFontFinderCache.Load(); f != nil {
 		return f
@@ -302,11 +309,13 @@ func systemFontFinder() *sysfont.Finder {
 	systemFontFinderCache.Store(f)
 	return f
 }
+
 func (r *renderer) noteDecodeLimit(err error) {
 	if r.decodeLimitErr == nil && errors.Is(err, core.ErrDecodedSizeLimitExceeded) {
 		r.decodeLimitErr = err
 	}
 }
+
 func (r *renderer) renderContentStream(ctx context.Context, content string, res *model.PdfPageResources) error {
 	return r.renderContentStreamWithBase(ctx, content, res, ctx.Matrix())
 }
@@ -329,6 +338,7 @@ func (r *renderer) processShadingPattern(ctx context.Context, op *contentstream.
 	}
 	return nil, nil
 }
+
 func setFillFromColorspace(ctx context.Context, cs model.PdfColorspace, c model.PdfColor) error {
 	if isPatternColorspace(cs) {
 		return nil
@@ -342,6 +352,7 @@ func setFillFromColorspace(ctx context.Context, cs model.PdfColorspace, c model.
 	}
 	return nil
 }
+
 func fontStyleHints(fontName string, desc *model.PdfFontDescriptor) (bold, italic, serif bool) {
 	lower := strings.ToLower(fontName)
 	if strings.Contains(lower, "italic") || strings.Contains(lower, "oblique") {
@@ -376,6 +387,7 @@ func fontStyleHints(fontName string, desc *model.PdfFontDescriptor) (bold, itali
 	}
 	return bold, italic, serif
 }
+
 func meshFunctionSampler(fns []model.PdfFunction, cs model.PdfColorspace, t0, t1 float64) (imagerender.MeshShadingSampler, error) {
 	lut := make([]color.RGBA, meshLUTSize+1)
 	for i := range lut {
@@ -419,6 +431,7 @@ func matrixOrIdentity(arr *core.PdfObjectArray) transform.Matrix {
 	}
 	return m
 }
+
 func (r *renderer) renderOperations(ctx context.Context, ops *contentstream.ContentStreamOperations, pageRes *model.PdfPageResources, baseMatrix transform.Matrix) error {
 	prevBase := r.baseMatrix
 	r.baseMatrix = baseMatrix
@@ -1449,6 +1462,7 @@ func (r *renderer) renderOperations(ctx context.Context, ops *contentstream.Cont
 	}
 	return r.decodeLimitErr
 }
+
 func tilingRequestFromColor(cs model.PdfColorspace, color model.PdfColor) (tilingPatternRequest, bool) {
 	patCS, ok := cs.(*model.PdfColorspaceSpecialPattern)
 	if !ok {
@@ -1476,6 +1490,7 @@ func tilingRequestFromColor(cs model.PdfColorspace, color model.PdfColor) (tilin
 	}
 	return req, true
 }
+
 func (r *renderer) processShading(ctx context.Context, shading *model.PdfShading, matrix *core.PdfObjectArray) (context.Pattern, *core.PdfObjectArray, error) {
 	switch PdfShadingType(*shading.ShadingType) {
 	case ShadingTypeFunctionBased:
@@ -1490,6 +1505,7 @@ func (r *renderer) processShading(ctx context.Context, shading *model.PdfShading
 	common.Log.Debug(fmt.Sprintf("Processing shading type %d not yet supported", int64(*shading.ShadingType)))
 	return nil, nil, nil
 }
+
 func coonsInteriorPoints(p *[4][4]transform.Point) {
 	for _, ci := range [2]int{0, 3} {
 		for _, cj := range [2]int{0, 3} {
@@ -1499,6 +1515,7 @@ func coonsInteriorPoints(p *[4][4]transform.Point) {
 		}
 	}
 }
+
 func shadingBackground(dict *core.PdfObjectDictionary, cs model.PdfColorspace) color.Color {
 	arr, ok := core.GetArray(dict.Get("BC"))
 	if !ok {
@@ -1539,6 +1556,7 @@ func shadingBackground(dict *core.PdfObjectDictionary, cs model.PdfColorspace) c
 		return color.RGBA{A: 255}
 	}
 }
+
 func (d *meshDecoder) readValue(nbits int, lo, hi float64) (float64, error) {
 	raw, err := d.reader.ReadBits(byte(nbits))
 	if err != nil {
@@ -1547,6 +1565,7 @@ func (d *meshDecoder) readValue(nbits int, lo, hi float64) (float64, error) {
 	maxVal := float64(uint64(1)<<uint(nbits) - 1)
 	return lo + float64(raw)*(hi-lo)/maxVal, nil
 }
+
 func (d *meshDecoder) decodeFreeForm() ([]imagerender.MeshTriangle, error) {
 	vertexBytes := (d.spec.bitsPerFlag + d.spec.vertexBits() + 7) / 8
 	remaining := len(d.spec.data) / vertexBytes
@@ -1594,6 +1613,7 @@ func (d *meshDecoder) decodeFreeForm() ([]imagerender.MeshTriangle, error) {
 	}
 	return tris, nil
 }
+
 func parseMeshShading(shading *model.PdfShading) (*meshShadingSpec, error) {
 	stream, ok := core.GetStream(shading.GetContainingPdfObject())
 	if !ok {
@@ -1677,6 +1697,7 @@ func parseMeshShading(shading *model.PdfShading) (*meshShadingSpec, error) {
 	}
 	return spec, nil
 }
+
 func fontNameCandidates(name string, bold, italic, serif bool) []string {
 	var suffixes []string
 	switch {
@@ -1718,6 +1739,7 @@ func NewImageDevice() *ImageDevice {
 	d := &ImageDevice{renderer: &renderer{}, interpolator: xdraw.BiLinear, glyphCache: imagerender.NewGlyphCache()}
 	return d
 }
+
 func unitToByteRound(v float64) uint8 {
 	switch {
 	case v <= 0:
@@ -1728,6 +1750,7 @@ func unitToByteRound(v float64) uint8 {
 		return uint8(v*255 + 0.5)
 	}
 }
+
 func colorToRGB8(cs model.PdfColorspace, comps []float64) ([3]uint8, error) {
 	c, err := cs.ColorFromFloats(comps)
 	if err != nil {
@@ -1743,6 +1766,7 @@ func colorToRGB8(cs model.PdfColorspace, comps []float64) ([3]uint8, error) {
 	}
 	return [3]uint8{unitToByteRound(devRGB.R()), unitToByteRound(devRGB.G()), unitToByteRound(devRGB.B())}, nil
 }
+
 func (r *renderer) processTilingPattern(ctx context.Context, res *model.PdfPageResources, req tilingPatternRequest) (context.Pattern, error) {
 	pat, ok := res.GetPatternByName(req.name)
 	if !ok || !pat.IsTiling() {
@@ -1782,6 +1806,7 @@ func ResetSharedFontCaches() {
 	systemFontFinderMu.Unlock()
 	fontFileCache.Range(func(key, _ any) bool { fontFileCache.Delete(key); return true })
 }
+
 func buildGradient(g context.Gradient, fns []model.PdfFunction, cs model.PdfColorspace, domain []float64) (context.Gradient, error) {
 	if len(fns) == 0 {
 		return nil, errors.New("no shading function found")
@@ -1818,6 +1843,7 @@ func buildGradient(g context.Gradient, fns []model.PdfFunction, cs model.PdfColo
 	}
 	return g, nil
 }
+
 func functionDomain(arr *core.PdfObjectArray) [4]float64 {
 	if arr != nil {
 		if vals, err := arr.ToFloat64Array(); err == nil && len(vals) == 4 {
@@ -1827,6 +1853,7 @@ func functionDomain(arr *core.PdfObjectArray) [4]float64 {
 	}
 	return [4]float64{0, 1, 0, 1}
 }
+
 func transformedBBox(m transform.Matrix, domain [4]float64) *core.PdfObjectArray {
 	corners := [4][2]float64{{domain[0], domain[2]}, {domain[1], domain[2]}, {domain[1], domain[3]}, {domain[0], domain[3]}}
 	minX, minY := math.Inf(1), math.Inf(1)
@@ -1994,6 +2021,7 @@ func softMaskImage(obj core.PdfObject) (image.Image, error) {
 	}
 	return maskImageToRGBA(img), nil
 }
+
 func colorFromComponents(cs model.PdfColorspace, comps []float64) (color.RGBA, error) {
 	if cs == nil {
 		return color.RGBA{}, errors.New("shading has no color space")
@@ -2108,6 +2136,7 @@ func (d *meshDecoder) decodePatches(maxTriangles int) ([]imagerender.MeshTriangl
 		}
 	}
 }
+
 func clampToByteRounded(v float64) uint8 {
 	if v <= 0 {
 		return 0
@@ -2117,6 +2146,7 @@ func clampToByteRounded(v float64) uint8 {
 	}
 	return uint8(v*255 + 0.5)
 }
+
 func luminanceGray(r, g, b uint8) uint8 {
 	lum := 0.2126*srgbToLinear[r] + 0.7152*srgbToLinear[g] + 0.0722*srgbToLinear[b]
 	idx := int(lum*float64(len(linearToSRGB)-1) + 0.5)
@@ -2127,6 +2157,7 @@ func luminanceGray(r, g, b uint8) uint8 {
 	}
 	return linearToSRGB[idx]
 }
+
 func evalFunctionsColor(fns []model.PdfFunction, cs model.PdfColorspace, in []float64) (color.RGBA, error) {
 	var comps []float64
 	if len(fns) == 1 {
@@ -2146,6 +2177,7 @@ func evalFunctionsColor(fns []model.PdfFunction, cs model.PdfColorspace, in []fl
 	}
 	return colorFromComponents(cs, comps)
 }
+
 func groupColorConverter(cs model.PdfColorspace) context.ColorConverter {
 	if cs == nil {
 		return nil
@@ -2160,6 +2192,7 @@ func groupColorConverter(cs model.PdfColorspace) context.ColorConverter {
 	}
 	return grayColorConverter(cs)
 }
+
 func grayColorConverter(cs model.PdfColorspace) context.ColorConverter {
 	var rgbTable [256][3]uint8
 	var grayTable [256]uint8
@@ -2191,6 +2224,7 @@ func grayColorConverter(cs model.PdfColorspace) context.ColorConverter {
 		return c[0], c[1], c[2]
 	}
 }
+
 func saveJPEG(path string, img image.Image, quality int) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -2230,6 +2264,7 @@ func (s *meshShadingSpec) colorTolerance() float64 {
 	}
 	return math.Abs(s.decode[5]-s.decode[4]) / meshLUTSize
 }
+
 func fontNameMatchesStyle(name string, bold, italic bool) bool {
 	lower := strings.ToLower(name)
 	if bold && !strings.Contains(lower, "bold") {
@@ -2280,6 +2315,7 @@ func (r *renderer) renderContentStreamWithBase(ctx context.Context, content stri
 	}
 	return r.renderOperations(ctx, ops, res, matrix)
 }
+
 func shadingDomain(arr *core.PdfObjectArray) []float64 {
 	if arr != nil {
 		if vals, err := arr.ToFloat64Array(); err == nil && len(vals) == 2 {
@@ -2288,6 +2324,7 @@ func shadingDomain(arr *core.PdfObjectArray) []float64 {
 	}
 	return []float64{0, 1}
 }
+
 func (s *meshShadingSpec) patchBytes(nPoints, nColors int) int {
 	bits := s.bitsPerFlag + nPoints*2*s.bitsPerCoordinate + nColors*s.numComps*s.bitsPerComponent
 	return (bits + 7) / 8
@@ -2352,6 +2389,7 @@ func blendModeFromObject(obj core.PdfObject) context.BlendMode {
 	}
 	return context.BlendModeNormal
 }
+
 func (r *renderer) buildSoftMask(ctx context.Context, obj core.PdfObject, res *model.PdfPageResources) (*image.Alpha, error) {
 	dict, ok := core.GetDict(obj)
 	if !ok {
@@ -2474,10 +2512,12 @@ func (d *meshDecoder) readPoint() (transform.Point, error) {
 	d.trackBounds(x, y)
 	return transform.NewPoint(x, y), nil
 }
+
 func colorRGB8(c color.Color) (r, g, b uint32) {
 	cr, cg, cb, _ := c.RGBA()
 	return cr >> 8, cg >> 8, cb >> 8
 }
+
 func maskImageToRGBA(img *model.Image) image.Image {
 	w, h := int(img.Width), int(img.Height)
 	if w <= 0 || h <= 0 {
@@ -2505,6 +2545,7 @@ func maskImageToRGBA(img *model.Image) image.Image {
 	}
 	return out
 }
+
 func (r *renderer) softMaskGroupColorspace(form *model.XObjectForm) model.PdfColorspace {
 	groupDict, ok := core.GetDict(form.Group)
 	if !ok {
@@ -2513,6 +2554,7 @@ func (r *renderer) softMaskGroupColorspace(form *model.XObjectForm) model.PdfCol
 	cs, _ := r.groupColorspace(groupDict)
 	return cs
 }
+
 func (r *renderer) softMaskTransferLUT(obj core.PdfObject) []uint8 {
 	obj = core.ResolveReference(obj)
 	if obj == nil {
@@ -2545,6 +2587,7 @@ func (r *renderer) softMaskTransferLUT(obj core.PdfObject) []uint8 {
 	}
 	return lut
 }
+
 func applyImageMask(img, mask image.Image, interp xdraw.Interpolator) image.Image {
 	maskSize, imgSize := mask.Bounds().Size(), img.Bounds().Size()
 	w, h := maskSize.X, maskSize.Y
@@ -2569,6 +2612,7 @@ func applyImageMask(img, mask image.Image, interp xdraw.Interpolator) image.Imag
 	xdraw.DrawMask(out, rect, img, image.Point{}, mask, image.Point{}, xdraw.Over)
 	return out
 }
+
 func intIn(v int, set ...int) bool {
 	for _, x := range set {
 		if v == x {
@@ -2577,6 +2621,7 @@ func intIn(v int, set ...int) bool {
 	}
 	return false
 }
+
 func boolPairFromArray(arr *core.PdfObjectArray) (first, second bool) {
 	if arr == nil || arr.Len() != 2 {
 		return false, false
@@ -2588,6 +2633,7 @@ func boolPairFromArray(arr *core.PdfObjectArray) (first, second bool) {
 	}
 	return first, second
 }
+
 func meshColorSampler(fns []model.PdfFunction, cs model.PdfColorspace, decode []float64) (imagerender.MeshShadingSampler, error) {
 	if len(fns) > 0 {
 		return meshFunctionSampler(fns, cs, decode[4], decode[5])
@@ -2624,6 +2670,7 @@ func meshColorSampler(fns []model.PdfFunction, cs model.PdfColorspace, decode []
 		return c, true
 	}, nil
 }
+
 func (d *meshDecoder) readColor() ([]float64, error) {
 	start := len(d.colors)
 	for i := 0; i < d.spec.numComps; i++ {
@@ -2635,6 +2682,7 @@ func (d *meshDecoder) readColor() ([]float64, error) {
 	}
 	return d.colors[start : start+d.spec.numComps : start+d.spec.numComps], nil
 }
+
 func (d *meshDecoder) readVertex() (imagerender.MeshVertex, error) {
 	p, err := d.readPoint()
 	if err != nil {
@@ -2668,6 +2716,7 @@ func (d *ImageDevice) SetInterpolator(interpolator xdraw.Interpolator) {
 	d.interpolator = interpolator
 	d.tilingCache = nil
 }
+
 func (r *renderer) groupColorspace(dict *core.PdfObjectDictionary) (model.PdfColorspace, error) {
 	csObj := dict.Get("CS")
 	if csObj == nil {
@@ -2681,6 +2730,7 @@ func (r *renderer) groupColorspace(dict *core.PdfObjectDictionary) (model.PdfCol
 	}
 	return cs, nil
 }
+
 func stencilMaskImage(img *model.Image, c color.Color) image.Image {
 	w, h := int(img.Width), int(img.Height)
 	out := image.NewRGBA(image.Rect(0, 0, w, h))
@@ -2703,6 +2753,7 @@ func stencilMaskImage(img *model.Image, c color.Color) image.Image {
 	}
 	return out
 }
+
 func (r *renderer) processLinearShading(ctx context.Context, shading *model.PdfShading, matrix *core.PdfObjectArray) (context.Pattern, *core.PdfObjectArray, error) {
 	sh := shading.GetContext().(*model.PdfShadingType2)
 	if len(sh.Function) == 0 {
@@ -2728,6 +2779,7 @@ func (r *renderer) processLinearShading(ctx context.Context, shading *model.PdfS
 	grad, err = buildGradient(grad, sh.Function, cs, shadingDomain(sh.Domain))
 	return grad, bbox, err
 }
+
 func (d *meshDecoder) trackBounds(x, y float64) {
 	if !d.hasBounds {
 		d.bounds = [4]float64{x, x, y, y}
@@ -2747,6 +2799,7 @@ func (d *meshDecoder) trackBounds(x, y float64) {
 		d.bounds[3] = y
 	}
 }
+
 func (r *renderer) processMeshShading(ctx context.Context, shading *model.PdfShading, matrix *core.PdfObjectArray) (context.Pattern, *core.PdfObjectArray, error) {
 	spec, err := parseMeshShading(shading)
 	if err != nil {
@@ -2772,6 +2825,7 @@ func (r *renderer) processMeshShading(ctx context.Context, shading *model.PdfSha
 	pattern := imagerender.NewMeshShading(tris, image.Rect(0, 0, ctx.Width(), ctx.Height()), spec.sampler)
 	return pattern, transformedBBox(patMatrix, dec.bounds), nil
 }
+
 func fillAndStroke(ctx context.Context, gs contentstream.GraphicsState, rule context.FillRule, newSubPath bool) error {
 	if err := setFillFromColorspace(ctx, gs.ColorspaceNonStroking, gs.ColorNonStroking); err != nil {
 		return err
@@ -2787,6 +2841,7 @@ func fillAndStroke(ctx context.Context, gs contentstream.GraphicsState, rule con
 	ctx.Stroke()
 	return nil
 }
+
 func (r *renderer) paintShadingClip(ctx context.Context, shading *model.PdfShading, pattern context.Pattern) {
 	ctx.SavePath()
 	defer ctx.RestorePath()
@@ -2804,6 +2859,7 @@ func (r *renderer) paintShadingClip(ctx context.Context, shading *model.PdfShadi
 	ctx.DrawRectangle(float64(clip.Min.X), float64(clip.Min.Y), float64(clip.Dx()), float64(clip.Dy()))
 	ctx.Fill()
 }
+
 func tilingCellSize(m transform.Matrix, w, h float64) (sx, sy float64, cellW, cellH int) {
 	sx = m.ScalingFactorX()
 	sy = m.ScalingFactorY()
@@ -2823,6 +2879,7 @@ func tilingCellSize(m transform.Matrix, w, h float64) (sx, sy float64, cellW, ce
 	}
 	return float64(cellW) / w, float64(cellH) / h, cellW, cellH
 }
+
 func rotatedBBox(w, h, angle float64) contentdraw.BoundingBox {
 	return contentdraw.Path{Points: []contentdraw.Point{contentdraw.NewPoint(0, 0).Rotate(angle), contentdraw.NewPoint(w, 0).Rotate(angle), contentdraw.NewPoint(0, h).Rotate(angle), contentdraw.NewPoint(w, h).Rotate(angle)}}.GetBoundingBox()
 }
@@ -2877,6 +2934,7 @@ func (r *renderer) processRadialShading(ctx context.Context, shading *model.PdfS
 	}
 	return grad, bbox, nil
 }
+
 func explicitMaskImage(obj core.PdfObject, c color.Color) (image.Image, error) {
 	stream, ok := core.GetStream(obj)
 	if !ok {
@@ -2892,6 +2950,7 @@ func explicitMaskImage(obj core.PdfObject, c color.Color) (image.Image, error) {
 	}
 	return stencilMaskImage(img, c), nil
 }
+
 func setStrokeFromColorspace(ctx context.Context, cs model.PdfColorspace, c model.PdfColor) error {
 	if isPatternColorspace(cs) {
 		return nil
@@ -2905,6 +2964,7 @@ func setStrokeFromColorspace(ctx context.Context, cs model.PdfColorspace, c mode
 	}
 	return nil
 }
+
 func (r *renderer) transparencyGroupAttrs(dict *core.PdfObjectDictionary) context.TransparencyGroup {
 	var group context.TransparencyGroup
 	if isolatedObj, ok := core.GetBool(dict.Get("I")); ok {
@@ -2929,6 +2989,7 @@ func (r *renderer) transparencyGroupAttrs(dict *core.PdfObjectDictionary) contex
 	}
 	return group
 }
+
 func evalFunctionsAt(fns []model.PdfFunction, cs model.PdfColorspace, t float64) (color.RGBA, error) {
 	return evalFunctionsColor(fns, cs, []float64{t})
 }

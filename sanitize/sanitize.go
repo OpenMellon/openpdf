@@ -33,6 +33,7 @@ func (opts SanitizationOpts) dropsAction(kind string) bool {
 	}
 	return false
 }
+
 func collectChainedActionPayloads(object core.PdfObject, collected map[core.PdfObject]struct{}) {
 	switch value := object.(type) {
 	case *core.PdfObjectDictionary:
@@ -54,6 +55,7 @@ func collectChainedActionPayloads(object core.PdfObject, collected map[core.PdfO
 func (sanitizer *Sanitizer) Optimize(objects []core.PdfObject) ([]core.PdfObject, error) {
 	return sanitizer.processObjects(objects)
 }
+
 func countNameTreeEntries(object core.PdfObject, visited map[core.PdfObject]struct{}) (otherCount, totalCount int) {
 	if object == nil {
 		return 0, 0
@@ -97,6 +99,7 @@ func countNameTreeEntries(object core.PdfObject, visited map[core.PdfObject]stru
 	}
 	return otherCount, totalCount
 }
+
 func collectActionPayloads(kind string, dictionary *core.PdfObjectDictionary, collected map[core.PdfObject]struct{}) {
 	switch kind {
 	case "JavaScript", "Rendition":
@@ -108,6 +111,7 @@ func collectActionPayloads(kind string, dictionary *core.PdfObjectDictionary, co
 	}
 	collectChainedActionPayloads(dictionary.Get("Next"), collected)
 }
+
 func (sanitizer *Sanitizer) stripInlineFileSpec(object core.PdfObject, collected map[core.PdfObject]struct{}) {
 	if !sanitizer.options.EmbeddedFiles {
 		return
@@ -116,6 +120,7 @@ func (sanitizer *Sanitizer) stripInlineFileSpec(object core.PdfObject, collected
 		stripFileSpecStreams(dictionary, collected)
 	}
 }
+
 func collectNameTreeArrays(object core.PdfObject, arrays map[*core.PdfObjectArray]struct{}, visited map[core.PdfObject]struct{}) {
 	if object == nil {
 		return
@@ -141,6 +146,7 @@ func collectNameTreeArrays(object core.PdfObject, arrays map[*core.PdfObjectArra
 		}
 	}
 }
+
 func (sanitizer *Sanitizer) analyze(objects []core.PdfObject) {
 	counts := map[string]int{}
 	visited := map[core.PdfObject]struct{}{}
@@ -224,6 +230,7 @@ func (sanitizer *Sanitizer) analyze(objects []core.PdfObject) {
 	}
 	sanitizer.suspiciousCounts = counts
 }
+
 func countActionDictionary(object core.PdfObject, counts map[string]int) bool {
 	dictionary, ok := object.(*core.PdfObjectDictionary)
 	if !ok {
@@ -237,6 +244,7 @@ func countActionDictionary(object core.PdfObject, counts map[string]int) bool {
 	}
 	return true
 }
+
 func hasJavaScriptPayload(dictionary *core.PdfObjectDictionary) bool {
 	payload := dictionary.Get("JS")
 	if _, ok := core.GetStream(payload); ok {
@@ -245,6 +253,7 @@ func hasJavaScriptPayload(dictionary *core.PdfObjectDictionary) bool {
 	_, ok := core.GetString(payload)
 	return ok
 }
+
 func suspiciousActionType(dictionary *core.PdfObjectDictionary) (string, bool) {
 	kind, ok := actionType(dictionary)
 	if !ok {
@@ -258,6 +267,7 @@ func suspiciousActionType(dictionary *core.PdfObjectDictionary) (string, bool) {
 	}
 	return "", false
 }
+
 func (sanitizer *Sanitizer) processObjects(objects []core.PdfObject) ([]core.PdfObject, error) {
 	options := sanitizer.options
 	removed := map[core.PdfObject]struct{}{}
@@ -404,6 +414,7 @@ func (sanitizer *Sanitizer) processObjects(objects []core.PdfObject) ([]core.Pdf
 	sanitizer.analyze(kept)
 	return kept, nil
 }
+
 func collectEmbeddedFileTree(object core.PdfObject, collected map[core.PdfObject]struct{}, visited map[core.PdfObject]struct{}) {
 	if object == nil {
 		return
@@ -442,6 +453,7 @@ func New(opts SanitizationOpts) *Sanitizer { return &Sanitizer{options: opts} }
 func (sanitizer *Sanitizer) GetSuspiciousObjects() map[string]int {
 	return sanitizer.suspiciousCounts
 }
+
 func isPresentNonNull(object core.PdfObject) bool {
 	if object == nil {
 		return false
@@ -449,6 +461,7 @@ func isPresentNonNull(object core.PdfObject) bool {
 	_, isNull := object.(*core.PdfObjectNull)
 	return !isNull
 }
+
 func stripFileSpecStreams(dictionary *core.PdfObjectDictionary, collected map[core.PdfObject]struct{}) {
 	if embedded := dictionary.Get("EF"); embedded != nil {
 		if embeddedDict, ok := core.GetDict(embedded); ok {
@@ -475,6 +488,7 @@ func stripFileSpecStreams(dictionary *core.PdfObjectDictionary, collected map[co
 		dictionary.Remove("RF")
 	}
 }
+
 func (sanitizer *Sanitizer) sanitizeInlineAction(object core.PdfObject, collected map[core.PdfObject]struct{}) bool {
 	dictionary, ok := object.(*core.PdfObjectDictionary)
 	if !ok {
@@ -496,6 +510,7 @@ func (sanitizer *Sanitizer) sanitizeInlineAction(object core.PdfObject, collecte
 	}
 	return false
 }
+
 func clearJavaScript(dictionary *core.PdfObjectDictionary) {
 	payload := dictionary.Get("JS")
 	if stream, ok := core.GetStream(payload); ok {
@@ -507,6 +522,7 @@ func clearJavaScript(dictionary *core.PdfObjectDictionary) {
 		*text = *core.MakeString("")
 	}
 }
+
 func countSuspiciousObjects(object core.PdfObject, counts map[string]int, visited map[core.PdfObject]struct{}) {
 	if object == nil {
 		return
@@ -533,6 +549,7 @@ func countSuspiciousObjects(object core.PdfObject, counts map[string]int, visite
 		}
 	}
 }
+
 func actionType(dictionary *core.PdfObjectDictionary) (string, bool) {
 	name, ok := core.GetName(dictionary.Get("S"))
 	if !ok {
@@ -557,9 +574,11 @@ func actionType(dictionary *core.PdfObjectDictionary) (string, bool) {
 	}
 	return kind, true
 }
+
 func (opts SanitizationOpts) dropsAnyAction() bool {
 	return opts.JavaScript || opts.URI || opts.GoTo || opts.GoToR || opts.Launch || opts.SubmitForm || opts.ImportData || opts.Sound || opts.Movie
 }
+
 func (sanitizer *Sanitizer) removeInlineObjects(object core.PdfObject, collected map[core.PdfObject]struct{}, nameArrays map[*core.PdfObjectArray]struct{}, visited map[core.PdfObject]struct{}) {
 	if object == nil {
 		return
@@ -610,7 +629,6 @@ func (sanitizer *Sanitizer) removeInlineObjects(object core.PdfObject, collected
 
 // SanitizationOpts specifies the objects to be removed during sanitization.
 type SanitizationOpts struct {
-
 	// JavaScript specifies whether JavaScript action should be removed. JavaScript Actions, section 12.6.4.16 of PDF32000_2008
 	// JavaScript embedded in a Rendition action is not covered by this option; it is governed by RenditionJS.
 	JavaScript bool
@@ -672,6 +690,7 @@ func countEmbeddedFileSpec(object core.PdfObject, counts map[string]int) {
 		counts["EmbeddedFiles"]++
 	}
 }
+
 func removeCollectedObjects(object core.PdfObject, collected map[core.PdfObject]struct{}, nameArrays map[*core.PdfObjectArray]struct{}, visited map[core.PdfObject]struct{}) {
 	if object == nil {
 		return
@@ -716,6 +735,7 @@ func removeCollectedObjects(object core.PdfObject, collected map[core.PdfObject]
 		}
 	}
 }
+
 func removeEmbeddedFilesNameTree(catalog *core.PdfObjectDictionary, collected map[core.PdfObject]struct{}, visited map[core.PdfObject]struct{}) {
 	names, ok := core.GetDict(catalog.Get("Names"))
 	if !ok {

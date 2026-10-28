@@ -22,6 +22,7 @@ func readUint32(data []byte, off int) (v uint32, ok bool) {
 	}
 	return binary.BigEndian.Uint32(data[off : off+4]), true
 }
+
 func NewTransform(profile []byte) (*Transform, error) {
 	header, err := parseHeader(profile)
 	if err != nil {
@@ -58,6 +59,7 @@ func (t *Transform) LinearizeChannel(channel int, x float64) float64 {
 		return t.blueTRC(x)
 	}
 }
+
 func parseHeader(data []byte) (iccHeader, error) {
 	if len(data) < headerLen {
 		return iccHeader{}, errShortHeader
@@ -67,6 +69,7 @@ func parseHeader(data []byte) (iccHeader, error) {
 	}
 	return iccHeader{majorVersion: int(data[8]), colorSpace: string(data[16:20]), pcs: string(data[20:24])}, nil
 }
+
 func readS15Fixed16(data []byte, off int) float64 {
 	return float64(int32(binary.BigEndian.Uint32(data[off:off+4]))) / 65536.0
 }
@@ -119,6 +122,7 @@ func (m mat3) mul(o mat3) mat3 {
 	}
 	return out
 }
+
 func parametricCurve(funcType uint16, params []float64) curve {
 	switch funcType {
 	case 0:
@@ -184,6 +188,7 @@ var xyzToLinearSRGB = mat3{{3.2404542, -1.5371385, -0.4985314}, {-0.9692660, 1.8
 func (m mat3) apply(v [3]float64) [3]float64 {
 	return [3]float64{m[0][0]*v[0] + m[0][1]*v[1] + m[0][2]*v[2], m[1][0]*v[0] + m[1][1]*v[1] + m[1][2]*v[2], m[2][0]*v[0] + m[2][1]*v[1] + m[2][2]*v[2]}
 }
+
 func (t *Transform) EncodeLinear(lr, lg, lb float64) (r, g, b float64) {
 	rgb := t.toSRGB.apply([3]float64{lr, lg, lb})
 	return encodeSRGB(rgb[0]), encodeSRGB(rgb[1]), encodeSRGB(rgb[2])
@@ -219,6 +224,7 @@ func safePow(x, exp float64) float64 {
 	}
 	return math.Pow(x, exp)
 }
+
 func encodeSRGB(v float64) float64 {
 	if math.IsNaN(v) || v <= 0 {
 		return 0
@@ -357,6 +363,7 @@ func parseColorants(tags map[string][]byte) (colorants, error) {
 	}
 	return c, nil
 }
+
 func parseTRC(data []byte) (curve, error) {
 	if len(data) < 4 {
 		return nil, errMalformedTRC
@@ -377,6 +384,7 @@ const (
 	headerLen       = 128
 	signatureOffset = 36
 )
+
 const (
 	tagRXYZ = "rXYZ"
 	tagGXYZ = "gXYZ"

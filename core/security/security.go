@@ -19,13 +19,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/internal/stringprep"
-	"github.com/OpenMellon/pkcs7"
 	"hash"
 	"io"
 	"math"
 	"unicode/utf8"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/internal/stringprep"
+	"github.com/OpenMellon/pkcs7"
 )
 
 func (h stdHandlerR4) alg4(key []byte, _ []byte) ([]byte, error) {
@@ -38,6 +39,7 @@ func (h stdHandlerR4) alg4(key []byte, _ []byte) ([]byte, error) {
 	c.XORKeyStream(out, pad)
 	return out, nil
 }
+
 func (x *ecbDecrypter) CryptBlocks(dst, src []byte) {
 	if len(src)%x.blockSize != 0 {
 		common.Log.Error("ERROR: ECB decrypt: input not full blocks")
@@ -121,6 +123,7 @@ func (h stdHandlerR4) GenerateParams(d *StdEncryptDict, opass, upass []byte) ([]
 	}
 	return key, nil
 }
+
 func (h stdHandlerR6) alg11(d *StdEncryptDict, pass []byte) ([]byte, error) {
 	if err := checkFieldLen("alg11", "U", 48, d.U); err != nil {
 		return nil, err
@@ -146,7 +149,6 @@ const pubSecGrantAllBits = pubSecTable24Mask &^ pubSecOwnerBit
 // the crypt-filter dictionary named by /StmF; for V1 and V2 the array is at
 // the top level of the encryption dictionary.
 type PubSecEncryptDict struct {
-
 	// SubFilter names the dictionary layout (one of the PubSecSubFilter*
 	// constants).
 	SubFilter string
@@ -220,8 +222,10 @@ func (h stdHandlerR4) alg5(key []byte, _ []byte) ([]byte, error) {
 	return result, nil
 }
 
-var _ StdHandler = stdHandlerR4{}
-var ErrNotRecipient = errors.New("certificate is not among the recipients of this document")
+var (
+	_               StdHandler = stdHandlerR4{}
+	ErrNotRecipient            = errors.New("certificate is not among the recipients of this document")
+)
 
 func (h stdHandlerR6) alg2aUser(d *StdEncryptDict, pass []byte) ([]byte, Permissions, error) {
 	uHash, err := h.alg11(d, pass)
@@ -236,6 +240,7 @@ func (h stdHandlerR6) alg2aUser(d *StdEncryptDict, pass []byte) ([]byte, Permiss
 	copy(buf[n:], d.U[40:48])
 	return h.alg2aFileKey(d, buf, pass, nil, d.UE, d.P)
 }
+
 func (h stdHandlerR6) alg10(d *StdEncryptDict, key []byte) error {
 	if err := checkFieldLen("alg10", "Key", 32, key); err != nil {
 		return err
@@ -265,6 +270,7 @@ func (h stdHandlerR6) alg10(d *StdEncryptDict, key []byte) error {
 // Normalized returns p with the reserved bits of the P entry set to the
 // values required by the PDF specification.
 func (p Permissions) Normalized() Permissions { return (p | permReservedOnes) &^ permReservedZeros }
+
 func checkFieldLen(fn, field string, want int, data []byte) error {
 	if len(data) < want {
 		return errInvalidField{Func: fn, Field: field, Exp: want, Got: len(data)}
@@ -289,6 +295,7 @@ const (
 	EventDocOpen = AuthEvent("DocOpen")
 	EventEFOpen  = AuthEvent("EFOpen")
 )
+
 const (
 	permReservedOnes  = Permissions(0xFFFFF0C0)
 	permReservedZeros = Permissions(0x3)
@@ -315,9 +322,7 @@ const (
 )
 
 func alg2bHash(input, pass, udata []byte) ([]byte, error) {
-	var (
-		sha256h, sha384h, sha512h hash.Hash
-	)
+	var sha256h, sha384h, sha512h hash.Hash
 	sha256h = sha256.New()
 	kBuf := make([]byte, 64)
 	h0 := sha256h
@@ -380,6 +385,7 @@ func alg2bHash(input, pass, udata []byte) ([]byte, error) {
 	}
 	return K[:32], nil
 }
+
 func (h stdHandlerR6) alg8(d *StdEncryptDict, key []byte, pass []byte) error {
 	if err := checkFieldLen("alg8", "Key", 32, key); err != nil {
 		return err
@@ -419,6 +425,7 @@ func (h stdHandlerR6) alg8(d *StdEncryptDict, key []byte, pass []byte) error {
 	d.UE = UE
 	return nil
 }
+
 func (h stdHandlerR6) alg2aFileKey(d *StdEncryptDict, input, pass, udata, encKey []byte, perm Permissions) ([]byte, Permissions, error) {
 	if err := checkFieldLen("alg2a", "Key", 32, encKey); err != nil {
 		return nil, 0, err
@@ -445,6 +452,7 @@ func (h stdHandlerR6) alg2aFileKey(d *StdEncryptDict, input, pass, udata, encKey
 	}
 	return fileKey, perm, nil
 }
+
 func (h stdHandlerR6) alg2a(d *StdEncryptDict, pass []byte) ([]byte, Permissions, error) {
 	if err := checkFieldLen("alg2a", "O", 48, d.O); err != nil {
 		return nil, 0, err
@@ -510,6 +518,7 @@ func PubSecWrap(seed []byte, perm [4]byte, recipients []*x509.Certificate) ([][]
 	}
 	return [][]byte{content}, nil
 }
+
 func (h stdHandlerR4) alg6(d *StdEncryptDict, pass []byte) ([]byte, error) {
 	var (
 		computed []byte
@@ -561,6 +570,7 @@ func (h stdHandlerR6) alg2aOwner(d *StdEncryptDict, pass []byte) ([]byte, Permis
 	copy(buf[n:], d.U[0:48])
 	return h.alg2aFileKey(d, buf, pass, d.U[0:48], d.OE, PermOwner)
 }
+
 func isPrintableASCII(b []byte) bool {
 	for _, c := range b {
 		if c < 0x20 || c > 0x7e {
@@ -569,6 +579,7 @@ func isPrintableASCII(b []byte) bool {
 	}
 	return true
 }
+
 func (stdHandlerR4) paddedPass(pass []byte) []byte {
 	out := make([]byte, 32)
 	n := copy(out, pass)
@@ -577,6 +588,7 @@ func (stdHandlerR4) paddedPass(pass []byte) []byte {
 	}
 	return out
 }
+
 func (x *ecbEncrypter) CryptBlocks(dst, src []byte) {
 	if len(src)%x.blockSize != 0 {
 		common.Log.Error("ERROR: ECB encrypt: input not full blocks")
@@ -592,6 +604,7 @@ func (x *ecbEncrypter) CryptBlocks(dst, src []byte) {
 		dst = dst[x.blockSize:]
 	}
 }
+
 func newAESCipher(key []byte) (cipher.Block, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -600,6 +613,7 @@ func newAESCipher(key []byte) (cipher.Block, error) {
 	}
 	return block, nil
 }
+
 func repeatFill(buf []byte, size int) {
 	filled := size
 	for filled < len(buf) {
@@ -607,6 +621,7 @@ func repeatFill(buf []byte, size int) {
 		filled *= 2
 	}
 }
+
 func (h stdHandlerR4) alg3Key(R int, pass []byte) []byte {
 	md := md5.New()
 	padded := h.paddedPass(pass)
@@ -692,6 +707,7 @@ func PubSecFileKey(seed []byte, recipients [][]byte, v, lengthBits int, encryptM
 	}
 	return digest[:n]
 }
+
 func (h stdHandlerR6) alg9(d *StdEncryptDict, key []byte, pass []byte) error {
 	if err := checkFieldLen("alg9", "Key", 32, key); err != nil {
 		return err
@@ -776,6 +792,7 @@ func (h stdHandlerR6) alg13(d *StdEncryptDict, key []byte) error {
 	}
 	return nil
 }
+
 func (h stdHandlerR4) alg7(d *StdEncryptDict, pass []byte) ([]byte, error) {
 	key := h.alg3Key(d.R, pass)
 	buf := make([]byte, len(d.O))
@@ -808,6 +825,7 @@ func (h stdHandlerR4) alg7(d *StdEncryptDict, pass []byte) ([]byte, error) {
 	}
 	return userKey, nil
 }
+
 func (h stdHandlerR4) alg3(R int, upass, opass []byte) ([]byte, error) {
 	var key []byte
 	if len(opass) > 0 {
@@ -865,7 +883,6 @@ func (h stdHandlerR6) alg12(d *StdEncryptDict, pass []byte) ([]byte, error) {
 
 // StdHandler is an interface for standard security handlers.
 type StdHandler interface {
-
 	// GenerateParams uses owner and user passwords to set encryption parameters and generate an encryption key.
 	// It assumes that R, P and EncryptMetadata are already set.
 	GenerateParams(d *StdEncryptDict, opass, upass []byte) ([]byte, error)
@@ -879,11 +896,14 @@ type StdHandler interface {
 
 func (x *ecbEncrypter) BlockSize() int { return x.blockSize }
 
-var _ StdHandler = stdHandlerR6{}
-var ErrUnsupportedRecipient = errors.New("a recipient entry of this document uses an unsupported format")
+var (
+	_                       StdHandler = stdHandlerR6{}
+	ErrUnsupportedRecipient            = errors.New("a recipient entry of this document uses an unsupported format")
+)
 
 // NewHandlerR6 creates a new standard security handler for R=5 and R=6.
 func NewHandlerR6() StdHandler { return stdHandlerR6{} }
+
 func prepareAESV3Password(pass []byte) ([]byte, error) {
 	prepared, err := saslPrep(pass)
 	if err != nil {
@@ -897,6 +917,7 @@ func prepareAESV3Password(pass []byte) ([]byte, error) {
 	}
 	return truncatePassword(prepared), nil
 }
+
 func sha256Sum(data []byte) ([]byte, error) {
 	h := sha256.New()
 	h.Write(data)
@@ -1085,12 +1106,14 @@ func (h stdHandlerR4) alg2(d *StdEncryptDict, pass []byte) []byte {
 func (h stdHandlerR6) Authenticate(d *StdEncryptDict, pass []byte) ([]byte, Permissions, error) {
 	return h.alg2a(d, pass)
 }
+
 func (e errInvalidField) Error() string {
 	return fmt.Sprintf("%s: expected %s field to be %d bytes, got %d", e.Func, e.Field, e.Exp, e.Got)
 }
 
 // Allowed checks if a set of permissions can be granted.
 func (p Permissions) Allowed(p2 Permissions) bool { return p&p2 == p2 }
+
 func (h stdHandlerR6) alg2b(R int, input, pass, udata []byte) ([]byte, error) {
 	if R == 5 {
 		return sha256Sum(input)

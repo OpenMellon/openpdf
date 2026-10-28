@@ -9,6 +9,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+	"unicode/utf16"
+	"unicode/utf8"
+
 	"github.com/OpenMellon/go-xmp/models/dc"
 	"github.com/OpenMellon/go-xmp/models/pdf"
 	xmpbase "github.com/OpenMellon/go-xmp/models/xmp_base"
@@ -20,10 +25,6 @@ import (
 	"github.com/OpenMellon/openpdf/model/xmputil/pdfaextension"
 	"github.com/OpenMellon/openpdf/model/xmputil/pdfaid"
 	"github.com/OpenMellon/openpdf/model/xmputil/pdfuaid"
-	"strconv"
-	"time"
-	"unicode/utf16"
-	"unicode/utf8"
 )
 
 func utf32ToUTF8(data []byte, order binary.ByteOrder) []byte {
@@ -135,7 +136,6 @@ type PdfAID struct {
 
 // MediaManagement are the values from the document media management metadata.
 type MediaManagement struct {
-
 	// OriginalDocumentID  as media is imported and projects is started, an original-document ID
 	// must be created to identify a new document. This identifies a document as a conceptual entity.
 	OriginalDocumentID GUID
@@ -325,6 +325,7 @@ func (d *Document) SetPdfUAIDWithRev(part, rev int) error {
 	}
 	return nil
 }
+
 func trimLeadingWhitespace(data []byte) []byte {
 	for _, n := range []int{4, 2, 1} {
 		for len(data) >= n && isWhitespaceRun(data[:n]) {
@@ -543,7 +544,6 @@ func (d *Document) SetMediaManagement(options *MediaManagementOptions) error {
 
 // MediaManagementOptions are the options for the Media management xmp metadata.
 type MediaManagementOptions struct {
-
 	// OriginalDocumentID  as media is imported and projects is started, an original-document ID
 	// must be created to identify a new document. This identifies a document as a conceptual entity.
 	// By default, this value is generated.
@@ -605,6 +605,7 @@ type Document struct {
 // GetGoXmpDocument gets direct access to the go-xmp.Document.
 // All changes done to specified document would result in change of this document 'd'.
 func (d *Document) GetGoXmpDocument() *xmp.Document { return d.doc }
+
 func isWhitespaceRun(data []byte) bool {
 	var seen byte
 	for _, b := range data {
@@ -652,6 +653,7 @@ func (d *Document) SetPdfAIDWithRev(part int, conformance string, rev int) error
 	}
 	return nil
 }
+
 func utf16ToUTF8(data []byte, order binary.ByteOrder) []byte {
 	if len(data)%2 != 0 {
 		return data
@@ -665,6 +667,7 @@ func utf16ToUTF8(data []byte, order binary.ByteOrder) []byte {
 	}
 	return runesToUTF8(utf16.Decode(units))
 }
+
 func runesToUTF8(runes []rune) []byte {
 	var buf bytes.Buffer
 	buf.Grow(len(runes) * utf8.UTFMax)
@@ -673,6 +676,7 @@ func runesToUTF8(runes []rune) []byte {
 	}
 	return buf.Bytes()
 }
+
 func decodePacket(data []byte) ([]byte, string) {
 	data = trimLeadingWhitespace(data)
 	switch {
@@ -697,6 +701,7 @@ func decodePacket(data []byte) ([]byte, string) {
 	}
 	return data, EncodingUTF8
 }
+
 func hasInvalidSurrogates(units []uint16) bool {
 	for i := 0; i < len(units); i++ {
 		switch {

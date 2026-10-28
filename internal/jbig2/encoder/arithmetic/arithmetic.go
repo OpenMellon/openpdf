@@ -5,10 +5,11 @@ package arithmetic
 
 import (
 	"bytes"
+	"io"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/jbig2/bitmap"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
-	"io"
 )
 
 var qeTable = []state{{0x5601, 1, 1, 1}, {0x3401, 2, 6, 0}, {0x1801, 3, 9, 0}, {0x0AC1, 4, 12, 0}, {0x0521, 5, 29, 0}, {0x0221, 38, 33, 0}, {0x5601, 7, 6, 1}, {0x5401, 8, 14, 0}, {0x4801, 9, 14, 0}, {0x3801, 10, 14, 0}, {0x3001, 11, 17, 0}, {0x2401, 12, 18, 0}, {0x1C01, 13, 20, 0}, {0x1601, 29, 21, 0}, {0x5601, 15, 14, 1}, {0x5401, 16, 14, 0}, {0x5101, 17, 15, 0}, {0x4801, 18, 16, 0}, {0x3801, 19, 17, 0}, {0x3401, 20, 18, 0}, {0x3001, 21, 19, 0}, {0x2801, 22, 19, 0}, {0x2401, 23, 20, 0}, {0x2201, 24, 21, 0}, {0x1C01, 25, 22, 0}, {0x1801, 26, 23, 0}, {0x1601, 27, 24, 0}, {0x1401, 28, 25, 0}, {0x1201, 29, 26, 0}, {0x1101, 30, 27, 0}, {0x0AC1, 31, 28, 0}, {0x09C1, 32, 29, 0}, {0x08A1, 33, 30, 0}, {0x0521, 34, 31, 0}, {0x0441, 35, 32, 0}, {0x02A1, 36, 33, 0}, {0x0221, 37, 34, 0}, {0x0141, 38, 35, 0}, {0x0111, 39, 36, 0}, {0x0085, 40, 37, 0}, {0x0049, 41, 38, 0}, {0x0025, 42, 39, 0}, {0x0015, 43, 40, 0}, {0x0009, 44, 41, 0}, {0x0005, 45, 42, 0}, {0x0001, 45, 43, 0}, {0x5601, 46, 46, 0}}
@@ -34,6 +35,7 @@ func (e *Encoder) encodeOOB(class Class) error {
 	}
 	return nil
 }
+
 func (e *Encoder) rBlock() {
 	if e.bytePos >= 0 {
 		e.emit()
@@ -43,6 +45,7 @@ func (e *Encoder) rBlock() {
 	e.creg &= 0xfffff
 	e.ct = 7
 }
+
 func (e *Encoder) codeLPS(ctx *codingContext, idx uint32, qe uint16, stateIdx byte) {
 	e.areg -= qe
 	if e.areg < qe {
@@ -58,11 +61,13 @@ func (e *Encoder) codeLPS(ctx *codingContext, idx uint32, qe uint16, stateIdx by
 }
 func (e *Encoder) DataSize() int { return e.dataSize() }
 
-type Class int
-type codingContext struct {
-	states  []byte
-	mpsBits []byte
-}
+type (
+	Class         int
+	codingContext struct {
+		states  []byte
+		mpsBits []byte
+	}
+)
 
 const (
 	IAAI Class = iota
@@ -124,6 +129,7 @@ func (c Class) String() string {
 		return "UNKNOWN"
 	}
 }
+
 func (e *Encoder) code0(ctx *codingContext, idx uint32, qe uint16, stateIdx byte) {
 	if ctx.mps(idx) == 0 {
 		e.codeMPS(ctx, idx, qe, stateIdx)
@@ -147,6 +153,7 @@ func (e *Encoder) Reset() {
 	e.iaidCtx = nil
 	e.genericCtx = newCodingContext(contextSize)
 }
+
 func (e *Encoder) EncodeBitmap(bm *bitmap.Bitmap, duplicateLineRemoval bool) error {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Encode Bitmap [%dx%d], %s", bm.Width, bm.Height, bm)
@@ -239,6 +246,7 @@ func (e *Encoder) EncodeBitmap(bm *bitmap.Bitmap, duplicateLineRemoval bool) err
 	}
 	return nil
 }
+
 func (e *Encoder) code1(ctx *codingContext, idx uint32, qe uint16, stateIdx byte) {
 	if ctx.mps(idx) == 1 {
 		e.codeMPS(ctx, idx, qe, stateIdx)
@@ -246,6 +254,7 @@ func (e *Encoder) code1(ctx *codingContext, idx uint32, qe uint16, stateIdx byte
 		e.codeLPS(ctx, idx, qe, stateIdx)
 	}
 }
+
 func (e *Encoder) renormalize() {
 	for {
 		e.areg <<= 1
@@ -259,6 +268,7 @@ func (e *Encoder) renormalize() {
 		}
 	}
 }
+
 func (e *Encoder) flush() {
 	e.setBits()
 	e.creg <<= e.ct
@@ -297,6 +307,7 @@ func (e *Encoder) codeMPS(ctx *codingContext, idx uint32, qe uint16, stateIdx by
 	ctx.states[idx] = qeTable[stateIdx].nextMPS
 	e.renormalize()
 }
+
 func (e *Encoder) setBits() {
 	tempC := e.creg + uint32(e.areg)
 	e.creg |= 0xffff
@@ -324,6 +335,7 @@ func (e *Encoder) encodeBit(ctx *codingContext, idx uint32, bit uint8) error {
 	}
 	return nil
 }
+
 func (e *Encoder) encodeInteger(class Class, value int) error {
 	const funcName = "Encoder.encodeInteger"
 	if value > 2000000000 || value < -2000000000 {
@@ -408,9 +420,11 @@ func (e *Encoder) encodeIAID(codeLen, value int) error {
 	}
 	return nil
 }
+
 func newCodingContext(size int) *codingContext {
 	return &codingContext{states: make([]byte, size), mpsBits: make([]byte, size)}
 }
+
 func (e *Encoder) Refine(iTemp, iTarget *bitmap.Bitmap, ox, oy int) error {
 	for y := 0; y < iTarget.Height; y++ {
 		var x int
@@ -500,6 +514,7 @@ func (e *Encoder) Refine(iTemp, iTarget *bitmap.Bitmap, ox, oy int) error {
 	}
 	return nil
 }
+
 func (e *Encoder) EncodeIAID(symbolCodeLength, value int) (err error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Encode IAID. SymbolCodeLength: '%d', Value: '%d'", symbolCodeLength, value)
@@ -509,6 +524,7 @@ func (e *Encoder) EncodeIAID(symbolCodeLength, value int) (err error) {
 	}
 	return nil
 }
+
 func (e *Encoder) WriteTo(w io.Writer) (int64, error) {
 	const funcName = "Encoder.WriteTo"
 	var total int64
@@ -547,6 +563,7 @@ func (e *Encoder) byteOut() {
 	e.creg &= 0x7ffffff
 	e.rBlock()
 }
+
 func (e *Encoder) emit() {
 	if e.chunkLen == chunkSize {
 		e.chunks = append(e.chunks, e.chunk)
@@ -556,6 +573,7 @@ func (e *Encoder) emit() {
 	e.chunk[e.chunkLen] = e.outByte
 	e.chunkLen++
 }
+
 func (e *Encoder) EncodeInteger(proc Class, value int) (err error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Encode Integer:'%d' with Class: '%s'", value, proc)
@@ -587,6 +605,7 @@ func (e *Encoder) Init() {
 	}
 	e.iaidCtx = nil
 }
+
 func (e *Encoder) lBlock() {
 	if e.bytePos >= 0 {
 		e.emit()

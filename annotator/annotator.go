@@ -12,6 +12,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	"math"
+	"strings"
+	"time"
+	"unicode"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
 	contentdraw "github.com/OpenMellon/openpdf/contentstream/draw"
@@ -22,11 +28,6 @@ import (
 	"github.com/OpenMellon/openpdf/internal/timeutils"
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/openpdf/textshaping"
-	"image"
-	"math"
-	"strings"
-	"time"
-	"unicode"
 )
 
 func rectangleAppearance(def RectangleAnnotationDef) (*core.PdfObjectDictionary, *model.PdfRectangle, error) {
@@ -57,6 +58,7 @@ func rectangleAppearance(def RectangleAnnotationDef) (*core.PdfObjectDictionary,
 	apDict.Set("N", form.ToPdfObject())
 	return apDict, rect, nil
 }
+
 func inkAppearanceStream(inkDef *InkAnnotationDef) ([]byte, *model.PdfRectangle, error) {
 	allCurves := [][]contentdraw.CubicBezierCurve{}
 	for _, path := range inkDef.Paths {
@@ -107,6 +109,7 @@ func circleAppearanceStream(def CircleAnnotationDef, gsName string) ([]byte, *mo
 	rect.Ury = def.Y + bbox.Ury
 	return content, bbox, rect, nil
 }
+
 func drawSignatureImage(img image.Image, name string, opts *SignatureFieldOpts, rect []float64, cc *contentstream.ContentCreator) (*core.PdfObjectName, *model.XObjectImage, error) {
 	modelImg, err := model.DefaultImageHandler{}.NewImageFromGoImage(img)
 	if err != nil {
@@ -140,6 +143,7 @@ func drawSignatureImage(img image.Image, name string, opts *SignatureFieldOpts, 
 	}
 	return imgName, xImg, nil
 }
+
 func signatureAppearance(lines []*SignatureLine, opts *SignatureFieldOpts) (*core.PdfObjectDictionary, error) {
 	if opts == nil {
 		opts = NewSignatureFieldOpts()
@@ -339,6 +343,7 @@ func signatureAppearance(lines []*SignatureLine, opts *SignatureFieldOpts) (*cor
 	apDict.Set("N", form.ToPdfObject())
 	return apDict, nil
 }
+
 func lineAppearanceStream(def LineAnnotationDef, gsName string) ([]byte, *model.PdfRectangle, *model.PdfRectangle, error) {
 	line := contentdraw.Line{X1: 0, Y1: 0, X2: def.X2 - def.X1, Y2: def.Y2 - def.Y1, LineColor: def.LineColor, Opacity: def.Opacity, LineWidth: def.LineWidth, LineEndingStyle1: def.LineEndingStyle1, LineEndingStyle2: def.LineEndingStyle2}
 	content, bbox, err := line.Draw(gsName)
@@ -436,6 +441,7 @@ func (s *AppearanceStyle) processDA(field *model.PdfField, ops *contentstream.Co
 	}
 	return font, hasTf, nil
 }
+
 func balanceGraphicsState(ops *contentstream.ContentStreamOperations, content []byte) []byte {
 	if ops == nil {
 		return content
@@ -492,6 +498,7 @@ func CreateInkAnnotation(inkDef InkAnnotationDef) (*model.PdfAnnotation, error) 
 	annot.Rect = core.MakeArrayFromFloats([]float64{rect.Llx, rect.Lly, rect.Urx, rect.Ury})
 	return annot.PdfAnnotation, nil
 }
+
 func textFieldAppearance(widget *model.PdfAnnotationWidget, field *model.PdfFieldText, dr *model.PdfPageResources, style AppearanceStyle) (*core.PdfObjectDictionary, error) {
 	resources := model.NewPdfPageResources()
 	rectArr, ok := core.GetArray(widget.Rect)
@@ -840,6 +847,7 @@ func textFieldAppearance(widget *model.PdfAnnotationWidget, field *model.PdfFiel
 	apDict.Set("N", form.ToPdfObject())
 	return apDict, nil
 }
+
 func drawBorderAndFill(cc *contentstream.ContentCreator, style AppearanceStyle, w, h float64) {
 	cc.Add_q().Add_re(0, 0, w, h).Add_w(style.BorderSize).SetStrokingColor(style.BorderColor).SetNonStrokingColor(style.FillColor).Add_B().Add_Q()
 }
@@ -857,6 +865,7 @@ func (a ImageFieldAppearance) Style() AppearanceStyle {
 	}
 	return AppearanceStyle{BorderSize: 0.0, BorderColor: model.NewPdfColorDeviceGray(0), FillColor: model.NewPdfColorDeviceGray(1), DrawAlignmentReticle: false}
 }
+
 func pushButtonAppearance(form *model.PdfAcroForm, widget *model.PdfAnnotationWidget, field *model.PdfFieldButton, style AppearanceStyle) (*core.PdfObjectDictionary, error) {
 	rectArr, hasRect := core.GetArray(widget.Rect)
 	if !hasRect {
@@ -1023,6 +1032,7 @@ func pushButtonAppearance(form *model.PdfAcroForm, widget *model.PdfAnnotationWi
 	ap.Remove("R")
 	return ap, nil
 }
+
 func signatureLines(sig *model.PdfSignature) []*SignatureLine {
 	if sig == nil {
 		return nil
@@ -1303,7 +1313,6 @@ type CircleAnnotationDef struct {
 // SignatureFieldOpts represents a set of options used to configure
 // an appearance widget dictionary.
 type SignatureFieldOpts struct {
-
 	// Rect represents the area the signature annotation is displayed on.
 	Rect []float64
 
@@ -1367,6 +1376,7 @@ func (s *AppearanceStyle) applyRotation(mk *core.PdfObjectDictionary, w, h float
 	cc.Translate(bounds.X, bounds.Y)
 	return bounds.Width, bounds.Height
 }
+
 func textFieldDA(field *model.PdfField) string {
 	return inheritedString(field, func(f *model.PdfField) (string, bool) {
 		if tf, ok := f.GetContext().(*model.PdfFieldText); ok && tf.DA != nil {
@@ -1378,7 +1388,6 @@ func textFieldDA(field *model.PdfField) string {
 
 // FormResetActionOptions holds options for creating a form reset button.
 type FormResetActionOptions struct {
-
 	// Rectangle holds the button position, size, and color.
 	Rectangle contentdraw.Rectangle
 
@@ -1450,6 +1459,7 @@ func NewTextField(page *model.PdfPage, name string, rect []float64, opt TextFiel
 	tf.Annotations = append(tf.Annotations, widget)
 	return tf, nil
 }
+
 func circleAppearance(def CircleAnnotationDef) (*core.PdfObjectDictionary, *model.PdfRectangle, error) {
 	form := model.NewXObjectForm()
 	form.Resources = model.NewPdfPageResources()
@@ -1566,6 +1576,7 @@ func NewCheckboxField(page *model.PdfPage, name string, rect []float64, opt Chec
 func NewSignatureLine(desc, text string) *SignatureLine {
 	return &SignatureLine{Desc: desc, Text: text}
 }
+
 func rectangleAppearanceStream(def RectangleAnnotationDef, gsName string) ([]byte, *model.PdfRectangle, *model.PdfRectangle, error) {
 	rectangle := contentdraw.Rectangle{X: 0, Y: 0, Width: def.Width, Height: def.Height, FillEnabled: def.FillEnabled, FillColor: def.FillColor, BorderEnabled: def.BorderEnabled, BorderWidth: 2 * def.BorderWidth, BorderColor: def.BorderColor, Opacity: def.Opacity}
 	content, bbox, err := rectangle.Draw(gsName)
@@ -1764,6 +1775,7 @@ func listBoxAppearance(form *model.PdfAcroForm, widget *model.PdfAnnotationWidge
 	apDict.Set("N", xform.ToPdfObject())
 	return apDict, nil
 }
+
 func nameOrString(obj core.PdfObject) (string, bool) {
 	if s, ok := core.GetString(obj); ok {
 		return s.Decoded(), true
@@ -1773,6 +1785,7 @@ func nameOrString(obj core.PdfObject) (string, bool) {
 	}
 	return "", false
 }
+
 func (f *AppearanceFont) fillName() {
 	if f.Font == nil || f.Name != "" {
 		return
@@ -1801,6 +1814,7 @@ func (a ImageFieldAppearance) WrapContentStream(page *model.PdfPage) error {
 	contents := []string{ops.String()}
 	return page.SetContentStreams(contents, newFlateEncoder())
 }
+
 func imageForm(_, _ float64, img *model.Image, _ AppearanceStyle) (*model.XObjectForm, error) {
 	xImg, err := model.NewXObjectImageFromImage(img, nil, core.NewFlateEncoder())
 	if err != nil {
@@ -1822,9 +1836,11 @@ func imageForm(_, _ float64, img *model.Image, _ AppearanceStyle) (*model.XObjec
 	form.SetContentStream(cc.Bytes(), newFlateEncoder())
 	return form, nil
 }
+
 func drawAlignmentReticle(cc *contentstream.ContentCreator, style AppearanceStyle, w, h float64) {
 	cc.Add_q().Add_re(0, 0, w, h).Add_re(0, h/2, w, h/2).Add_re(0, 0, w, h).Add_re(w/2, 0, w/2, h).Add_w(style.BorderSize).SetStrokingColor(style.BorderColor).SetNonStrokingColor(style.FillColor).Add_B().Add_Q()
 }
+
 func selectedOptions(field *model.PdfFieldChoice, options []listboxOption) map[int]bool {
 	selected := map[int]bool{}
 	if field.I != nil {
@@ -1865,6 +1881,7 @@ func selectedOptions(field *model.PdfFieldChoice, options []listboxOption) map[i
 	}
 	return selected
 }
+
 func variableTextDA(field *model.PdfField) string {
 	return inheritedString(field, func(f *model.PdfField) (string, bool) {
 		if f.VariableText != nil && f.VariableText.DA != nil {
@@ -1990,6 +2007,7 @@ func NewFormResetButtonField(page *model.PdfPage, opt FormResetActionOptions) (*
 	}
 	return btn, nil
 }
+
 func checkboxAppearance(widget *model.PdfAnnotationWidget, _ *model.PdfFieldButton, _ *model.PdfPageResources, style AppearanceStyle) (*core.PdfObjectDictionary, error) {
 	rectArr, hasRect := core.GetArray(widget.Rect)
 	if !hasRect {
@@ -2087,6 +2105,7 @@ func checkboxAppearance(widget *model.PdfAnnotationWidget, _ *model.PdfFieldButt
 	apDict.Set("N", states)
 	return apDict, nil
 }
+
 func comboOptionAppearance(field *model.PdfField, w, h float64, text string, style AppearanceStyle, daOps *contentstream.ContentStreamOperations, dr *model.PdfPageResources, mk *core.PdfObjectDictionary) (*model.XObjectForm, error) {
 	resources := model.NewPdfPageResources()
 	formW, formH := w, h
@@ -2329,7 +2348,6 @@ func (fa FieldAppearance) Style() AppearanceStyle {
 // AppearanceFont represents a font used for generating the appearance of a
 // field in the filling/flattening process.
 type AppearanceFont struct {
-
 	// Name represents the name of the font which will be added to the
 	// AcroForm resources (DR).
 	Name string
@@ -2364,7 +2382,6 @@ type TextFieldOptions struct {
 
 // FormSubmitActionOptions holds options for creating a form submit button.
 type FormSubmitActionOptions struct {
-
 	// Rectangle holds the button position, size, and color.
 	Rectangle contentdraw.Rectangle
 
@@ -2431,7 +2448,6 @@ func inheritedString(field *model.PdfField, get func(*model.PdfField) (string, b
 
 // InkAnnotationDef holds base information for constructing an ink annotation.
 type InkAnnotationDef struct {
-
 	// Paths is the array of stroked paths which compose the annotation.
 	Paths []contentdraw.Path
 
@@ -2572,7 +2588,6 @@ func inkAppearance(def *InkAnnotationDef) (*core.PdfObjectDictionary, *model.Pdf
 
 // AppearanceStyle defines style parameters for appearance stream generation.
 type AppearanceStyle struct {
-
 	// How much of Rect height to fill when autosizing text.
 	AutoFontSizeFraction float64
 
@@ -2649,7 +2664,6 @@ func bezierControlPoints(pts []contentdraw.Point) (ctrl1 []contentdraw.Point, ct
 // AppearanceFontStyle defines font style characteristics for form fields,
 // used in the filling/flattening process.
 type AppearanceFontStyle struct {
-
 	// Fallback represents a global font fallback, used for fields which do
 	// not specify a font in their default appearance (DA). The fallback is
 	// also used if there is a font specified in the DA, but it is not
@@ -2710,6 +2724,7 @@ func colorFromOps(ops *contentstream.ContentStreamOperations) model.PdfColor {
 	}
 	return color
 }
+
 func setClippedContent(form *model.XObjectForm, content []byte) error {
 	var bbox []float64
 	if arr, ok := core.GetArray(form.BBox); ok {
@@ -2922,7 +2937,6 @@ const (
 
 // FileAnnotationDef holds base information for constructing an file attachment annotation.
 type FileAnnotationDef struct {
-
 	// Bounding box of the annotation.
 	X      float64
 	Y      float64
@@ -2978,6 +2992,7 @@ func strokeCurves(curves [][]contentdraw.CubicBezierCurve, color *model.PdfColor
 	cc.Add_S().Add_Q()
 	return cc.Bytes(), path.GetBoundingBox().ToPdfRectangle(), nil
 }
+
 func findTfInAP(ap core.PdfObject, dr *model.PdfPageResources) (*core.PdfObjectName, float64, bool) {
 	var (
 		fontName *core.PdfObjectName
@@ -3021,7 +3036,6 @@ func findTfInAP(ap core.PdfObject, dr *model.PdfPageResources) (*core.PdfObjectN
 
 // ComboboxFieldOptions defines optional parameters for a combobox form field.
 type ComboboxFieldOptions struct {
-
 	// Choices is the list of string values that can be selected.
 	Choices []string
 }
@@ -3086,6 +3100,7 @@ func imageButtonAppearance(btn *model.PdfFieldButton, widget *model.PdfAnnotatio
 	apDict.Set("N", form.ToPdfObject())
 	return apDict, nil
 }
+
 func daWithColor(tf *model.PdfFieldText, color model.PdfColor) (*core.PdfObjectString, error) {
 	ops := contentstream.ContentStreamOperations{}
 	da := textFieldDA(tf.PdfField)
@@ -3111,6 +3126,7 @@ func daWithColor(tf *model.PdfFieldText, color model.PdfColor) (*core.PdfObjectS
 	s = strings.Trim(s, " ")
 	return core.MakeHexString(s), nil
 }
+
 func lineAppearance(def LineAnnotationDef) (*core.PdfObjectDictionary, *model.PdfRectangle, error) {
 	form := model.NewXObjectForm()
 	form.Resources = model.NewPdfPageResources()
@@ -3141,6 +3157,7 @@ func lineAppearance(def LineAnnotationDef) (*core.PdfObjectDictionary, *model.Pd
 
 // SetStyle applies appearance `style` to `fa`.
 func (fa *FieldAppearance) SetStyle(style AppearanceStyle) { fa.style = &style }
+
 func comboBoxAppearance(form *model.PdfAcroForm, widget *model.PdfAnnotationWidget, choice *model.PdfFieldChoice, style AppearanceStyle) (*core.PdfObjectDictionary, error) {
 	rectArr, hasRect := core.GetArray(widget.Rect)
 	if !hasRect {
@@ -3190,6 +3207,7 @@ func comboBoxAppearance(form *model.PdfAcroForm, widget *model.PdfAnnotationWidg
 	apDict.Set("N", states)
 	return apDict, nil
 }
+
 func isClippedTo(ops *contentstream.ContentStreamOperations, x, y, w, h float64) bool {
 	if ops == nil || len(*ops) < 5 {
 		return false
@@ -3220,6 +3238,7 @@ func isClippedTo(ops *contentstream.ContentStreamOperations, x, y, w, h float64)
 	}
 	return depth == 0
 }
+
 func (s *AppearanceStyle) applyAppearanceCharacteristics(mk *core.PdfObjectDictionary, bs *core.PdfObjectDictionary, font *model.PdfFont) error {
 	if !s.AllowMK {
 		return nil

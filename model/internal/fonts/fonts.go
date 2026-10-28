@@ -8,6 +8,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+	"os"
+	"regexp"
+	"sort"
+	"strings"
+	"sync"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/cmap"
@@ -18,13 +26,6 @@ import (
 	"github.com/OpenMellon/typesetting/font/opentype/tables"
 	"github.com/OpenMellon/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
-	"io"
-	"math"
-	"os"
-	"regexp"
-	"sort"
-	"strings"
-	"sync"
 )
 
 func courierBoldObliqueFont() StdFont {
@@ -32,6 +33,7 @@ func courierBoldObliqueFont() StdFont {
 	desc := Descriptor{Name: CourierBoldObliqueName, Family: string(CourierName), Weight: FontWeightBold, Flags: 0x0061, BBox: [4]float64{-57, -250, 869, 801}, ItalicAngle: -12, Ascent: 629, Descent: -157, CapHeight: 562, XHeight: 439, StemV: 106, StemH: 84}
 	return NewStdFont(desc, courierBoldObliqueMetrics)
 }
+
 func buildCFF(parsed *cffParsed, charStrings [][]byte, charset []uint16, fdSelect []byte) ([]byte, error) {
 	stringIndex := encodeIndex(parsed.strings)
 	globalSubrIndex := encodeIndex(parsed.globalSubrs)
@@ -131,6 +133,7 @@ func buildCFF(parsed *cffParsed, charStrings [][]byte, charset []uint16, fdSelec
 	}
 	return out.Bytes(), nil
 }
+
 func initCourierMetrics() {
 	const courierGlyphWidth = 600
 	courierMetrics = MakeRuneCharSafeMap(len(stdRunes))
@@ -149,6 +152,7 @@ func (m *RuneCharSafeMap) Copy() *RuneCharSafeMap {
 	m.Range(func(r rune, metrics CharMetrics) (stop bool) { cp.m[r] = metrics; return false })
 	return cp
 }
+
 func (p *ttfParser) Parse() (TtfType, error) {
 	version, err := p.ReadStr(4)
 	if err != nil {
@@ -194,8 +198,10 @@ type Font interface {
 	GetRuneMetrics(r rune) (CharMetrics, bool)
 }
 
-var helveticaBoldMetrics *RuneCharSafeMap
-var timesBoldMetrics *RuneCharSafeMap
+var (
+	helveticaBoldMetrics *RuneCharSafeMap
+	timesBoldMetrics     *RuneCharSafeMap
+)
 
 func (f *OtfType) GetGlyphExtents(glyphID font.GID) (font.GlyphExtents, bool) {
 	if f.Face != nil {
@@ -203,9 +209,11 @@ func (f *OtfType) GetGlyphExtents(glyphID font.GID) (font.GlyphExtents, bool) {
 	}
 	return font.GlyphExtents{}, false
 }
+
 func (ttf *TtfType) String() string {
 	return fmt.Sprintf("FONT_FILE2{%#q UnitsPerEm=%d Bold=%t ItalicAngle=%f "+"CapHeight=%d Chars=%d GlyphNames=%d}", ttf.PostScriptName, ttf.UnitsPerEm, ttf.Bold, ttf.ItalicAngle, ttf.CapHeight, len(ttf.Chars), len(ttf.GlyphNames))
 }
+
 func (p *ttfParser) parseCmapFormat12() error {
 	numGroups := p.ReadULong()
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
@@ -231,6 +239,7 @@ func (p *ttfParser) parseCmapFormat12() error {
 	}
 	return nil
 }
+
 func initHelveticaMetrics() {
 	helveticaMetrics = MakeRuneCharSafeMap(len(stdRunes))
 	helveticaBoldMetrics = MakeRuneCharSafeMap(len(stdRunes))
@@ -273,6 +282,7 @@ func (p *ttfParser) Seek(tag string) error {
 	p.reader.Seek(int64(offset), io.SeekStart)
 	return nil
 }
+
 func (p *otfParser) parsePost() error {
 	table := p.readTable("post")
 	if L := len(table); L < 32 {
@@ -303,6 +313,7 @@ func (p *otfParser) parsePost() error {
 	}
 	return nil
 }
+
 func timesBoldItalicFont() StdFont {
 	timesOnce.Do(initTimesMetrics)
 	desc := Descriptor{Name: TimesBoldItalicName, Family: timesFamily, Weight: FontWeightBold, Flags: 0x0060, BBox: [4]float64{-200, -218, 996, 921}, ItalicAngle: -15, Ascent: 683, Descent: -217, CapHeight: 669, XHeight: 462, StemV: 121, StemH: 42}
@@ -377,6 +388,7 @@ func (m *RuneCharSafeMap) Range(f func(r rune, metrics CharMetrics) (stop bool))
 		}
 	}
 }
+
 func (p *otfParser) parseHead() error {
 	p.otf.UnitsPerEm = p.font.Upem()
 	head, _, err := tables.ParseHead(p.readTable("head"))
@@ -390,6 +402,7 @@ func (p *otfParser) parseHead() error {
 	p.otf.Ymax = head.YMax
 	return nil
 }
+
 func (p *ttfParser) ReadShort() (v int16) {
 	binary.Read(p.reader, binary.BigEndian, &v)
 	return v
@@ -403,11 +416,13 @@ func (f StdFont) ToPdfObject() core.PdfObject {
 	dict.Set("Encoding", f.encoder.ToPdfObject())
 	return core.MakeIndirectObject(dict)
 }
+
 func (m *RuneCharSafeMap) Length() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return len(m.m)
 }
+
 func helveticaObliqueFont() StdFont {
 	helveticaOnce.Do(initHelveticaMetrics)
 	desc := Descriptor{Name: HelveticaObliqueName, Family: string(HelveticaName), Weight: FontWeightMedium, Flags: 0x0060, BBox: [4]float64{-170, -225, 1116, 931}, ItalicAngle: -12, Ascent: 718, Descent: -207, CapHeight: 718, XHeight: 523, StemV: 88, StemH: 76}
@@ -424,6 +439,7 @@ func encodeCharset(charset []uint16) []byte {
 	}
 	return buf.Bytes()
 }
+
 func (m *fontMap) write(name StdFontName, builder func() StdFont) {
 	m.Lock()
 	defer m.Unlock()
@@ -484,9 +500,11 @@ func parseDictOperand(b []byte) (int32, int) {
 	}
 	return 0, 1
 }
+
 func (ttf *TtfType) NewEncoder() textencoding.TextEncoder {
 	return textencoding.NewTrueTypeFontEncoder(ttf.Chars)
 }
+
 func (p *otfParser) parseCmap() error {
 	p.otf.Chars = map[rune]GID{}
 	it := p.font.Cmap.Iter()
@@ -496,6 +514,7 @@ func (p *otfParser) parseCmap() error {
 	}
 	return nil
 }
+
 func RegisterStdFont(name StdFontName, fnc func() StdFont, aliases ...StdFontName) {
 	if _, found := stdFonts.read(name); found {
 		panic("font already registered: " + string(name))
@@ -531,6 +550,7 @@ func (f *OtfType) ShapeText(text string, fontSize float64) shaping.Line {
 	}
 	return textencoding.ShapeTextLine(f.Face, text, fontSize)
 }
+
 func (f *OtfType) IsColorGlyph(glyphID font.GID) bool {
 	if f.Face != nil {
 		data := f.Face.GlyphData(glyphID)
@@ -543,6 +563,7 @@ func (f *OtfType) IsColorGlyph(glyphID font.GID) bool {
 	}
 	return false
 }
+
 func writeOffset(buf *bytes.Buffer, size byte, v int) {
 	switch size {
 	case 1:
@@ -578,9 +599,11 @@ func offsetSize(v int) byte {
 	return 4
 }
 
-var stdRunes = []rune{'A', 'Æ', 'Á', 'Ă', 'Â', 'Ä', 'À', 'Ā', 'Ą', 'Å', 'Ã', 'B', 'C', 'Ć', 'Č', 'Ç', 'D', 'Ď', 'Đ', '∆', 'E', 'É', 'Ě', 'Ê', 'Ë', 'Ė', 'È', 'Ē', 'Ę', 'Ð', '€', 'F', 'G', 'Ğ', 'Ģ', 'H', 'I', 'Í', 'Î', 'Ï', 'İ', 'Ì', 'Ī', 'Į', 'J', 'K', 'Ķ', 'L', 'Ĺ', 'Ľ', 'Ļ', 'Ł', 'M', 'N', 'Ń', 'Ň', 'Ņ', 'Ñ', 'O', 'Œ', 'Ó', 'Ô', 'Ö', 'Ò', 'Ő', 'Ō', 'Ø', 'Õ', 'P', 'Q', 'R', 'Ŕ', 'Ř', 'Ŗ', 'S', 'Ś', 'Š', 'Ş', 'Ș', 'T', 'Ť', 'Ţ', 'Þ', 'U', 'Ú', 'Û', 'Ü', 'Ù', 'Ű', 'Ū', 'Ų', 'Ů', 'V', 'W', 'X', 'Y', 'Ý', 'Ÿ', 'Z', 'Ź', 'Ž', 'Ż', 'a', 'á', 'ă', 'â', '´', 'ä', 'æ', 'à', 'ā', '&', 'ą', 'å', '^', '~', '*', '@', 'ã', 'b', '\\', '|', '{', '}', '[', ']', '˘', '¦', '•', 'c', 'ć', 'ˇ', 'č', 'ç', '¸', '¢', 'ˆ', ':', ',', '\uf6c3', '©', '¤', 'd', '†', '‡', 'ď', 'đ', '°', '¨', '÷', '$', '˙', 'ı', 'e', 'é', 'ě', 'ê', 'ë', 'ė', 'è', '8', '…', 'ē', '—', '–', 'ę', '=', 'ð', '!', '¡', 'f', 'ﬁ', '5', 'ﬂ', 'ƒ', '4', '⁄', 'g', 'ğ', 'ģ', 'ß', '`', '>', '≥', '«', '»', '‹', '›', 'h', '˝', '-', 'i', 'í', 'î', 'ï', 'ì', 'ī', 'į', 'j', 'k', 'ķ', 'l', 'ĺ', 'ľ', 'ļ', '<', '≤', '¬', '◊', 'ł', 'm', '¯', '−', 'µ', '×', 'n', 'ń', 'ň', 'ņ', '9', '≠', 'ñ', '#', 'o', 'ó', 'ô', 'ö', 'œ', '˛', 'ò', 'ő', 'ō', '1', '½', '¼', '¹', 'ª', 'º', 'ø', 'õ', 'p', '¶', '(', ')', '∂', '%', '.', '·', '‰', '+', '±', 'q', '?', '¿', '"', '„', '“', '”', '‘', '’', '‚', '\'', 'r', 'ŕ', '√', 'ř', 'ŗ', '®', '˚', 's', 'ś', 'š', 'ş', 'ș', '§', ';', '7', '6', '/', ' ', '£', '∑', 't', 'ť', 'ţ', 'þ', '3', '¾', '³', '˜', '™', '2', '²', 'u', 'ú', 'û', 'ü', 'ù', 'ű', 'ū', '_', 'ų', 'ů', 'v', 'w', 'x', 'y', 'ý', 'ÿ', '¥', 'z', 'ź', 'ž', 'ż', '0'}
-var stdFonts = &fontMap{builders: make(map[StdFontName]func() StdFont)}
-var helveticaOnce sync.Once
+var (
+	stdRunes      = []rune{'A', 'Æ', 'Á', 'Ă', 'Â', 'Ä', 'À', 'Ā', 'Ą', 'Å', 'Ã', 'B', 'C', 'Ć', 'Č', 'Ç', 'D', 'Ď', 'Đ', '∆', 'E', 'É', 'Ě', 'Ê', 'Ë', 'Ė', 'È', 'Ē', 'Ę', 'Ð', '€', 'F', 'G', 'Ğ', 'Ģ', 'H', 'I', 'Í', 'Î', 'Ï', 'İ', 'Ì', 'Ī', 'Į', 'J', 'K', 'Ķ', 'L', 'Ĺ', 'Ľ', 'Ļ', 'Ł', 'M', 'N', 'Ń', 'Ň', 'Ņ', 'Ñ', 'O', 'Œ', 'Ó', 'Ô', 'Ö', 'Ò', 'Ő', 'Ō', 'Ø', 'Õ', 'P', 'Q', 'R', 'Ŕ', 'Ř', 'Ŗ', 'S', 'Ś', 'Š', 'Ş', 'Ș', 'T', 'Ť', 'Ţ', 'Þ', 'U', 'Ú', 'Û', 'Ü', 'Ù', 'Ű', 'Ū', 'Ų', 'Ů', 'V', 'W', 'X', 'Y', 'Ý', 'Ÿ', 'Z', 'Ź', 'Ž', 'Ż', 'a', 'á', 'ă', 'â', '´', 'ä', 'æ', 'à', 'ā', '&', 'ą', 'å', '^', '~', '*', '@', 'ã', 'b', '\\', '|', '{', '}', '[', ']', '˘', '¦', '•', 'c', 'ć', 'ˇ', 'č', 'ç', '¸', '¢', 'ˆ', ':', ',', '\uf6c3', '©', '¤', 'd', '†', '‡', 'ď', 'đ', '°', '¨', '÷', '$', '˙', 'ı', 'e', 'é', 'ě', 'ê', 'ë', 'ė', 'è', '8', '…', 'ē', '—', '–', 'ę', '=', 'ð', '!', '¡', 'f', 'ﬁ', '5', 'ﬂ', 'ƒ', '4', '⁄', 'g', 'ğ', 'ģ', 'ß', '`', '>', '≥', '«', '»', '‹', '›', 'h', '˝', '-', 'i', 'í', 'î', 'ï', 'ì', 'ī', 'į', 'j', 'k', 'ķ', 'l', 'ĺ', 'ľ', 'ļ', '<', '≤', '¬', '◊', 'ł', 'm', '¯', '−', 'µ', '×', 'n', 'ń', 'ň', 'ņ', '9', '≠', 'ñ', '#', 'o', 'ó', 'ô', 'ö', 'œ', '˛', 'ò', 'ő', 'ō', '1', '½', '¼', '¹', 'ª', 'º', 'ø', 'õ', 'p', '¶', '(', ')', '∂', '%', '.', '·', '‰', '+', '±', 'q', '?', '¿', '"', '„', '“', '”', '‘', '’', '‚', '\'', 'r', 'ŕ', '√', 'ř', 'ŗ', '®', '˚', 's', 'ś', 'š', 'ş', 'ș', '§', ';', '7', '6', '/', ' ', '£', '∑', 't', 'ť', 'ţ', 'þ', '3', '¾', '³', '˜', '™', '2', '²', 'u', 'ú', 'û', 'ü', 'ù', 'ű', 'ū', '_', 'ų', 'ů', 'v', 'w', 'x', 'y', 'ý', 'ÿ', '¥', 'z', 'ź', 'ž', 'ż', '0'}
+	stdFonts      = &fontMap{builders: make(map[StdFontName]func() StdFont)}
+	helveticaOnce sync.Once
+)
 
 func helveticaFont() StdFont {
 	helveticaOnce.Do(initHelveticaMetrics)
@@ -610,10 +633,12 @@ func (p *ttfParser) ParseOS2() error {
 	}
 	return nil
 }
+
 func (f StdFont) GetRuneMetrics(r rune) (CharMetrics, bool) {
 	metrics, ok := f.metrics.Read(r)
 	return metrics, ok
 }
+
 func (p *ttfParser) ParseCmap() error {
 	var offset int64
 	if err := p.Seek("cmap"); err != nil {
@@ -656,6 +681,7 @@ func (p *ttfParser) ParseCmap() error {
 	}
 	return nil
 }
+
 func tableChecksum(data []byte) uint32 {
 	var sum uint32
 	for i := 0; i+4 <= len(data); i += 4 {
@@ -663,11 +689,13 @@ func tableChecksum(data []byte) uint32 {
 	}
 	return sum
 }
+
 func (p *ttfParser) Read32Fixed() float64 {
 	whole := float64(p.ReadShort())
 	frac := float64(p.ReadUShort()) / 65536.0
 	return whole + frac
 }
+
 func NewStdFontByName(name StdFontName) (StdFont, bool) {
 	build, ok := stdFonts.read(name)
 	if !ok {
@@ -675,6 +703,7 @@ func NewStdFontByName(name StdFontName) (StdFont, bool) {
 	}
 	return build(), true
 }
+
 func (p *otfParser) parseHmtx() error {
 	hmtx, _, err := tables.ParseHmtx(p.readTable("hmtx"), int(p.numHMetrics), int(p.numGlyphs)-int(p.numHMetrics))
 	if err != nil {
@@ -685,6 +714,7 @@ func (p *otfParser) parseHmtx() error {
 	}
 	return nil
 }
+
 func (p *ttfParser) parseTTC() (TtfType, error) {
 	p.Skip(2 * 2)
 	numFonts := p.ReadULong()
@@ -729,6 +759,7 @@ func NewFontFile2FromPdfObject(obj core.PdfObject) (TtfType, error) {
 	parser := ttfParser{reader: bytes.NewReader(data)}
 	return parser.Parse()
 }
+
 func SubsetCFF(cffData []byte, keepGIDs []uint16) ([]byte, error) {
 	parsed, err := parseCFF(cffData)
 	if err != nil {
@@ -769,6 +800,7 @@ func SubsetCFF(cffData []byte, keepGIDs []uint16) ([]byte, error) {
 	}
 	return buildCFF(parsed, charStrings, charset, fdSelect)
 }
+
 func (p *ttfParser) parseCmapSubtable10(offset int64) error {
 	if p.ttf.Chars == nil {
 		p.ttf.Chars = make(map[rune]GID)
@@ -803,6 +835,7 @@ func (p *ttfParser) parseCmapSubtable10(offset int64) error {
 	}
 	return nil
 }
+
 func encodeOperator(op int, escape bool) []byte {
 	if escape {
 		return []byte{12, byte(op)}
@@ -835,6 +868,7 @@ func (p *otfParser) parseHhea() error {
 	p.numHMetrics = hhea.NumOfLongMetrics
 	return nil
 }
+
 func courierObliqueFont() StdFont {
 	courierOnce.Do(initCourierMetrics)
 	desc := Descriptor{Name: CourierObliqueName, Family: string(CourierName), Weight: FontWeightMedium, Flags: 0x0061, BBox: [4]float64{-27, -250, 849, 805}, ItalicAngle: -12, Ascent: 629, Descent: -157, CapHeight: 562, XHeight: 426, StemV: 51, StemH: 51}
@@ -876,6 +910,7 @@ func (p *ttfParser) ReadUShort() (v uint16) {
 	binary.Read(p.reader, binary.BigEndian, &v)
 	return v
 }
+
 func (p *ttfParser) parseCmapVersion(offset int64) error {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("parseCmapVersion: offset=%d", offset)
@@ -907,6 +942,7 @@ func (p *ttfParser) parseCmapVersion(offset int64) error {
 		return nil
 	}
 }
+
 func (p *ttfParser) ReadULong() (v uint32) {
 	binary.Read(p.reader, binary.BigEndian, &v)
 	return v
@@ -928,10 +964,12 @@ type cffParsed struct {
 func (f *OtfType) NewEncoder() textencoding.TextEncoder {
 	return textencoding.NewOpenTypeFontEncoder(f.Face, f.Chars)
 }
+
 func (p *ttfParser) ReadSByte() (v int8) {
 	binary.Read(p.reader, binary.BigEndian, &v)
 	return v
 }
+
 func init() {
 	RegisterStdFont(CourierName, courierFont, "CourierCourierNew", "CourierNew")
 	RegisterStdFont(CourierBoldName, courierBoldFont, "CourierNew,Bold")
@@ -998,17 +1036,20 @@ func (m *RuneCharSafeMap) Write(b rune, r CharMetrics) {
 	defer m.mu.Unlock()
 	m.m[b] = r
 }
+
 func timesItalicFont() StdFont {
 	timesOnce.Do(initTimesMetrics)
 	desc := Descriptor{Name: TimesItalicName, Family: timesFamily, Weight: FontWeightMedium, Flags: 0x0060, BBox: [4]float64{-169, -217, 1010, 883}, ItalicAngle: -15.5, Ascent: 683, Descent: -217, CapHeight: 653, XHeight: 441, StemV: 76, StemH: 32}
 	return NewStdFont(desc, timesItalicMetrics)
 }
+
 func init() {
 	RegisterStdFont(HelveticaName, helveticaFont, "Arial")
 	RegisterStdFont(HelveticaBoldName, helveticaBoldFont, "Arial,Bold")
 	RegisterStdFont(HelveticaObliqueName, helveticaObliqueFont, "Arial,Italic")
 	RegisterStdFont(HelveticaBoldObliqueName, helveticaBoldObliqueFont, "Arial,BoldItalic")
 }
+
 func (p *ttfParser) ParseHead() error {
 	if err := p.Seek("head"); err != nil {
 		return err
@@ -1027,6 +1068,7 @@ func (p *ttfParser) ParseHead() error {
 	p.ttf.Ymax = p.ReadShort()
 	return nil
 }
+
 func (p *otfParser) parseName() error {
 	name, _, err := tables.ParseName(p.readTable("name"))
 	if err != nil {
@@ -1060,8 +1102,10 @@ func (m *RuneCharSafeMap) Read(b rune) (CharMetrics, bool) {
 	return metrics, ok
 }
 
-var timesItalicWidths = []int16{611, 889, 611, 611, 611, 611, 611, 611, 611, 611, 611, 611, 667, 667, 667, 667, 722, 722, 722, 612, 611, 611, 611, 611, 611, 611, 611, 611, 611, 722, 500, 611, 722, 722, 722, 722, 333, 333, 333, 333, 333, 333, 333, 333, 444, 667, 667, 556, 556, 611, 556, 556, 833, 667, 667, 667, 667, 667, 722, 944, 722, 722, 722, 722, 722, 722, 722, 722, 611, 722, 611, 611, 611, 611, 500, 500, 500, 500, 500, 556, 556, 556, 611, 722, 722, 722, 722, 722, 722, 722, 722, 722, 611, 833, 611, 556, 556, 556, 556, 556, 556, 556, 500, 500, 500, 500, 333, 500, 667, 500, 500, 778, 500, 500, 422, 541, 500, 920, 500, 500, 278, 275, 400, 400, 389, 389, 333, 275, 350, 444, 444, 333, 444, 444, 333, 500, 333, 333, 250, 250, 760, 500, 500, 500, 500, 544, 500, 400, 333, 675, 500, 333, 278, 444, 444, 444, 444, 444, 444, 444, 500, 889, 444, 889, 500, 444, 675, 500, 333, 389, 278, 500, 500, 500, 500, 500, 167, 500, 500, 500, 500, 333, 675, 549, 500, 500, 333, 333, 500, 333, 333, 278, 278, 278, 278, 278, 278, 278, 278, 444, 444, 278, 278, 300, 278, 675, 549, 675, 471, 278, 722, 333, 675, 500, 675, 500, 500, 500, 500, 500, 549, 500, 500, 500, 500, 500, 500, 667, 333, 500, 500, 500, 500, 750, 750, 300, 276, 310, 500, 500, 500, 523, 333, 333, 476, 833, 250, 250, 1000, 675, 675, 500, 500, 500, 420, 556, 556, 556, 333, 333, 333, 214, 389, 389, 453, 389, 389, 760, 333, 389, 389, 389, 389, 389, 500, 333, 500, 500, 278, 250, 500, 600, 278, 300, 278, 500, 500, 750, 300, 333, 980, 500, 300, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 444, 667, 444, 444, 444, 444, 500, 389, 389, 389, 389, 500}
-var symbolMetrics = &RuneCharSafeMap{m: map[rune]CharMetrics{' ': {Wx: 250}, '!': {Wx: 333}, '#': {Wx: 500}, '%': {Wx: 833}, '&': {Wx: 778}, '(': {Wx: 333}, ')': {Wx: 333}, '+': {Wx: 549}, ',': {Wx: 250}, '.': {Wx: 250}, '/': {Wx: 278}, '0': {Wx: 500}, '1': {Wx: 500}, '2': {Wx: 500}, '3': {Wx: 500}, '4': {Wx: 500}, '5': {Wx: 500}, '6': {Wx: 500}, '7': {Wx: 500}, '8': {Wx: 500}, '9': {Wx: 500}, ':': {Wx: 278}, ';': {Wx: 278}, '<': {Wx: 549}, '=': {Wx: 549}, '>': {Wx: 549}, '?': {Wx: 444}, '[': {Wx: 333}, ']': {Wx: 333}, '_': {Wx: 500}, '{': {Wx: 480}, '|': {Wx: 200}, '}': {Wx: 480}, '¬': {Wx: 713}, '°': {Wx: 400}, '±': {Wx: 549}, 'µ': {Wx: 576}, '×': {Wx: 549}, '÷': {Wx: 549}, 'ƒ': {Wx: 500}, 'Α': {Wx: 722}, 'Β': {Wx: 667}, 'Γ': {Wx: 603}, 'Ε': {Wx: 611}, 'Ζ': {Wx: 611}, 'Η': {Wx: 722}, 'Θ': {Wx: 741}, 'Ι': {Wx: 333}, 'Κ': {Wx: 722}, 'Λ': {Wx: 686}, 'Μ': {Wx: 889}, 'Ν': {Wx: 722}, 'Ξ': {Wx: 645}, 'Ο': {Wx: 722}, 'Π': {Wx: 768}, 'Ρ': {Wx: 556}, 'Σ': {Wx: 592}, 'Τ': {Wx: 611}, 'Υ': {Wx: 690}, 'Φ': {Wx: 763}, 'Χ': {Wx: 722}, 'Ψ': {Wx: 795}, 'α': {Wx: 631}, 'β': {Wx: 549}, 'γ': {Wx: 411}, 'δ': {Wx: 494}, 'ε': {Wx: 439}, 'ζ': {Wx: 494}, 'η': {Wx: 603}, 'θ': {Wx: 521}, 'ι': {Wx: 329}, 'κ': {Wx: 549}, 'λ': {Wx: 549}, 'ν': {Wx: 521}, 'ξ': {Wx: 493}, 'ο': {Wx: 549}, 'π': {Wx: 549}, 'ρ': {Wx: 549}, 'ς': {Wx: 439}, 'σ': {Wx: 603}, 'τ': {Wx: 439}, 'υ': {Wx: 576}, 'φ': {Wx: 521}, 'χ': {Wx: 549}, 'ψ': {Wx: 686}, 'ω': {Wx: 686}, 'ϑ': {Wx: 631}, 'ϒ': {Wx: 620}, 'ϕ': {Wx: 603}, 'ϖ': {Wx: 713}, '•': {Wx: 460}, '…': {Wx: 1000}, '′': {Wx: 247}, '″': {Wx: 411}, '⁄': {Wx: 167}, '€': {Wx: 750}, 'ℑ': {Wx: 686}, '℘': {Wx: 987}, 'ℜ': {Wx: 795}, 'Ω': {Wx: 768}, 'ℵ': {Wx: 823}, '←': {Wx: 987}, '↑': {Wx: 603}, '→': {Wx: 987}, '↓': {Wx: 603}, '↔': {Wx: 1042}, '↵': {Wx: 658}, '⇐': {Wx: 987}, '⇑': {Wx: 603}, '⇒': {Wx: 987}, '⇓': {Wx: 603}, '⇔': {Wx: 1042}, '∀': {Wx: 713}, '∂': {Wx: 494}, '∃': {Wx: 549}, '∅': {Wx: 823}, '∆': {Wx: 612}, '∇': {Wx: 713}, '∈': {Wx: 713}, '∉': {Wx: 713}, '∋': {Wx: 439}, '∏': {Wx: 823}, '∑': {Wx: 713}, '−': {Wx: 549}, '∗': {Wx: 500}, '√': {Wx: 549}, '∝': {Wx: 713}, '∞': {Wx: 713}, '∠': {Wx: 768}, '∧': {Wx: 603}, '∨': {Wx: 603}, '∩': {Wx: 768}, '∪': {Wx: 768}, '∫': {Wx: 274}, '∴': {Wx: 863}, '∼': {Wx: 549}, '≅': {Wx: 549}, '≈': {Wx: 549}, '≠': {Wx: 549}, '≡': {Wx: 549}, '≤': {Wx: 549}, '≥': {Wx: 549}, '⊂': {Wx: 713}, '⊃': {Wx: 713}, '⊄': {Wx: 713}, '⊆': {Wx: 713}, '⊇': {Wx: 713}, '⊕': {Wx: 768}, '⊗': {Wx: 768}, '⊥': {Wx: 658}, '⋅': {Wx: 250}, '⌠': {Wx: 686}, '⌡': {Wx: 686}, '〈': {Wx: 329}, '〉': {Wx: 329}, '◊': {Wx: 494}, '♠': {Wx: 753}, '♣': {Wx: 753}, '♥': {Wx: 753}, '♦': {Wx: 753}, '\uf6d9': {Wx: 790}, '\uf6da': {Wx: 790}, '\uf6db': {Wx: 890}, '\uf8e5': {Wx: 500}, '\uf8e6': {Wx: 603}, '\uf8e7': {Wx: 1000}, '\uf8e8': {Wx: 790}, '\uf8e9': {Wx: 790}, '\uf8ea': {Wx: 786}, '\uf8eb': {Wx: 384}, '\uf8ec': {Wx: 384}, '\uf8ed': {Wx: 384}, '\uf8ee': {Wx: 384}, '\uf8ef': {Wx: 384}, '\uf8f0': {Wx: 384}, '\uf8f1': {Wx: 494}, '\uf8f2': {Wx: 494}, '\uf8f3': {Wx: 494}, '\uf8f4': {Wx: 494}, '\uf8f5': {Wx: 686}, '\uf8f6': {Wx: 384}, '\uf8f7': {Wx: 384}, '\uf8f8': {Wx: 384}, '\uf8f9': {Wx: 384}, '\uf8fa': {Wx: 384}, '\uf8fb': {Wx: 384}, '\uf8fc': {Wx: 494}, '\uf8fd': {Wx: 494}, '\uf8fe': {Wx: 494}, '\uf8ff': {Wx: 790}}}
+var (
+	timesItalicWidths = []int16{611, 889, 611, 611, 611, 611, 611, 611, 611, 611, 611, 611, 667, 667, 667, 667, 722, 722, 722, 612, 611, 611, 611, 611, 611, 611, 611, 611, 611, 722, 500, 611, 722, 722, 722, 722, 333, 333, 333, 333, 333, 333, 333, 333, 444, 667, 667, 556, 556, 611, 556, 556, 833, 667, 667, 667, 667, 667, 722, 944, 722, 722, 722, 722, 722, 722, 722, 722, 611, 722, 611, 611, 611, 611, 500, 500, 500, 500, 500, 556, 556, 556, 611, 722, 722, 722, 722, 722, 722, 722, 722, 722, 611, 833, 611, 556, 556, 556, 556, 556, 556, 556, 500, 500, 500, 500, 333, 500, 667, 500, 500, 778, 500, 500, 422, 541, 500, 920, 500, 500, 278, 275, 400, 400, 389, 389, 333, 275, 350, 444, 444, 333, 444, 444, 333, 500, 333, 333, 250, 250, 760, 500, 500, 500, 500, 544, 500, 400, 333, 675, 500, 333, 278, 444, 444, 444, 444, 444, 444, 444, 500, 889, 444, 889, 500, 444, 675, 500, 333, 389, 278, 500, 500, 500, 500, 500, 167, 500, 500, 500, 500, 333, 675, 549, 500, 500, 333, 333, 500, 333, 333, 278, 278, 278, 278, 278, 278, 278, 278, 444, 444, 278, 278, 300, 278, 675, 549, 675, 471, 278, 722, 333, 675, 500, 675, 500, 500, 500, 500, 500, 549, 500, 500, 500, 500, 500, 500, 667, 333, 500, 500, 500, 500, 750, 750, 300, 276, 310, 500, 500, 500, 523, 333, 333, 476, 833, 250, 250, 1000, 675, 675, 500, 500, 500, 420, 556, 556, 556, 333, 333, 333, 214, 389, 389, 453, 389, 389, 760, 333, 389, 389, 389, 389, 389, 500, 333, 500, 500, 278, 250, 500, 600, 278, 300, 278, 500, 500, 750, 300, 333, 980, 500, 300, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 444, 667, 444, 444, 444, 444, 500, 389, 389, 389, 389, 500}
+	symbolMetrics     = &RuneCharSafeMap{m: map[rune]CharMetrics{' ': {Wx: 250}, '!': {Wx: 333}, '#': {Wx: 500}, '%': {Wx: 833}, '&': {Wx: 778}, '(': {Wx: 333}, ')': {Wx: 333}, '+': {Wx: 549}, ',': {Wx: 250}, '.': {Wx: 250}, '/': {Wx: 278}, '0': {Wx: 500}, '1': {Wx: 500}, '2': {Wx: 500}, '3': {Wx: 500}, '4': {Wx: 500}, '5': {Wx: 500}, '6': {Wx: 500}, '7': {Wx: 500}, '8': {Wx: 500}, '9': {Wx: 500}, ':': {Wx: 278}, ';': {Wx: 278}, '<': {Wx: 549}, '=': {Wx: 549}, '>': {Wx: 549}, '?': {Wx: 444}, '[': {Wx: 333}, ']': {Wx: 333}, '_': {Wx: 500}, '{': {Wx: 480}, '|': {Wx: 200}, '}': {Wx: 480}, '¬': {Wx: 713}, '°': {Wx: 400}, '±': {Wx: 549}, 'µ': {Wx: 576}, '×': {Wx: 549}, '÷': {Wx: 549}, 'ƒ': {Wx: 500}, 'Α': {Wx: 722}, 'Β': {Wx: 667}, 'Γ': {Wx: 603}, 'Ε': {Wx: 611}, 'Ζ': {Wx: 611}, 'Η': {Wx: 722}, 'Θ': {Wx: 741}, 'Ι': {Wx: 333}, 'Κ': {Wx: 722}, 'Λ': {Wx: 686}, 'Μ': {Wx: 889}, 'Ν': {Wx: 722}, 'Ξ': {Wx: 645}, 'Ο': {Wx: 722}, 'Π': {Wx: 768}, 'Ρ': {Wx: 556}, 'Σ': {Wx: 592}, 'Τ': {Wx: 611}, 'Υ': {Wx: 690}, 'Φ': {Wx: 763}, 'Χ': {Wx: 722}, 'Ψ': {Wx: 795}, 'α': {Wx: 631}, 'β': {Wx: 549}, 'γ': {Wx: 411}, 'δ': {Wx: 494}, 'ε': {Wx: 439}, 'ζ': {Wx: 494}, 'η': {Wx: 603}, 'θ': {Wx: 521}, 'ι': {Wx: 329}, 'κ': {Wx: 549}, 'λ': {Wx: 549}, 'ν': {Wx: 521}, 'ξ': {Wx: 493}, 'ο': {Wx: 549}, 'π': {Wx: 549}, 'ρ': {Wx: 549}, 'ς': {Wx: 439}, 'σ': {Wx: 603}, 'τ': {Wx: 439}, 'υ': {Wx: 576}, 'φ': {Wx: 521}, 'χ': {Wx: 549}, 'ψ': {Wx: 686}, 'ω': {Wx: 686}, 'ϑ': {Wx: 631}, 'ϒ': {Wx: 620}, 'ϕ': {Wx: 603}, 'ϖ': {Wx: 713}, '•': {Wx: 460}, '…': {Wx: 1000}, '′': {Wx: 247}, '″': {Wx: 411}, '⁄': {Wx: 167}, '€': {Wx: 750}, 'ℑ': {Wx: 686}, '℘': {Wx: 987}, 'ℜ': {Wx: 795}, 'Ω': {Wx: 768}, 'ℵ': {Wx: 823}, '←': {Wx: 987}, '↑': {Wx: 603}, '→': {Wx: 987}, '↓': {Wx: 603}, '↔': {Wx: 1042}, '↵': {Wx: 658}, '⇐': {Wx: 987}, '⇑': {Wx: 603}, '⇒': {Wx: 987}, '⇓': {Wx: 603}, '⇔': {Wx: 1042}, '∀': {Wx: 713}, '∂': {Wx: 494}, '∃': {Wx: 549}, '∅': {Wx: 823}, '∆': {Wx: 612}, '∇': {Wx: 713}, '∈': {Wx: 713}, '∉': {Wx: 713}, '∋': {Wx: 439}, '∏': {Wx: 823}, '∑': {Wx: 713}, '−': {Wx: 549}, '∗': {Wx: 500}, '√': {Wx: 549}, '∝': {Wx: 713}, '∞': {Wx: 713}, '∠': {Wx: 768}, '∧': {Wx: 603}, '∨': {Wx: 603}, '∩': {Wx: 768}, '∪': {Wx: 768}, '∫': {Wx: 274}, '∴': {Wx: 863}, '∼': {Wx: 549}, '≅': {Wx: 549}, '≈': {Wx: 549}, '≠': {Wx: 549}, '≡': {Wx: 549}, '≤': {Wx: 549}, '≥': {Wx: 549}, '⊂': {Wx: 713}, '⊃': {Wx: 713}, '⊄': {Wx: 713}, '⊆': {Wx: 713}, '⊇': {Wx: 713}, '⊕': {Wx: 768}, '⊗': {Wx: 768}, '⊥': {Wx: 658}, '⋅': {Wx: 250}, '⌠': {Wx: 686}, '⌡': {Wx: 686}, '〈': {Wx: 329}, '〉': {Wx: 329}, '◊': {Wx: 494}, '♠': {Wx: 753}, '♣': {Wx: 753}, '♥': {Wx: 753}, '♦': {Wx: 753}, '\uf6d9': {Wx: 790}, '\uf6da': {Wx: 790}, '\uf6db': {Wx: 890}, '\uf8e5': {Wx: 500}, '\uf8e6': {Wx: 603}, '\uf8e7': {Wx: 1000}, '\uf8e8': {Wx: 790}, '\uf8e9': {Wx: 790}, '\uf8ea': {Wx: 786}, '\uf8eb': {Wx: 384}, '\uf8ec': {Wx: 384}, '\uf8ed': {Wx: 384}, '\uf8ee': {Wx: 384}, '\uf8ef': {Wx: 384}, '\uf8f0': {Wx: 384}, '\uf8f1': {Wx: 494}, '\uf8f2': {Wx: 494}, '\uf8f3': {Wx: 494}, '\uf8f4': {Wx: 494}, '\uf8f5': {Wx: 686}, '\uf8f6': {Wx: 384}, '\uf8f7': {Wx: 384}, '\uf8f8': {Wx: 384}, '\uf8f9': {Wx: 384}, '\uf8fa': {Wx: 384}, '\uf8fb': {Wx: 384}, '\uf8fc': {Wx: 494}, '\uf8fd': {Wx: 494}, '\uf8fe': {Wx: 494}, '\uf8ff': {Wx: 790}}}
+)
 
 type CharMetrics struct {
 	Wx float64
@@ -1077,6 +1121,7 @@ func zapfDingbatsFont() StdFont {
 	desc := Descriptor{Name: ZapfDingbatsName, Family: string(ZapfDingbatsName), Weight: FontWeightMedium, Flags: 0x0004, BBox: [4]float64{-1, -143, 981, 820}, ItalicAngle: 0, Ascent: 0, Descent: 0, CapHeight: 0, XHeight: 0, StemV: 90, StemH: 28}
 	return NewStdFontWithEncoding(desc, zapfDingbatsMetrics, enc)
 }
+
 func NewStdFont(desc Descriptor, metrics *RuneCharSafeMap) StdFont {
 	return NewStdFontWithEncoding(desc, metrics, textencoding.NewStandardEncoder())
 }
@@ -1108,6 +1153,7 @@ func fixHeadChecksum(data []byte, entryOffset int) {
 	binary.BigEndian.PutUint32(data[entryOffset+4:entryOffset+8], tableChecksum(data[tableOffset:tableOffset+paddedLen]))
 	binary.BigEndian.PutUint32(adjust, 0xB1B0AFBA-tableChecksum(data))
 }
+
 func findSubrsOffset(dict []byte) int {
 	var operands [48]int32
 	nOperands := 0
@@ -1138,6 +1184,7 @@ func findSubrsOffset(dict []byte) int {
 	}
 	return 0
 }
+
 func stripSubrsOperator(dict []byte) []byte {
 	var out bytes.Buffer
 	i := 0
@@ -1169,11 +1216,13 @@ func stripSubrsOperator(dict []byte) []byte {
 	}
 	return out.Bytes()
 }
+
 func helveticaBoldObliqueFont() StdFont {
 	helveticaOnce.Do(initHelveticaMetrics)
 	desc := Descriptor{Name: HelveticaBoldObliqueName, Family: string(HelveticaName), Weight: FontWeightBold, Flags: 0x0060, BBox: [4]float64{-174, -228, 1114, 962}, ItalicAngle: -12, Ascent: 718, Descent: -207, CapHeight: 718, XHeight: 532, StemV: 140, StemH: 118}
 	return NewStdFont(desc, helveticaBoldObliqueMetrics)
 }
+
 func init() {
 	RegisterStdFont(TimesRomanName, timesRomanFont, "TimesNewRoman", "Times")
 	RegisterStdFont(TimesBoldName, timesBoldFont, "TimesNewRoman,Bold", "Times,Bold")
@@ -1291,11 +1340,13 @@ func (p *otfParser) readTable(tag string) []byte {
 	}
 	return data
 }
+
 func symbolFont() StdFont {
 	enc := textencoding.NewSymbolEncoder()
 	desc := Descriptor{Name: SymbolName, Family: string(SymbolName), Weight: FontWeightMedium, Flags: 0x0004, BBox: [4]float64{-180, -293, 1090, 1010}, ItalicAngle: 0, Ascent: 0, Descent: 0, CapHeight: 0, XHeight: 0, StemV: 85, StemH: 92}
 	return NewStdFontWithEncoding(desc, symbolMetrics, enc)
 }
+
 func TtfParseFile(fileStr string) (TtfType, error) {
 	f, err := os.Open(fileStr)
 	if err != nil {
@@ -1304,11 +1355,13 @@ func TtfParseFile(fileStr string) (TtfType, error) {
 	defer f.Close()
 	return TtfParse(f)
 }
+
 func courierFont() StdFont {
 	courierOnce.Do(initCourierMetrics)
 	desc := Descriptor{Name: CourierName, Family: string(CourierName), Weight: FontWeightMedium, Flags: 0x0021, BBox: [4]float64{-23, -250, 715, 805}, ItalicAngle: 0, Ascent: 629, Descent: -157, CapHeight: 562, XHeight: 426, StemV: 51, StemH: 51}
 	return NewStdFont(desc, courierMetrics)
 }
+
 func encodeFontDict(privSize, privOffset int) []byte {
 	var buf bytes.Buffer
 	buf.Write(encodeInt32(privSize))
@@ -1316,6 +1369,7 @@ func encodeFontDict(privSize, privOffset int) []byte {
 	buf.Write(encodeOperator(18, false))
 	return buf.Bytes()
 }
+
 func (ttf *TtfType) MakeToUnicode() *cmap.CMap {
 	m := make(map[cmap.CharCode]string)
 	if len(ttf.GlyphNames) == 0 {
@@ -1336,6 +1390,7 @@ func (ttf *TtfType) MakeToUnicode() *cmap.CMap {
 	}
 	return cmap.NewToUnicodeCMap(m)
 }
+
 func (p *otfParser) parseOS2() error {
 	os2, _, err := tables.ParseOs2(p.readTable("OS/2"))
 	if err != nil {
@@ -1351,11 +1406,13 @@ func (p *otfParser) parseOS2() error {
 	}
 	return nil
 }
+
 func timesBoldFont() StdFont {
 	timesOnce.Do(initTimesMetrics)
 	desc := Descriptor{Name: TimesBoldName, Family: timesFamily, Weight: FontWeightBold, Flags: 0x0020, BBox: [4]float64{-168, -218, 1000, 935}, ItalicAngle: 0, Ascent: 683, Descent: -217, CapHeight: 676, XHeight: 461, StemV: 139, StemH: 44}
 	return NewStdFont(desc, timesBoldMetrics)
 }
+
 func (p *otfParser) parseGlyf() error {
 	var glyf tables.Glyf
 	glyfData, err := p.loader.RawTable(opentype.MustNewTag("glyf"))
@@ -1431,6 +1488,7 @@ func SfntFromTTC(data []byte, index int) ([]byte, error) {
 	fixHeadChecksum(out, headEntry)
 	return out, nil
 }
+
 func (p *ttfParser) ParseHhea() error {
 	if err := p.Seek("hhea"); err != nil {
 		return err
@@ -1439,6 +1497,7 @@ func (p *ttfParser) ParseHhea() error {
 	p.numHMetrics = p.ReadUShort()
 	return nil
 }
+
 func describeTables(offsets map[string]uint32) string {
 	var tags []string
 	for tag := range offsets {
@@ -1451,6 +1510,7 @@ func describeTables(offsets map[string]uint32) string {
 	}
 	return strings.Join(lines, "\n")
 }
+
 func encodeFDSelect(fds []byte) []byte {
 	out := make([]byte, 1+len(fds))
 	out[0] = 0
@@ -1458,8 +1518,10 @@ func encodeFDSelect(fds []byte) []byte {
 	return out
 }
 
-var courierObliqueMetrics *RuneCharSafeMap
-var helveticaMetrics *RuneCharSafeMap
+var (
+	courierObliqueMetrics *RuneCharSafeMap
+	helveticaMetrics      *RuneCharSafeMap
+)
 
 func readLocalSubrs(data []byte, privOffset, privSize int) ([][]byte, error) {
 	if privSize == 0 || privOffset+privSize > len(data) {
@@ -1477,6 +1539,7 @@ func readLocalSubrs(data []byte, privOffset, privSize int) ([][]byte, error) {
 	r := &cffReader{data: data, pos: subrsPos}
 	return r.readIndex()
 }
+
 func (p *ttfParser) ParsePost() error {
 	if err := p.Seek("post"); err != nil {
 		return err
@@ -1548,6 +1611,7 @@ func (p *ttfParser) ParsePost() error {
 	}
 	return nil
 }
+
 func IsTTC(data []byte) bool                        { return len(data) >= 4 && string(data[:4]) == ttcTag }
 func (f StdFont) GetMetricsTable() *RuneCharSafeMap { return f.metrics }
 func (c *cffParsed) lookupFDSelect(gid uint16) byte {
@@ -1556,6 +1620,7 @@ func (c *cffParsed) lookupFDSelect(gid uint16) byte {
 	}
 	return 0
 }
+
 func (p *ttfParser) ParseName() error {
 	if err := p.Seek("name"); err != nil {
 		return err
@@ -1589,6 +1654,7 @@ func (p *ttfParser) ParseName() error {
 	}
 	return nil
 }
+
 func (p *ttfParser) ParseHmtx() error {
 	if err := p.Seek("hmtx"); err != nil {
 		return err
@@ -1606,11 +1672,13 @@ func (p *ttfParser) ParseHmtx() error {
 	}
 	return nil
 }
+
 func helveticaBoldFont() StdFont {
 	helveticaOnce.Do(initHelveticaMetrics)
 	desc := Descriptor{Name: HelveticaBoldName, Family: string(HelveticaName), Weight: FontWeightBold, Flags: 0x0020, BBox: [4]float64{-170, -228, 1003, 962}, ItalicAngle: 0, Ascent: 718, Descent: -207, CapHeight: 718, XHeight: 532, StemV: 140, StemH: 118}
 	return NewStdFont(desc, helveticaBoldMetrics)
 }
+
 func (r *cffReader) readIndex() ([][]byte, error) {
 	if r.pos+2 > len(r.data) {
 		return nil, errors.New("INDEX: unexpected EOF reading count")
@@ -1760,11 +1828,13 @@ func encodeCFFInt(v int) []byte {
 	}
 	return []byte{29, byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 }
+
 func readFixed(b []byte) float64 {
 	whole := float64(binary.BigEndian.Uint16(b[0:2]))
 	frac := float64(binary.BigEndian.Uint16(b[2:4])) / 65536.0
 	return whole + frac
 }
+
 func (p *ttfParser) ParseMaxp() error {
 	if err := p.Seek("maxp"); err != nil {
 		return err
@@ -1884,11 +1954,13 @@ func parseFDSelect(data []byte, offset int, numGlyphs uint16) (fdSelectData, err
 	}
 	return sel, nil
 }
+
 func courierBoldFont() StdFont {
 	courierOnce.Do(initCourierMetrics)
 	desc := Descriptor{Name: CourierBoldName, Family: string(CourierName), Weight: FontWeightBold, Flags: 0x0021, BBox: [4]float64{-113, -250, 749, 801}, ItalicAngle: 0, Ascent: 629, Descent: -157, CapHeight: 562, XHeight: 439, StemV: 106, StemH: 84}
 	return NewStdFont(desc, courierBoldMetrics)
 }
+
 func (ttf *TtfType) MakeEncoder() (textencoding.SimpleEncoder, error) {
 	encoding := make(map[textencoding.CharCode]GlyphName)
 	for code := textencoding.CharCode(0); code <= 256; code++ {
@@ -1915,6 +1987,7 @@ func (ttf *TtfType) MakeEncoder() (textencoding.SimpleEncoder, error) {
 	}
 	return textencoding.NewCustomSimpleTextEncoder(encoding, nil)
 }
+
 func (p *ttfParser) ReadStr(length int) (string, error) {
 	buf := make([]byte, length)
 	n, err := p.reader.Read(buf)
@@ -1925,6 +1998,7 @@ func (p *ttfParser) ReadStr(length int) (string, error) {
 	}
 	return string(buf), nil
 }
+
 func (p *otfParser) parseCFF() error {
 	var cffFont *cff.CFF
 	data, err := p.loader.RawTable(opentype.MustNewTag("CFF "))
@@ -1959,6 +2033,7 @@ func NewStdFontWithEncoding(desc Descriptor, metrics *RuneCharSafeMap, encoder t
 	}
 	return StdFont{desc: desc, metrics: metrics, encoder: encoder}
 }
+
 func (p *ttfParser) parseCmapFormat0() error {
 	s, err := p.ReadStr(256)
 	if err != nil {
@@ -1973,6 +2048,7 @@ func (p *ttfParser) parseCmapFormat0() error {
 	}
 	return nil
 }
+
 func (p *otfParser) parseCFF2() error {
 	var cff2 *cff.CFF2
 	data, err := p.loader.RawTable(opentype.MustNewTag("CFF2"))
@@ -1986,6 +2062,7 @@ func (p *otfParser) parseCFF2() error {
 	p.otf.CFF2 = cff2
 	return nil
 }
+
 func (p *ttfParser) ParseComponents() error {
 	if err := p.ParseHead(); err != nil {
 		return err
@@ -2021,6 +2098,7 @@ func (p *ttfParser) ParseComponents() error {
 	}
 	return nil
 }
+
 func (p *otfParser) parseComponents() error {
 	if err := p.parseHead(); err != nil {
 		return err
@@ -2145,6 +2223,7 @@ func buildTopDict(isCID bool, charStringsOffset, charsetOffset, fdSelectOffset, 
 	}
 	return buf.Bytes()
 }
+
 func encodeIndex(items [][]byte) []byte {
 	count := len(items)
 	if count == 0 {
@@ -2170,6 +2249,7 @@ func encodeIndex(items [][]byte) []byte {
 	}
 	return buf.Bytes()
 }
+
 func (p *otfParser) parseMaxp() error {
 	maxp, _, err := tables.ParseMaxp(p.readTable("maxp"))
 	if err != nil {
@@ -2178,9 +2258,11 @@ func (p *otfParser) parseMaxp() error {
 	p.numGlyphs = maxp.NumGlyphs
 	return nil
 }
+
 func MakeRuneCharSafeMap(length int) *RuneCharSafeMap {
 	return &RuneCharSafeMap{m: make(map[rune]CharMetrics, length)}
 }
+
 func timesRomanFont() StdFont {
 	timesOnce.Do(initTimesMetrics)
 	desc := Descriptor{Name: TimesRomanName, Family: timesFamily, Weight: FontWeightRoman, Flags: 0x0020, BBox: [4]float64{-168, -218, 1000, 898}, ItalicAngle: 0, Ascent: 683, Descent: -217, CapHeight: 662, XHeight: 450, StemV: 84, StemH: 28}

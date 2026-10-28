@@ -6,10 +6,11 @@ package mmr
 import (
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"github.com/OpenMellon/openpdf/internal/jbig2/bitmap"
-	"io"
 )
 
 func (dec *Decoder) fillBitmap(bm *bitmap.Bitmap, row int, offsets []int, count int) error {
@@ -42,6 +43,7 @@ func (dec *Decoder) fillBitmap(bm *bitmap.Bitmap, row int, offsets []int, count 
 	}
 	return nil
 }
+
 func (dec *Decoder) createLittleEndianTable(specs [][3]int) ([]*code, error) {
 	table := make([]*code, firstLevelMask+1)
 	for i := 0; i < len(specs); i++ {
@@ -56,7 +58,7 @@ func (dec *Decoder) createLittleEndianTable(specs [][3]int) ([]*code, error) {
 		} else {
 			prefix := c.bits >> uint(c.bitLen-firstLevelBits)
 			if table[prefix] == nil {
-				var sub = newCode([3]int{})
+				sub := newCode([3]int{})
 				sub.subTable = make([]*code, secondLevelMask+1)
 				table[prefix] = sub
 			}
@@ -160,6 +162,7 @@ func (dec *Decoder) UncompressMMR() (bm *bitmap.Bitmap, err error) {
 	dec.data.align()
 	return bm, nil
 }
+
 func (dec *Decoder) initTables() (err error) {
 	if dec.whiteTable == nil {
 		dec.whiteTable, err = dec.createLittleEndianTable(whiteRunCodes)
@@ -178,16 +181,18 @@ func (dec *Decoder) initTables() (err error) {
 	return nil
 }
 
-type mmrCode int
-type runData struct {
-	reader     *bitwise.Reader
-	bitPos     int
-	lastBitPos int
-	word       int
-	buf        []byte
-	bufOffset  int
-	bufLen     int
-}
+type (
+	mmrCode int
+	runData struct {
+		reader     *bitwise.Reader
+		bitPos     int
+		lastBitPos int
+		word       int
+		buf        []byte
+		bufOffset  int
+		bufLen     int
+	}
+)
 
 func New(r *bitwise.Reader, width, height int, dataOffset, dataLength int64) (*Decoder, error) {
 	dec := &Decoder{width: width, height: height}
@@ -209,6 +214,7 @@ func New(r *bitwise.Reader, width, height int, dataOffset, dataLength int64) (*D
 	}
 	return dec, nil
 }
+
 func minInt(a, b int) int {
 	if a > b {
 		return b
@@ -238,6 +244,7 @@ func newRunData(r *bitwise.Reader) (*runData, error) {
 	}
 	return rd, nil
 }
+
 func (rd *runData) uncompressGetCodeLittleEndian(table []*code) (*code, error) {
 	bits, err := rd.uncompressGetNextCodeLittleEndian()
 	if err != nil {
@@ -272,7 +279,7 @@ func (rd *runData) uncompressGetNextCodeLittleEndian() (int, error) {
 			}
 			byteIdx -= rd.bufOffset
 		}
-		w := (uint32(rd.buf[byteIdx]&0xFF) << 16) | (uint32(rd.buf[byteIdx+1]&0xFF) << 8) | (uint32(rd.buf[byteIdx+2] & 0xFF))
+		w := (uint32(rd.buf[byteIdx]&0xFF) << 16) | (uint32(rd.buf[byteIdx+1]&0xFF) << 8) | uint32(rd.buf[byteIdx+2]&0xFF)
 		bitOff := uint32(rd.bitPos & 7)
 		w <<= bitOff
 		rd.word = int(w)
@@ -307,9 +314,11 @@ func (rd *runData) uncompressGetNextCodeLittleEndian() (int, error) {
 	rd.lastBitPos = rd.bitPos
 	return rd.word, nil
 }
+
 func (c *code) String() string {
 	return fmt.Sprintf("%d/%d/%d", c.bitLen, c.bits, c.value)
 }
+
 func (dec *Decoder) uncompress2d(rd *runData, ref []int, refCount int, cur []int, width int) (int, error) {
 	var (
 		refPos   int
@@ -462,6 +471,7 @@ rowLoop:
 	}
 	return curCount, nil
 }
+
 func (rd *runData) fillBuffer(offset int) error {
 	rd.bufOffset = offset
 	_, err := rd.reader.Seek(int64(offset), io.SeekStart)
@@ -508,6 +518,7 @@ func (rd *runData) fillBuffer(offset int) error {
 	}
 	return nil
 }
+
 func (dec *Decoder) uncompress1d(rd *runData, cur []int, width int) (int, error) {
 	var (
 		isWhite  = true
@@ -553,12 +564,14 @@ rowLoop:
 	}
 	return count, nil
 }
+
 func maxInt(a, b int) int {
 	if a < b {
 		return b
 	}
 	return a
 }
+
 func (rd *runData) uncompressGetCode(table []*code) (*code, error) {
 	return rd.uncompressGetCodeLittleEndian(table)
 }

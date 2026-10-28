@@ -11,9 +11,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/model"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,6 +19,10 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/model"
 )
 
 func normalizeTextString(s *core.PdfObjectString) *core.PdfObjectString {
@@ -50,10 +51,12 @@ func normalizeTextString(s *core.PdfObjectString) *core.PdfObjectString {
 	return core.MakeEncodedString(s.Decoded(), true)
 }
 
-var reReference = regexp.MustCompile("^\\s*(\\d+)\\s+(\\d+)\\s+R")
-var reNumber = regexp.MustCompile("^[\\+-.]*([0-9.]+)")
-var reExponent = regexp.MustCompile("^[\\+-.]*([0-9.]+)e[\\+-.]*([0-9.]+)")
-var reFdfVersion = regexp.MustCompile("%FDF-(\\d)\\.(\\d)")
+var (
+	reReference  = regexp.MustCompile("^\\s*(\\d+)\\s+(\\d+)\\s+R")
+	reNumber     = regexp.MustCompile("^[\\+-.]*([0-9.]+)")
+	reExponent   = regexp.MustCompile("^[\\+-.]*([0-9.]+)e[\\+-.]*([0-9.]+)")
+	reFdfVersion = regexp.MustCompile("%FDF-(\\d)\\.(\\d)")
+)
 
 func (p *fdfParser) parseName() (core.PdfObjectName, error) {
 	var buf bytes.Buffer
@@ -125,6 +128,7 @@ func NewFromReader(reader *model.PdfReader) (*Data, error) {
 	}
 	return data, nil
 }
+
 func (p *fdfParser) parseObject() (core.PdfObject, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Read direct object")
@@ -217,6 +221,7 @@ func (p *fdfParser) parseObject() (core.PdfObject, error) {
 		}
 	}
 }
+
 func (p *fdfParser) skipSpaces() (int, error) {
 	n := 0
 	for {
@@ -233,6 +238,7 @@ func (p *fdfParser) skipSpaces() (int, error) {
 	}
 	return n, nil
 }
+
 func (p *fdfParser) parse() error {
 	p.rs.Seek(0, io.SeekStart)
 	p.reader = bufio.NewReader(p.rs)
@@ -271,6 +277,7 @@ func (p *fdfParser) parse() error {
 	}
 	return nil
 }
+
 func (p *fdfParser) seekFdfVersionTopDown() (int, int, error) {
 	p.rs.Seek(0, io.SeekStart)
 	p.reader = bufio.NewReader(p.rs)
@@ -294,6 +301,7 @@ func (p *fdfParser) seekFdfVersionTopDown() (int, int, error) {
 	}
 	return 0, 0, errors.New("version not found")
 }
+
 func parseReference(s string) (core.PdfObjectReference, error) {
 	ref := core.PdfObjectReference{}
 	m := reReference.FindStringSubmatch(s)
@@ -401,10 +409,12 @@ func (fdf *Data) FieldDictionaries() (map[string]*core.PdfObjectDictionary, erro
 	collectFieldDicts(fdf.fields, "", dicts)
 	return dicts, nil
 }
+
 func (p *fdfParser) parseNull() (core.PdfObjectNull, error) {
 	_, err := p.reader.Discard(4)
 	return core.PdfObjectNull{}, err
 }
+
 func (p *fdfParser) trace(obj core.PdfObject) core.PdfObject {
 	switch o := obj.(type) {
 	case *core.PdfObjectReference:
@@ -419,6 +429,7 @@ func (p *fdfParser) trace(obj core.PdfObject) core.PdfObject {
 	}
 	return obj
 }
+
 func newParser(rs io.ReadSeeker) (*fdfParser, error) {
 	p := &fdfParser{}
 	p.rs = rs
@@ -433,6 +444,7 @@ func newParser(rs io.ReadSeeker) (*fdfParser, error) {
 	err = p.parse()
 	return p, err
 }
+
 func toFileSpecPath(path string) string {
 	vol := filepath.VolumeName(path)
 	rest := path[len(vol):]
@@ -441,12 +453,14 @@ func toFileSpecPath(path string) string {
 	}
 	return filepath.ToSlash(path)
 }
+
 func makeTextString(s string) *core.PdfObjectString {
 	if isASCII(s) {
 		return core.MakeString(s)
 	}
 	return core.MakeEncodedString(s, true)
 }
+
 func (p *fdfParser) parseArray() (*core.PdfObjectArray, error) {
 	arr := core.MakeArray()
 	p.reader.ReadByte()
@@ -495,6 +509,7 @@ func (fdf *Data) SetSourceFile(path string) {
 	spec.Set("UF", core.MakeEncodedString(path, true))
 	fdf.fdfDict.Set("F", spec)
 }
+
 func (p *fdfParser) parseHexString() (*core.PdfObjectString, error) {
 	p.reader.ReadByte()
 	var buf bytes.Buffer
@@ -522,6 +537,7 @@ func (p *fdfParser) parseHexString() (*core.PdfObjectString, error) {
 	}
 	return core.MakeHexString(string(decoded)), nil
 }
+
 func parserFromString(s string) (*fdfParser, error) {
 	p := fdfParser{}
 	b := []byte(s)
@@ -542,6 +558,7 @@ func (p *fdfParser) Root() (*core.PdfObjectDictionary, error) {
 	}
 	return cat.fdf, nil
 }
+
 func (p *fdfParser) parseDict() (*core.PdfObjectDictionary, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Reading FDF Dict!")
@@ -648,6 +665,7 @@ func (fdf *Data) FieldValues() (map[string]core.PdfObject, error) {
 	}
 	return values, nil
 }
+
 func copyDocumentID(trailer *core.PdfObjectDictionary) *core.PdfObjectArray {
 	id, ok := core.GetArray(trailer.Get("ID"))
 	if !ok || id.Len() != 2 {
@@ -667,6 +685,7 @@ func copyDocumentID(trailer *core.PdfObjectDictionary) *core.PdfObjectArray {
 	}
 	return out
 }
+
 func (fdf *Data) serialize() ([]byte, error) {
 	if fdf.fdfDict == nil {
 		return nil, errors.New("FDF dictionary missing")
@@ -705,6 +724,7 @@ func (fdf *Data) serialize() ([]byte, error) {
 	fmt.Fprintf(&buf, "trailer\n<</Root %d %d R>>\n%%%%EOF\n", rootNum, rootGen)
 	return buf.Bytes(), nil
 }
+
 func (p *fdfParser) parseBool() (core.PdfObjectBool, error) {
 	peek, err := p.reader.Peek(4)
 	if err != nil {
@@ -724,6 +744,7 @@ func (p *fdfParser) parseBool() (core.PdfObjectBool, error) {
 	}
 	return core.PdfObjectBool(false), errors.New("unexpected boolean string")
 }
+
 func writeObject(buf *bytes.Buffer, obj core.PdfObject) error {
 	switch o := obj.(type) {
 	case *core.PdfIndirectObject:
@@ -757,6 +778,7 @@ func Load(r io.ReadSeeker) (*Data, error) {
 	}
 	return dataFromParser(p)
 }
+
 func (p *fdfParser) seekToEOFMarker(size int64) error {
 	offset := int64(0)
 	chunk := int64(1000)
@@ -788,6 +810,7 @@ func (p *fdfParser) seekToEOFMarker(size int64) error {
 	common.Log.Debug("Error: EOF marker was not found.")
 	return errors.New("EOF not found")
 }
+
 func (p *fdfParser) parseString() (*core.PdfObjectString, error) {
 	p.reader.ReadByte()
 	var buf bytes.Buffer
@@ -861,6 +884,7 @@ func (p *fdfParser) parseString() (*core.PdfObjectString, error) {
 	}
 	return core.MakeString(buf.String()), nil
 }
+
 func writeFileDirect(path string, data []byte) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -872,11 +896,13 @@ func writeFileDirect(path string, data []byte) error {
 	}
 	return f.Close()
 }
+
 func (p *fdfParser) getFileOffset() int64 {
 	off, _ := p.rs.Seek(0, io.SeekCurrent)
 	off -= int64(p.reader.Buffered())
 	return off
 }
+
 func isASCII(s string) bool {
 	for i := 0; i < len(s); i++ {
 		if s[i] >= 0x80 {
@@ -901,6 +927,7 @@ func (fdf *Data) Write(w io.Writer) error {
 	_, err = w.Write(data)
 	return err
 }
+
 func exportFieldValue(fv model.FieldValue) (core.PdfObject, bool) {
 	if _, isSig := fv.Field.GetContext().(*model.PdfFieldSignature); isSig {
 		return nil, false
@@ -937,6 +964,7 @@ func exportFieldValue(fv model.FieldValue) (core.PdfObject, bool) {
 		return nil, false
 	}
 }
+
 func (p *fdfParser) setFileOffset(off int64) {
 	p.rs.Seek(off, io.SeekStart)
 	p.reader = bufio.NewReader(p.rs)
@@ -987,6 +1015,7 @@ func NewFromForm(form *model.PdfAcroForm) (*Data, error) {
 	fdfDict.Set("Fields", fields)
 	return &Data{fdfDict: fdfDict, fields: fields}, nil
 }
+
 func collectFieldDicts(fields *core.PdfObjectArray, prefix string, out map[string]*core.PdfObjectDictionary) {
 	for i := 0; i < fields.Len(); i++ {
 		dict, ok := core.GetDict(fields.Get(i))
@@ -1010,6 +1039,7 @@ func collectFieldDicts(fields *core.PdfObjectArray, prefix string, out map[strin
 		}
 	}
 }
+
 func (p *fdfParser) catalog() (*fdfCatalog, error) {
 	if p.trailer != nil {
 		rootObj := p.trailer.Get("Root")
@@ -1043,6 +1073,7 @@ func (p *fdfParser) catalog() (*fdfCatalog, error) {
 	}
 	return nil, errors.New("FDF not found")
 }
+
 func (p *fdfParser) skipComments() error {
 	if _, err := p.skipSpaces(); err != nil {
 		return err
@@ -1066,6 +1097,7 @@ func (p *fdfParser) skipComments() error {
 	}
 	return p.skipComments()
 }
+
 func (p *fdfParser) readTextLine() (string, error) {
 	var buf bytes.Buffer
 	for {
@@ -1083,6 +1115,7 @@ func (p *fdfParser) readTextLine() (string, error) {
 	}
 	return buf.String(), nil
 }
+
 func (p *fdfParser) readComment() (string, error) {
 	var buf bytes.Buffer
 	_, err := p.skipSpaces()
@@ -1109,6 +1142,7 @@ func (p *fdfParser) readComment() (string, error) {
 	}
 	return buf.String(), nil
 }
+
 func hasUTF16BOM(s *core.PdfObjectString) bool {
 	b := s.Bytes()
 	return len(b) >= 2 && b[0] == 0xFE && b[1] == 0xFF
@@ -1274,6 +1308,7 @@ func (p *fdfParser) parseIndirectObject() (core.PdfObject, error) {
 	}
 	return &ind, nil
 }
+
 func (p *fdfParser) parseFdfVersion() (int, int, error) {
 	p.rs.Seek(0, io.SeekStart)
 	n := 20

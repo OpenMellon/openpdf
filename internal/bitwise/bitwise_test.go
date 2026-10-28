@@ -1,8 +1,9 @@
 package bitwise_test
 
 import (
-	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"testing"
+
+	"github.com/OpenMellon/openpdf/internal/bitwise"
 )
 
 func TestBufferedMSBBitRoundTrip(t *testing.T) {

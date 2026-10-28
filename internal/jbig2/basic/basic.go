@@ -22,6 +22,7 @@ func (s NumSlice) Get(i int) (float32, error) {
 	}
 	return s[i], nil
 }
+
 func Min(x, y int) int {
 	if x < y {
 		return x
@@ -37,6 +38,7 @@ func (s IntSlice) Get(index int) (int, error) {
 	}
 	return s[index], nil
 }
+
 func (s *IntSlice) Copy() *IntSlice {
 	dup := IntSlice(make([]int, len(*s)))
 	copy(dup, *s)
@@ -50,18 +52,21 @@ func (s *Stack) peek() (interface{}, bool) {
 	}
 	return s.Data[top], true
 }
+
 func Max(x, y int) int {
 	if x > y {
 		return x
 	}
 	return y
 }
+
 func Ceil(numerator, denominator int) int {
 	if numerator%denominator == 0 {
 		return numerator / denominator
 	}
 	return (numerator / denominator) + 1
 }
+
 func (s *Stack) Pop() (value interface{}, ok bool) {
 	value, ok = s.peek()
 	if !ok {

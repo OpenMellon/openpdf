@@ -1,9 +1,10 @@
 package timeutils_test
 
 import (
-	"github.com/OpenMellon/openpdf/internal/timeutils"
 	"testing"
 	"time"
+
+	"github.com/OpenMellon/openpdf/internal/timeutils"
 )
 
 func TestPDFTimeRoundTrip(t *testing.T) {

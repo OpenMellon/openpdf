@@ -152,6 +152,7 @@ func decodeICCPChunk(chunk []byte) []byte {
 	}
 	return profile
 }
+
 func extractTIFF(data []byte) []byte {
 	if len(data) < 8 {
 		return nil
@@ -200,6 +201,7 @@ func extractTIFF(data []byte) []byte {
 	}
 	return nil
 }
+
 func Extract(data []byte) (icc []byte, format Format) {
 	format = Detect(data)
 	switch format {

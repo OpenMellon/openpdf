@@ -6,6 +6,7 @@ package mdp
 import (
 	"errors"
 	"fmt"
+
 	"github.com/OpenMellon/openpdf/core"
 )
 
@@ -16,6 +17,7 @@ func (d *DiffResult) String() string {
 
 // IsPermitted returns true if changes permitted.
 func (r *DiffResults) IsPermitted() bool { return len(r.Errors) == 0 }
+
 func (p *defaultDiffPolicy) compareRevisions(oldParser *core.PdfParser, newParser *core.PdfParser) (*DiffResults, error) {
 	var err error
 	p.updatedObjects, err = newParser.GetUpdatedObjects(oldParser)
@@ -70,6 +72,7 @@ func (p *defaultDiffPolicy) compareRevisions(oldParser *core.PdfParser, newParse
 	}
 	return p.results, nil
 }
+
 func (p *defaultDiffPolicy) comparePages(revision int, oldPages, newPages *core.PdfIndirectObject) error {
 	if _, changed := p.updatedObjects[newPages.ObjectNumber]; changed {
 		p.results.addErrorWithDescription(revision, "Pages were changed")
@@ -125,7 +128,6 @@ func (p *defaultDiffPolicy) comparePages(revision int, oldPages, newPages *core.
 
 // DiffPolicy interface for comparing two revisions of the Pdf document.
 type DiffPolicy interface {
-
 	// ReviewFile should check the revisions of the old and new parsers
 	// and evaluate the differences between the revisions.
 	// Each implementation of this interface must decide
@@ -139,6 +141,7 @@ func (r *DiffResults) addErrorWithDescription(revision int, description string) 
 	}
 	r.Errors = append(r.Errors, &DiffResult{Revision: revision, Description: description})
 }
+
 func parseAnnots(obj core.PdfObject) ([]core.PdfObject, error) {
 	annots := make([]core.PdfObject, 0)
 	if obj != nil {
@@ -154,6 +157,7 @@ func parseAnnots(obj core.PdfObject) ([]core.PdfObject, error) {
 	}
 	return annots, nil
 }
+
 func (p *defaultDiffPolicy) compareAnnots(revision int, oldAnnots, newAnnots []core.PdfObject) error {
 	oldByNum := make(map[int64]*core.PdfObjectDictionary)
 	for _, oldRef := range oldAnnots {
@@ -312,12 +316,14 @@ type MDPParameters struct{ DocMDPLevel DocMDPPermission }
 
 // DocMDPPermission is values for set up access permissions for DocMDP.
 // (Section 12.8.2.2, Table 254 - Entries in a signature dictionary p. 471 in PDF32000_2008).
-type DocMDPPermission int64
-type defaultDiffPolicy struct {
-	updatedObjects map[int64]core.PdfObject
-	results        *DiffResults
-	level          DocMDPPermission
-}
+type (
+	DocMDPPermission  int64
+	defaultDiffPolicy struct {
+		updatedObjects map[int64]core.PdfObject
+		results        *DiffResults
+		level          DocMDPPermission
+	}
+)
 
 func (r *DiffResults) addWarningWithDescription(revision int, description string) {
 	if r.Warnings == nil {
@@ -325,9 +331,11 @@ func (r *DiffResults) addWarningWithDescription(revision int, description string
 	}
 	r.Warnings = append(r.Warnings, &DiffResult{Revision: revision, Description: description})
 }
+
 func NewDefaultDiffPolicy() DiffPolicy {
 	return &defaultDiffPolicy{updatedObjects: nil, results: &DiffResults{}, level: 0}
 }
+
 func (p *defaultDiffPolicy) compareFields(revision int, oldFields, newFields []core.PdfObject) error {
 	oldByNum := make(map[int64]*core.PdfObjectDictionary)
 	for _, oldRef := range oldFields {

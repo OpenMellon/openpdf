@@ -4,11 +4,12 @@
 package decoder
 
 import (
+	"image"
+
 	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"github.com/OpenMellon/openpdf/internal/jbig2/bitmap"
 	"github.com/OpenMellon/openpdf/internal/jbig2/document"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
-	"image"
 )
 
 func (d *Decoder) DecodeNextPage() ([]byte, error) {
@@ -46,6 +47,7 @@ func (d *Decoder) decodePage(pageNumber int) ([]byte, error) {
 	}
 	return bm.GetUnpaddedData()
 }
+
 func Decode(input []byte, parameters Parameters, globals *document.Globals) (*Decoder, error) {
 	r := bitwise.NewReader(input)
 	doc, err := document.DecodeDocument(r, globals)
@@ -54,6 +56,7 @@ func Decode(input []byte, parameters Parameters, globals *document.Globals) (*De
 	}
 	return &Decoder{reader: r, document: doc, params: parameters}, nil
 }
+
 func (d *Decoder) DecodePageImage(pageNumber int) (image.Image, error) {
 	const processName = "decoder.DecodePageImage"
 	img, err := d.decodePageImage(pageNumber)
@@ -76,6 +79,7 @@ func (d *Decoder) PageNumber() (int, error) {
 	}
 	return int(d.document.NumberOfPages), nil
 }
+
 func (d *Decoder) decodePageImage(pageNumber int) (image.Image, error) {
 	const processName = "decodePageImage"
 	if pageNumber < 0 {

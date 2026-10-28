@@ -46,6 +46,29 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
+	"image"
+	"image/color"
+	"image/draw"
+	_ "image/gif"
+	"image/png"
+	"io"
+	"math"
+	"math/big"
+	"math/bits"
+	"os"
+	"path/filepath"
+	"reflect"
+	"regexp"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+	"unicode"
+	"unicode/utf8"
+
 	"github.com/OpenMellon/freetype"
 	"github.com/OpenMellon/freetype/truetype"
 	"github.com/OpenMellon/openpdf/common"
@@ -79,28 +102,6 @@ import (
 	"golang.org/x/crypto/ocsp"
 	imagefont "golang.org/x/image/font"
 	"golang.org/x/xerrors"
-	"hash"
-	"image"
-	"image/color"
-	"image/draw"
-	_ "image/gif"
-	"image/png"
-	"io"
-	"math"
-	"math/big"
-	"math/bits"
-	"os"
-	"path/filepath"
-	"reflect"
-	"regexp"
-	"slices"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-	"unicode"
-	"unicode/utf8"
 )
 
 func (r *PdfReader) loadFromParser(parser *core.PdfParser) (*PdfReader, error) {
@@ -147,6 +148,7 @@ func (img *Image) ToJBIG2Image() (*core.JBIG2Image, error) {
 
 // ViewClip returns the value of the viewClip.
 func (vp *ViewerPreferences) ViewClip() PageBoundary { return vp.viewClip }
+
 func signatureContentsDigestHex(sig *PdfSignature) (string, error) {
 	if sig.Contents == nil {
 		return "", errors.New("signature Contents not set")
@@ -191,6 +193,7 @@ func NewPdfAnnotationRedact() *PdfAnnotationRedact {
 	annot.SetContext(redact)
 	return redact
 }
+
 func (r *PdfReader) loadOutlines() (*PdfOutlineTreeNode, error) {
 	if r.parser.GetCrypter() != nil && !r.parser.IsAuthenticated() {
 		return nil, fmt.Errorf("file need to be decrypted first")
@@ -244,6 +247,7 @@ func (r *PdfReader) GetEncryptionMethod() string {
 	crypter := r.parser.GetCrypter()
 	return crypter.String()
 }
+
 func (f *pdfFontSimple) getFontEncoding() (s string, glyphByCode map[textencoding.CharCode]textencoding.GlyphName, err error) {
 	s = "StandardEncoding"
 	if symbolicFontEncoding, ok := symbolicFontEncodings[f.baseFont]; ok {
@@ -284,6 +288,7 @@ func (f *pdfFontSimple) getFontEncoding() (s string, glyphByCode map[textencodin
 
 // SetNumCopies sets the value of the numCopies.
 func (vp *ViewerPreferences) SetNumCopies(numCopies int) { vp.numCopies = numCopies }
+
 func adjustHintOffset(offset, n, count int64) (uint32, error) {
 	num := offset
 	if offset >= n {
@@ -294,6 +299,7 @@ func adjustHintOffset(offset, n, count int64) (uint32, error) {
 	}
 	return uint32(num), nil
 }
+
 func (w *PdfWriter) setCatalogVersion() {
 	w.catalog.Set("Version", core.MakeName(fmt.Sprintf("%d.%d", w.version.Major, w.version.Minor)))
 }
@@ -304,6 +310,7 @@ func NewOutline() *Outline { return &Outline{} }
 // GetContext returns the PdfField context which is the more specific field data type, e.g. PdfFieldButton
 // for a button field.
 func (f *PdfField) GetContext() PdfModel { return f.context }
+
 func (img Image) getBase() imageutil.ImageBase {
 	return imageutil.NewImageBase(int(img.Width), int(img.Height), int(img.BitsPerComponent), img.ColorComponents, img.Data, img.alpha, img.decode)
 }
@@ -342,6 +349,7 @@ func (a *PdfAnnotationProjection) ToPdfObject() core.PdfObject {
 func NewPdfSignatureReferenceDocMDP(transformParams *PdfTransformParamsDocMDP) *PdfSignatureReference {
 	return &PdfSignatureReference{Type: core.MakeName("SigRef"), TransformMethod: core.MakeName("DocMDP"), TransformParams: transformParams.ToPdfObject()}
 }
+
 func widgetMKProperties(widget *PdfAnnotationWidget) (col, col2 PdfColor, s string, n int) {
 	if widget == nil || widget.MK == nil {
 		return
@@ -364,6 +372,7 @@ func widgetMKProperties(widget *PdfAnnotationWidget) (col, col2 PdfColor, s stri
 	}
 	return
 }
+
 func (f *pdfFontType0) subsetRegistered() error {
 	switch v := f.DescendantFont.context.(type) {
 	case *pdfCIDFontType2:
@@ -457,6 +466,7 @@ func (a *PdfAnnotation) String() string {
 // IsTerminal returns true for terminal fields, false otherwise.
 // Terminal fields are fields whose descendants are only widget annotations.
 func (f *PdfField) IsTerminal() bool { return len(f.Kids) == 0 }
+
 func (a *PdfAppender) hasPriorSignature() bool {
 	if a.roReader.AcroForm == nil {
 		return false
@@ -481,6 +491,7 @@ func (cs *PdfColorspaceSpecialIndexed) ToPdfObject() core.PdfObject {
 	}
 	return array
 }
+
 func (r *PdfReader) newPdfActionThreadFromDict(dict *core.PdfObjectDictionary) (*PdfActionThread, error) {
 	filespec, err := newPdfFilespecFromPdfObject(dict.Get("F"))
 	if err != nil {
@@ -544,6 +555,7 @@ func (r *PdfReader) GetCatalogMetadata() (core.PdfObject, bool) {
 	metadata := r.catalog.Get("Metadata")
 	return metadata, metadata != nil
 }
+
 func (w lazyStreamWriter) Write(p []byte) (int, error) {
 	w.writer.writeBytes(p)
 	if w.writer.writeErr != nil {
@@ -551,6 +563,7 @@ func (w lazyStreamWriter) Write(p []byte) (int, error) {
 	}
 	return len(p), nil
 }
+
 func randomIDWithPrefix(s string) (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString(s)
@@ -629,6 +642,7 @@ func (cs *PdfColorspaceDeviceGray) ImageToRGB(img Image) (Image, error) {
 	}
 	return img3, nil
 }
+
 func newPdfFieldChoiceFromDict(dict *core.PdfObjectDictionary) (*PdfFieldChoice, error) {
 	choiceField := &PdfFieldChoice{}
 	choiceField.Opt, _ = core.GetArray(dict.Get("Opt"))
@@ -636,6 +650,7 @@ func newPdfFieldChoiceFromDict(dict *core.PdfObjectDictionary) (*PdfFieldChoice,
 	choiceField.I, _ = core.GetArray(dict.Get("I"))
 	return choiceField, nil
 }
+
 func (r *PdfReader) newPdfAnnotationStampFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationStamp, error) {
 	stamp := PdfAnnotationStamp{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -650,7 +665,6 @@ func (r *PdfReader) newPdfAnnotationStampFromDict(dict *core.PdfObjectDictionary
 // FieldFlattenOpts defines a set of options which can be used to configure
 // the field flattening process.
 type FieldFlattenOpts struct {
-
 	// FilterFunc allows filtering the form fields used in the flattening
 	// process. If the filter function returns true, the field is flattened,
 	// otherwise it is skipped.
@@ -693,6 +707,7 @@ func (p *PdfPage) getParentResources() (*PdfPageResources, error) {
 	}
 	return nil, nil
 }
+
 func newModelManager() *modelManager {
 	manager := modelManager{}
 	manager.primitiveByModel = map[PdfModel]core.PdfObject{}
@@ -920,6 +935,7 @@ func (r *PdfReader) GetOCProperties() (core.PdfObject, error) {
 	}
 	return ocProperties, nil
 }
+
 func (t *trustEvaluator) trustedSignatureTimestamp(p7 *pkcs7.PKCS7, certs []*x509.Certificate, evidence revocationEvidence) (time.Time, []string, []string) {
 	if p7 == nil || len(p7.Signers) != 1 {
 		return time.Time{}, nil, nil
@@ -1155,6 +1171,7 @@ func newPdfShadingType7FromDict(dict *core.PdfObjectDictionary) (*PdfShadingType
 	}
 	return &shading7, nil
 }
+
 func newPdfFontSimpleFromCommon(fc *fontCommon) *pdfFontSimple {
 	return &pdfFontSimple{fontCommon: *fc}
 }
@@ -1169,6 +1186,7 @@ func (h DefaultImageHandler) NewImageFromGoImage(goimg image.Image) (*Image, err
 	img := imageFromImageBase(fromGoImage.Base())
 	return &img, nil
 }
+
 func newPdfCIDFontType0FromDict(dict *core.PdfObjectDictionary, fc *fontCommon) (*pdfCIDFontType0, error) {
 	if fc.subtype != "CIDFontType0" {
 		common.Log.Debug("ERROR: Font SubType != CIDFontType0. font=%s", fc)
@@ -1199,6 +1217,7 @@ func newPdfCIDFontType0FromDict(dict *core.PdfObjectDictionary, fc *fontCommon) 
 	cidFontType0.charWidths = cidWidths
 	return cidFontType0, nil
 }
+
 func (c fontCommon) asPdfObjectDictionary(s string) *core.PdfObjectDictionary {
 	if s != "" && c.subtype != "" && s != c.subtype {
 		common.Log.Debug("ERROR: asPdfObjectDictionary. Overriding subtype to %#q %s", s, c)
@@ -1254,6 +1273,7 @@ func (d OutlineDest) ToPdfObject() core.PdfObject {
 	}
 	return array
 }
+
 func newPdfColorspaceDeviceNFromPdfObject(obj core.PdfObject) (*PdfColorspaceDeviceN, error) {
 	deviceNCS := NewPdfColorspaceDeviceN()
 	if indirect, ok := obj.(*core.PdfIndirectObject); ok {
@@ -1375,6 +1395,7 @@ func NewPdfFontFromTTF(r io.ReadSeeker) (*PdfFont, error) {
 	font2 := &PdfFont{context: font}
 	return font2, nil
 }
+
 func (t *trustEvaluator) vriCertificates(s string) []*x509.Certificate {
 	if t.reader.DSS == nil {
 		return nil
@@ -1449,6 +1470,7 @@ func (f *pdfFontType3) baseFields() *fontCommon { return &f.fontCommon }
 // the default when no encoder is set) embeds unchanged instead of decoding
 // and re-encoding.
 func (img *Image) CanPassThroughJPEG() bool { return img.canPassThroughJPEG() }
+
 func hasFieldKeys(dict *core.PdfObjectDictionary) bool {
 	for _, name := range dict.Keys() {
 		if _, ok := fieldDictKeys[name.String()]; ok {
@@ -1457,6 +1479,7 @@ func hasFieldKeys(dict *core.PdfObjectDictionary) bool {
 	}
 	return false
 }
+
 func isWhitespaceGap(parser *core.PdfParser, n, count int64) bool {
 	if count-n <= 0 || count-n > maxGapBytes {
 		return false
@@ -1539,6 +1562,7 @@ func (cs *PdfColorspaceSpecialPattern) GetNumComponents() int {
 	}
 	return cs.UnderlyingCS.GetNumComponents()
 }
+
 func parseDefaultAppearance(s string) (s2 string, f float64, col PdfColor) {
 	if s == "" {
 		return s2, f, col
@@ -1686,6 +1710,7 @@ func newPdfCIDFontType2FromTtf(ttf fonts.TtfType, data []byte, otf *fonts.OtfTyp
 	font3 := PdfFont{context: &font2}
 	return font3, nil
 }
+
 func (r *PdfReader) newPdfAnnotationLinkFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationLink, error) {
 	link := PdfAnnotationLink{}
 	link.A = dict.Get("A")
@@ -1742,6 +1767,7 @@ func (r *PdfReader) newPdfAnnotationWidgetFromDict(dict *core.PdfObjectDictionar
 
 // GetNumComponents returns the number of color components (4 for CMYK32).
 func (c *PdfColorDeviceCMYK) GetNumComponents() int { return 4 }
+
 func getASCIISections(data []byte) (s, s2 string, err error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("getASCIISections: %d ", len(data))
@@ -1772,6 +1798,7 @@ func getASCIISections(data []byte) (s, s2 string, err error) {
 
 // GetContainingPdfObject gets the primitive used to parse the color space.
 func (cs *PdfColorspaceICCBased) GetContainingPdfObject() core.PdfObject { return cs.stream }
+
 func newPdfShadingType6FromDict(dict *core.PdfObjectDictionary) (*PdfShadingType6, error) {
 	shading6 := PdfShadingType6{}
 	bitsPerCoordinate := dict.Get("BitsPerCoordinate")
@@ -2058,6 +2085,7 @@ func (r *PdfPageResources) SetPatternByName(keyName core.PdfObjectName, pattern 
 	patternDict.Set(keyName, pattern)
 	return nil
 }
+
 func debugLogObject(obj core.PdfObject) {
 	common.Log.Debug("obj: %T %s", obj, obj.String())
 	if stream, ok := obj.(*core.PdfObjectStream); ok {
@@ -2167,6 +2195,7 @@ func (p *PdfPage) GetPageDict() *core.PdfObjectDictionary {
 	}
 	return pageDict
 }
+
 func (a *PdfAppender) updateObjectsDeep(obj core.PdfObject, set map[core.PdfObject]struct{}) {
 	if set == nil {
 		set = map[core.PdfObject]struct{}{}
@@ -2243,6 +2272,7 @@ func (a *PdfAppender) updateObjectsDeep(obj core.PdfObject, set map[core.PdfObje
 		a.updateObjectsDeep(v.PdfObjectDictionary, set)
 	}
 }
+
 func newPdfColorspaceLabFromPdfObject(obj core.PdfObject) (*PdfColorspaceLab, error) {
 	labCS := NewPdfColorspaceLab()
 	if indirect, ok := obj.(*core.PdfIndirectObject); ok {
@@ -2344,8 +2374,10 @@ func NewPdfColorspaceDeviceCMYK() *PdfColorspaceDeviceCMYK { return &PdfColorspa
 type ArtifactSubtype string
 
 // FileRelationship represents a attachment file relationship type.
-type FileRelationship int
-type ocspKey struct{ responseHash, certHash, issuerHash [32]byte }
+type (
+	FileRelationship int
+	ocspKey          struct{ responseHash, certHash, issuerHash [32]byte }
+)
 
 // AcroFormRepairOptions contains options for rebuilding the AcroForm.
 type AcroFormRepairOptions struct{}
@@ -2375,6 +2407,7 @@ func (t *trustEvaluator) checkChainRevocation(trustChain []*x509.Certificate, va
 	}
 	return revocation
 }
+
 func newPdfReaderTracked(r io.ReaderAt, size int64, opts *ReaderOpts, ok, found bool, s string) (*PdfReader, error) {
 	readerCore, err := newPdfReaderCore(r, opts, ok, found, s)
 	if err != nil {
@@ -2396,6 +2429,7 @@ func newPdfReaderTracked(r io.ReaderAt, size int64, opts *ReaderOpts, ok, found 
 	}
 	return readerCore.loadFromParser(parser)
 }
+
 func (p *PdfPage) getAnnotationsLocked() ([]*PdfAnnotation, error) {
 	if p.annotations != nil {
 		return p.annotations, nil
@@ -2424,6 +2458,7 @@ var _ pdfFont = (*pdfFontType0)(nil)
 // Colorspace returns a best-effort, parameterless CalGray colorspace. The
 // authoritative parameterized colorspace is tracked by the graphics state.
 func (c *PdfColorCalGray) Colorspace() PdfColorspace { return NewPdfColorspaceCalGray() }
+
 func (w *PdfWriter) addObjects(obj core.PdfObject) error {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Adding objects!")
@@ -2658,7 +2693,6 @@ func (p *PdfTilingPattern) GetContentStream() ([]byte, error) {
 // not added for signatures which are already present in the VRI entry of the
 // document's DSS dictionary.
 type LTV struct {
-
 	// CertClient is the client used to retrieve certificates.
 	CertClient *sigutil.CertClient
 
@@ -2694,6 +2728,7 @@ func (cs *PdfColorspaceICCBased) ColorFromFloats(vals []float64) (PdfColor, erro
 	}
 	return cs.Alternate.ColorFromFloats(vals)
 }
+
 func (r *PdfReader) loadAnnotations(annots core.PdfObject) ([]*PdfAnnotation, error) {
 	annotsArr, ok := core.GetArray(annots)
 	if !ok {
@@ -2754,6 +2789,7 @@ func (r *PdfReader) loadAction(a core.PdfObject) (*PdfAction, error) {
 	}
 	return nil, nil
 }
+
 func (w *PdfWriter) prepareLinearizedDocument() error {
 	if err := w.checkLicense(); err != nil {
 		return err
@@ -2786,6 +2822,7 @@ func (w *PdfWriter) prepareLinearizedDocument() error {
 // SetSchema sets the namespace schema, a reference to a file containing a
 // schema for the namespace (ISO 32000-2 14.7.4.2, table 356).
 func (ns *PdfStructureNamespace) SetSchema(schema core.PdfObject) { ns.schema = schema }
+
 func (p *PdfPage) flattenFieldsWithOpts(appgen FieldAppearanceGenerator, fieldFlattenOpts *FieldFlattenOpts, set map[*PdfAnnotation]bool) error {
 	var annots []*PdfAnnotation
 	if appgen != nil {
@@ -2933,9 +2970,11 @@ func (r *PdfPageResources) GetShadingByName(keyName core.PdfObjectName) (*PdfSha
 	}
 	return nil, false
 }
+
 func (w *PdfWriter) setDocumentIDs(id0, s string) {
 	w.ids = core.MakeArray(core.MakeHexString(id0), core.MakeHexString(s))
 }
+
 func (r *PdfReader) newPdfAnnotationWatermarkFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationWatermark, error) {
 	watermark := PdfAnnotationWatermark{}
 	watermark.FixedPrint = dict.Get("FixedPrint")
@@ -2955,6 +2994,7 @@ func NewPdfActionSetOCGState() *PdfActionSetOCGState {
 func (d *DSS) AddCerts(certs [][]byte) ([]*core.PdfObjectStream, error) {
 	return d.add(&d.Certs, d.certsMap, certs)
 }
+
 func newPdfColorspaceSpecialSeparationFromPdfObject(obj core.PdfObject) (*PdfColorspaceSpecialSeparation, error) {
 	specialSeparationCS := NewPdfColorspaceSpecialSeparation()
 	if indirect, ok := obj.(*core.PdfIndirectObject); ok {
@@ -2995,6 +3035,7 @@ func newPdfColorspaceSpecialSeparationFromPdfObject(obj core.PdfObject) (*PdfCol
 	specialSeparationCS.TintTransform = function
 	return specialSeparationCS, nil
 }
+
 func (f *pdfFontType0) subsetTrueType(font *pdfCIDFontType2) error {
 	if font == nil {
 		return nil
@@ -3160,6 +3201,7 @@ func (w *PdfWriter) updateObjectNumbers() {
 	}
 	sort.SliceStable(w.objects, func(n, count int) bool { return fn(w.objects[n]) < fn(w.objects[count]) })
 }
+
 func (f *pdfFontType0) filterSubsetToUnicode(gids []unitype.GlyphIndex) {
 	if f.toUnicodeCMap == nil {
 		return
@@ -3260,6 +3302,7 @@ func (cs *PdfColorspaceSpecialPattern) ImageToRGB(img Image) (Image, error) {
 	common.Log.Debug("Error: Image cannot be specified in Pattern colorspace")
 	return img, errors.New("invalid colorspace for image (pattern)")
 }
+
 func filterFieldsRecursive(fields *[]*PdfField, filter FieldFilterFunc, ok bool) []*PdfField {
 	if fields == nil {
 		return nil
@@ -3327,6 +3370,7 @@ func (f *pdfFontSimple) ToPdfObject() core.PdfObject {
 
 // GetRefObject returns the reference object of the KValue.
 func (kv *KValue) GetRefObject() core.PdfObject { return kv.refObject }
+
 func (p *PdfPage) annotationsSnapshot() []*PdfAnnotation {
 	if p.mu != nil {
 		p.mu.Lock()
@@ -3334,6 +3378,7 @@ func (p *PdfPage) annotationsSnapshot() []*PdfAnnotation {
 	}
 	return p.annotations
 }
+
 func parseByteRange(arr *core.PdfObjectArray, n int64) ([]int64, error) {
 	arrLen := arr.Len()
 	if arrLen < 2 || arrLen%2 != 0 {
@@ -3449,6 +3494,7 @@ func (s *PdfShadingType1) ToPdfObject() core.PdfObject {
 	}
 	return s.primitive
 }
+
 func (r *PdfReader) newPdfSignatureFromIndirect(indirect *core.PdfIndirectObject) (*PdfSignature, error) {
 	dict, ok := indirect.PdfObject.(*core.PdfObjectDictionary)
 	if !ok {
@@ -3560,6 +3606,7 @@ const (
 )
 
 func newPdfFontType0FromCommon(fc *fontCommon) *pdfFontType0 { return &pdfFontType0{fontCommon: *fc} }
+
 func (p *PdfPage) setContainer(indirect *core.PdfIndirectObject) {
 	indirect.PdfObject = p.pageDict
 	p.primitive = indirect
@@ -3579,6 +3626,7 @@ func (r *PdfPageResources) HasColorspaceByName(keyName core.PdfObjectName) bool 
 	_, ok := colorspaces.Colorspaces[string(keyName)]
 	return ok
 }
+
 func (f *fontFile) loadFromSegments(data, data2 []byte) error {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("loadFromSegments: %d %d", len(data), len(data2))
@@ -3598,6 +3646,7 @@ func (f *fontFile) loadFromSegments(data, data2 []byte) error {
 	}
 	return nil
 }
+
 func newPdfFontSimpleFromDict(dict *core.PdfObjectDictionary, fc *fontCommon, enc textencoding.TextEncoder) (*pdfFontSimple, error) {
 	fontSimple := newPdfFontSimpleFromCommon(fc)
 	fontSimple.std14Encoder = enc
@@ -3659,6 +3708,7 @@ func (r *PdfPageResources) HasXObjectByName(keyName core.PdfObjectName) bool {
 
 // GetPageAsIndirectObject returns the page as a dictionary within an PdfIndirectObject.
 func (p *PdfPage) GetPageAsIndirectObject() *core.PdfIndirectObject { return p.primitive }
+
 func newPdfFontSimpleFromStdFont(stdFont fonts.StdFont) pdfFontSimple {
 	descriptor := stdFont.Descriptor()
 	return pdfFontSimple{fontCommon: fontCommon{subtype: "Type1", baseFont: stdFont.Name()}, fontMetrics: stdFont.GetMetricsTable(), std14Descriptor: &PdfFontDescriptor{FontName: core.MakeName(string(descriptor.Name)), FontFamily: core.MakeName(descriptor.Family), FontWeight: core.MakeFloat(float64(descriptor.Weight)), Flags: core.MakeInteger(int64(descriptor.Flags)), FontBBox: core.MakeArrayFromFloats(descriptor.BBox[:]), ItalicAngle: core.MakeFloat(descriptor.ItalicAngle), Ascent: core.MakeFloat(descriptor.Ascent), Descent: core.MakeFloat(descriptor.Descent), CapHeight: core.MakeFloat(descriptor.CapHeight), XHeight: core.MakeFloat(descriptor.XHeight), StemV: core.MakeFloat(descriptor.StemV), StemH: core.MakeFloat(descriptor.StemH)}, std14Encoder: stdFont.Encoder()}
@@ -3777,6 +3827,7 @@ func (w *PdfWriter) AddPage(page *PdfPage) error {
 
 // GetContainingPdfObject returns the container of the pattern object (indirect object).
 func (p *PdfPattern) GetContainingPdfObject() core.PdfObject { return p.primitive }
+
 func (r *PdfReader) newPdfAnnotationCaretFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationCaret, error) {
 	caret := PdfAnnotationCaret{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -3852,6 +3903,7 @@ func NewXObjectImage() *XObjectImage {
 	xobj.primitive = stream
 	return xobj
 }
+
 func shapedGlyphText(runes []rune, glyph shaping.Glyph) string {
 	textIndex := glyph.TextIndex()
 	n := textIndex + glyph.RunesCount()
@@ -3945,6 +3997,7 @@ func (p *PdfPage) GetMediaBox() (*PdfRectangle, error) {
 	}
 	return nil, errors.New("media box not defined")
 }
+
 func (r *PdfReader) newPdfActionGoTo3DViewFromDict(dict *core.PdfObjectDictionary) (*PdfActionGoTo3DView, error) {
 	return &PdfActionGoTo3DView{TA: dict.Get("TA"), V: dict.Get("V")}, nil
 }
@@ -3972,9 +4025,11 @@ func (f *PdfFieldText) ToPdfObject() core.PdfObject {
 	}
 	return indirect
 }
+
 func (img *Image) canPassThroughJPEG() bool {
 	return img.encodedFormat == "jpeg" && len(img.encodedData) > 0 && img.BitsPerComponent == 8 && (img.ColorComponents == 1 || img.ColorComponents == 3)
 }
+
 func (w *PdfWriter) optimizeDocument() error {
 	if w.standardApplier == nil {
 		return nil
@@ -4051,6 +4106,7 @@ func (d *pdfSignDictionary) Write() []byte {
 	buffer.WriteString(">>")
 	return buffer.Bytes()
 }
+
 func (cs *PdfColorspaceDeviceGray) String() string {
 	return "DeviceGray"
 }
@@ -4117,6 +4173,7 @@ func (cs *PdfColorspaceDeviceN) ImageToRGB(img Image) (Image, error) {
 	}
 	return cs.AlternateSpace.ImageToRGB(imageFromImageBase(&imageBase))
 }
+
 func (c fontCommon) isCIDFont() bool {
 	if c.subtype == "" {
 		common.Log.Debug("ERROR: isCIDFont. context is nil. font=%s", c)
@@ -4191,9 +4248,11 @@ func NewPdfInfoFromObject(obj core.PdfObject) (*PdfInfo, error) {
 	}
 	return &info, nil
 }
+
 func (c certRevocation) settled() bool {
 	return c.status == RevocationStatusGood || c.status == RevocationStatusRevoked && !c.onHold
 }
+
 func (t *trustEvaluator) evaluateRevocation(result *SignatureValidationResult, ok bool, evidence revocationEvidence) {
 	result.RevocationStatus = RevocationStatusUnknown
 	if len(result.TrustChain) < 2 {
@@ -4219,7 +4278,6 @@ func (t *trustEvaluator) evaluateRevocation(result *SignatureValidationResult, o
 // SignatureHandler interface defines the common functionality for PDF signature handlers, which
 // need to be capable of validating digital signatures and signing PDF documents.
 type SignatureHandler interface {
-
 	// IsApplicable checks if a given signature dictionary `sig` is applicable for the signature handler.
 	// For example a signature of type `adbe.pkcs7.detached` might not fit for a rsa.sha1 handler.
 	IsApplicable(sig *PdfSignature) bool
@@ -4334,7 +4392,9 @@ type PdfFont struct{ context pdfFont }
 // Field returns the parent form field of the widget annotation, if one exists.
 // NOTE: the method returns nil if the parent form field has not been parsed.
 func (a *PdfAnnotationWidget) Field() *PdfField { return a.field }
-func getPdfAuthor() string                      { metadataMu.Lock(); defer metadataMu.Unlock(); return pdfAuthor }
+
+func getPdfAuthor() string { metadataMu.Lock(); defer metadataMu.Unlock(); return pdfAuthor }
+
 func decodeDSSStream(stream *core.PdfObjectStream) ([]byte, bool) {
 	data, err := core.DecodeStream(stream)
 	if err != nil {
@@ -4352,7 +4412,7 @@ func (p *PdfPage) AddImageResource(name core.PdfObjectName, ximg *XObjectImage) 
 		p.Resources.XObject = dict
 	} else {
 		var ok bool
-		dict, ok = (p.Resources.XObject).(*core.PdfObjectDictionary)
+		dict, ok = p.Resources.XObject.(*core.PdfObjectDictionary)
 		if !ok {
 			return errors.New("invalid xres dict type")
 		}
@@ -4365,6 +4425,7 @@ func (p *PdfPage) AddImageResource(name core.PdfObjectName, ximg *XObjectImage) 
 func NewDSS() *DSS {
 	return &DSS{primitive: core.MakeIndirectObject(core.MakeDict()), VRI: map[string]*VRI{}}
 }
+
 func hasAcceptableKeyUsage(cert *x509.Certificate) bool {
 	if len(cert.ExtKeyUsage) == 0 && len(cert.UnknownExtKeyUsage) == 0 {
 		return true
@@ -4490,6 +4551,7 @@ func NewPdfAnnotationInk() *PdfAnnotationInk {
 	annot.SetContext(ink)
 	return ink
 }
+
 func padBytes(data []byte, n int) []byte {
 	if len(data) >= n {
 		return data
@@ -4552,6 +4614,7 @@ func (cs *PdfColorspaceSpecialPattern) ColorFromPdfObjects(objects []core.PdfObj
 	}
 	return patternColor, nil
 }
+
 func parseCertificates(cert []*core.PdfObjectStream) []*x509.Certificate {
 	var certs []*x509.Certificate
 	for _, stream := range decodeStreams(cert) {
@@ -4577,6 +4640,7 @@ func (d *pdfSignDictionary) GetSubFilter() string {
 	}
 	return ""
 }
+
 func parseType1Encoding(s string) (map[textencoding.CharCode]textencoding.GlyphName, error) {
 	split := strings.Split(s, "\n")
 	glyphByCode := make(map[textencoding.CharCode]textencoding.GlyphName)
@@ -4598,6 +4662,7 @@ func parseType1Encoding(s string) (map[textencoding.CharCode]textencoding.GlyphN
 	}
 	return glyphByCode, nil
 }
+
 func (f *PdfFilespec) getDict() *core.PdfObjectDictionary {
 	if indirect, ok := f.primitive.(*core.PdfIndirectObject); ok {
 		dict, ok := indirect.PdfObject.(*core.PdfObjectDictionary)
@@ -4620,7 +4685,6 @@ type PageBoundary string
 // IDTree represents the ID tree dictionary where the format of the content
 // is using Name Trees as described in chapter 7.9.6.
 type IDTree struct {
-
 	// Limits shall be an array of two strings, that shall specify the (lexically) least and greatest keys included in the Names array.
 	Limits *core.PdfObjectArray
 
@@ -4741,6 +4805,7 @@ func (a *PdfAnnotationWidget) ToPdfObject() core.PdfObject {
 	a.building = false
 	return indirect
 }
+
 func buildXrefStream(plan *xrefStreamPlan) ([]byte, error) {
 	var buf bytes.Buffer
 	array := core.MakeArray()
@@ -4838,6 +4903,7 @@ func (a *PdfAppender) RemovePage(pageNum int) {
 	n := pageNum - 1
 	a.pages = append(a.pages[0:n], a.pages[pageNum:]...)
 }
+
 func (cs *PdfColorspaceDeviceCMYK) String() string {
 	return "DeviceCMYK"
 }
@@ -4943,6 +5009,7 @@ func (r *PdfPageResources) GetXObjectFormByName(keyName core.PdfObjectName) (*XO
 	}
 	return xObjectForm, nil
 }
+
 func (r *PdfReader) newPdfAnnotationCircleFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationCircle, error) {
 	circle := PdfAnnotationCircle{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -5166,6 +5233,7 @@ func (cs *PdfColorspaceDeviceCMYK) ToPdfObject() core.PdfObject {
 func (a *PdfAppender) UpdatePage(page *PdfPage) {
 	a.updateObjectsDeep(page.ToPdfObject(), nil)
 }
+
 func isHTTPURL(s string) bool {
 	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
 }
@@ -5182,6 +5250,7 @@ func (a *PdfAnnotationScreen) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("AA", a.AA)
 	return indirect
 }
+
 func (f *PdfField) resolveMaxLen() int {
 	var n int
 	_, _ = f.inherit(func(field *PdfField) bool {
@@ -5239,6 +5308,7 @@ func (p *PdfPage) SetContentStreams(cStreams []string, encoder core.StreamEncode
 	}
 	return nil
 }
+
 func getPdfTitle() string {
 	metadataMu.Lock()
 	defer metadataMu.Unlock()
@@ -5264,6 +5334,7 @@ func (a *PdfAnnotationLink) SetAction(action *PdfAction) {
 		a.A = nil
 	}
 }
+
 func buildSharedObjectHintTable(layout *linearizationLayout, preObjByNum map[int64]preserializedObject, n, count int64) (*core.SharedObjectHintTable, error) {
 	firstShared := layout.firstShared
 	mainShared := layout.mainShared
@@ -5394,6 +5465,7 @@ func NewPdfColorCalGray(grayVal float64) *PdfColorCalGray {
 
 // PdfVersion returns version of the PDF file.
 func (r *PdfReader) PdfVersion() core.Version { return r.parser.PdfVersion() }
+
 func (w *PdfWriter) writeLinearized(writer io.Writer) error {
 	if err := w.prepareLinearizedDocument(); err != nil {
 		return err
@@ -5431,6 +5503,7 @@ func (w *PdfWriter) writeLinearized(writer io.Writer) error {
 	}
 	return w2.Flush()
 }
+
 func streamsToArray(streams []*core.PdfObjectStream) *core.PdfObjectArray {
 	if len(streams) == 0 {
 		return nil
@@ -5468,6 +5541,7 @@ func NewPdfActionJavaScript() *PdfActionJavaScript {
 	action.SetContext(javaScriptAction)
 	return javaScriptAction
 }
+
 func newWidgetProperties(widget *PdfAnnotationWidget) WidgetProperties {
 	var widgetProperties WidgetProperties
 	widgetProperties.BorderColor, widgetProperties.BackgroundColor, widgetProperties.Caption, widgetProperties.Rotation = widgetMKProperties(widget)
@@ -5540,6 +5614,7 @@ func (cs *PdfColorspaceDeviceRGB) ColorFromFloats(vals []float64) (PdfColor, err
 	deviceRGBColor := NewPdfColorDeviceRGB(val, f, v)
 	return deviceRGBColor, nil
 }
+
 func (r *PdfReader) newPdfActionMovieFromDict(dict *core.PdfObjectDictionary) (*PdfActionMovie, error) {
 	return &PdfActionMovie{Annotation: dict.Get("Annotation"), T: dict.Get("T"), Operation: dict.Get("Operation")}, nil
 }
@@ -5590,12 +5665,14 @@ func (cs *PdfColorspaceDeviceCMYK) ImageToRGB(img Image) (Image, error) {
 	}
 	return imageFromImageBase(convert.Base()), nil
 }
+
 func (a *PdfAppender) addNewObject(obj core.PdfObject) {
 	if _, ok := a.hasNewObject[obj]; !ok {
 		a.newObjects = append(a.newObjects, obj)
 		a.hasNewObject[obj] = struct{}{}
 	}
 }
+
 func buildMainXrefStream(writer *PdfWriter, mainXrefObjNum int64, nums []int64, preObjByNum map[int64]preserializedObject, n int64, hintOffset int64, linDictOffset int64, mainXrefOffset int64, firstXrefOffset int64, count int64, objStm *objectStreamsState) ([]byte, error) {
 	table := map[int64]int{}
 	for i, packedObjNum := range objStm.packedObjNums {
@@ -5651,6 +5728,7 @@ func (f *PdfFont) IsSimple() bool { _, ok := f.context.(*pdfFontSimple); return 
 
 // IsRadio returns true if the button field represents a radio button, false otherwise.
 func (f *PdfFieldButton) IsRadio() bool { return f.GetType() == ButtonTypeRadio }
+
 func (r *PdfReader) newPdfAnnotationStrikeOut(dict *core.PdfObjectDictionary) (*PdfAnnotationStrikeOut, error) {
 	strikeOut := PdfAnnotationStrikeOut{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -5676,6 +5754,7 @@ func (a *PdfActionGoToE) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("T", a.T)
 	return indirect
 }
+
 func (a *PdfAnnotationMarkup) appendToPdfDictionary(dict *core.PdfObjectDictionary) {
 	dict.SetIfNotNil("T", a.T)
 	if a.Popup != nil {
@@ -5690,6 +5769,7 @@ func (a *PdfAnnotationMarkup) appendToPdfDictionary(dict *core.PdfObjectDictiona
 	dict.SetIfNotNil("IT", a.IT)
 	dict.SetIfNotNil("ExData", a.ExData)
 }
+
 func (r *PdfReader) newPdfAnnotationFreeTextFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationFreeText, error) {
 	freeText := PdfAnnotationFreeText{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -5771,6 +5851,7 @@ func (s *PdfSignature) SetDate(date time.Time, format string) {
 	}
 	s.M = core.MakeString(date.Format(format))
 }
+
 func newPdfShadingFromPdfObject(obj core.PdfObject) (*PdfShading, error) {
 	shading := &PdfShading{}
 	var dict *core.PdfObjectDictionary
@@ -6183,6 +6264,7 @@ func (a *PdfAnnotation) GetContext() PdfModel {
 	}
 	return a.context
 }
+
 func buildLinearizationDict(n int64, fileLength int64, hintOffset int64, count int64, firstPageEnd int64, pageCount int, xrefFirstEntryOffset int64, firstPageObjNum int64) []byte {
 	s := fmt.Sprintf("%d 0 obj\n<</Linearized 1/L %d/H[%d %d]/O %d/E %d/N %d/T %d", n, fileLength, hintOffset, count, firstPageObjNum, firstPageEnd, pageCount, xrefFirstEntryOffset)
 	s2 := fmt.Sprintf("%d 0 obj\n<</Linearized 1/L %010d/H[%010d %010d]/O %010d/E %010d/N %010d/T %010d", n, fileLength, hintOffset, count, firstPageObjNum, firstPageEnd, pageCount, xrefFirstEntryOffset)
@@ -6284,12 +6366,14 @@ func (d *PdfFontDescriptor) ToPdfObject() core.PdfObject {
 	}
 	return d.primitive
 }
+
 func (a *PdfAcroForm) filteredFields(filterFunc FieldFilterFunc, ok bool) []*PdfField {
 	if a == nil {
 		return nil
 	}
 	return filterFieldsRecursive(a.Fields, filterFunc, ok)
 }
+
 func (t *trustEvaluator) embeddedRevocationEvidence(p7 *pkcs7.PKCS7, s string) revocationEvidence {
 	var evidence revocationEvidence
 	if p7 != nil {
@@ -6339,6 +6423,7 @@ func NewPdfAnnotationSound() *PdfAnnotationSound {
 	annot.SetContext(sound)
 	return sound
 }
+
 func (r *PdfReader) loadDSS() (*DSS, error) {
 	if r.parser.GetCrypter() != nil && !r.parser.IsAuthenticated() {
 		return nil, fmt.Errorf("file need to be decrypted first")
@@ -6405,6 +6490,7 @@ func NewPdfReaderAt(r io.ReaderAt, size int64) (*PdfReader, error) {
 	const trackNameNewPdfReader = "model:NewPdfReader"
 	return newPdfReaderTracked(r, size, &ReaderOpts{}, false, false, trackNameNewPdfReader)
 }
+
 func imageFromImageBase(base *imageutil.ImageBase) (img Image) {
 	img.Width = int64(base.Width)
 	img.Height = int64(base.Height)
@@ -6478,6 +6564,7 @@ func bitsRequired(n uint32) uint16 {
 
 // SetFileName sets the pdf writer file name for metered usage tracker.
 func (w *PdfWriter) SetFileName(name string) { w.fileName = name }
+
 func (f *PdfFunctionType0) processSamples() error {
 	resampleBytes := sampling.ResampleBytes(f.rawData, f.BitsPerSample)
 	f.samples = resampleBytes
@@ -6686,6 +6773,7 @@ func (r *PdfReader) newPdfAnnotationSquigglyFromDict(dict *core.PdfObjectDiction
 
 // IsShading specifies if the pattern is a shading pattern.
 func (p *PdfPattern) IsShading() bool { return p.PatternType == 2 }
+
 func newNamesFromPdfObject(names core.PdfObject) *Names {
 	names2 := newNames()
 	dict := names.Direct().(*core.PdfObjectDictionary)
@@ -6822,7 +6910,6 @@ func (cs *PdfColorspaceDeviceRGB) GetNumComponents() int { return 3 }
 // Multiple PdfOutputIntents allows the production process to be customized to the expected workflow and the specific
 // tools available.
 type PdfOutputIntent struct {
-
 	// Type is an optional PDF object that this dictionary describes.
 	// If present, must be OutputIntent for an output intent dictionary.
 	Type string
@@ -7040,6 +7127,7 @@ func newPdfShadingPatternFromDict(dict *core.PdfObjectDictionary) (*PdfShadingPa
 	}
 	return shadingPattern, nil
 }
+
 func (w *PdfWriter) canSkipCopy() bool {
 	if w.appendMode {
 		return false
@@ -7295,7 +7383,6 @@ func newAppenderSnapshotReader(r io.ReaderAt, n int64, opts *ReaderOpts, ok bool
 // FieldValue is the fully qualified name of a terminal (leaf) form field
 // paired with its raw value object.
 type FieldValue struct {
-
 	// Name is the fully qualified field name, e.g. "form.address.city".
 	Name string
 
@@ -7369,6 +7456,7 @@ func (o *PdfOutlineItem) ToPdfObject() core.PdfObject {
 	}
 	return indirect
 }
+
 func newPdfFilespecFromPdfObject(obj core.PdfObject) (*PdfFilespec, error) {
 	if obj == nil {
 		return nil, nil
@@ -7403,6 +7491,7 @@ func (k *KDict) RemoveKChild(kChild *KDict) bool {
 	}
 	return false
 }
+
 func (f *PdfField) inheritedValue() core.PdfObject {
 	var obj core.PdfObject
 	f.inherit(func(field *PdfField) bool { obj = field.V; return obj != nil })
@@ -7413,6 +7502,7 @@ func (f *PdfField) inheritedValue() core.PdfObject {
 func (t PdfOutputIntentType) IsValid() bool {
 	return t >= PdfOutputIntentTypeA1 && t <= PdfOutputIntentTypeX
 }
+
 func applySubsetTag(font *pdfFontType0, s *string, fontDescriptor *PdfFontDescriptor, data []byte) {
 	s2 := subsetTag(data)
 	if len(font.baseFont) > 0 {
@@ -7445,6 +7535,7 @@ func (p *PdfPage) GetContentStreams() ([]string, error) {
 	}
 	return strs, nil
 }
+
 func (d *DSS) add(streams *[]*core.PdfObjectStream, streamByKey map[string]*core.PdfObjectStream, dataList [][]byte) ([]*core.PdfObjectStream, error) {
 	streams2 := make([]*core.PdfObjectStream, 0, len(dataList))
 	for _, data := range dataList {
@@ -7475,6 +7566,7 @@ func (p *PdfColorPatternType2) Colorspace() PdfColorspace {
 	}
 	return specialPatternCS
 }
+
 func newPdfTilingPatternFromDict(dict *core.PdfObjectDictionary) (*PdfTilingPattern, error) {
 	tilingPattern := &PdfTilingPattern{}
 	paintType := dict.Get("PaintType")
@@ -7582,6 +7674,7 @@ func (w *PdfWriter) SetCatalogMarkInfo(info core.PdfObject) error {
 	w.catalog.Set("MarkInfo", info)
 	return nil
 }
+
 func (w *PdfWriter) checkLicense() error {
 	licenseKey := license.GetLicenseKey()
 	if (licenseKey == nil || !licenseKey.IsLicensed()) && !licenseCheckDisabled {
@@ -7671,6 +7764,7 @@ func (x *XObjectImage) GetContainingPdfObject() core.PdfObject { return x.primit
 
 // Encoder returns the font's text encoder.
 func (f pdfCIDFontType0) Encoder() textencoding.TextEncoder { return f.encoder }
+
 func (r *PdfReader) newPdfActionSubmitFormFromDict(dict *core.PdfObjectDictionary) (*PdfActionSubmitForm, error) {
 	filespec, err := newPdfFilespecFromPdfObject(dict.Get("F"))
 	if err != nil {
@@ -7697,6 +7791,7 @@ func (a *PdfAnnotationText) ToPdfObject() core.PdfObject {
 
 // SetViewClip sets the value of the viewClip.
 func (vp *ViewerPreferences) SetViewClip(viewClip PageBoundary) { vp.viewClip = viewClip }
+
 func (t *trustEvaluator) parseCRL(data []byte) *parsedCRL {
 	sum256 := sha256.Sum256(data)
 	if crlByHash, ok := t.crlByHash[sum256]; ok {
@@ -7746,6 +7841,7 @@ func (f *PdfFont) ShapeText(text string, fontSize float64) shaping.Line {
 // SetLinearizationOptions sets the options that apply when linearized output
 // is enabled via SetLinearized.
 func (w *PdfWriter) SetLinearizationOptions(opts LinearizationOptions) { w.linearizationOptions = opts }
+
 func (r *PdfReader) newPdfPageFromDict(dict *core.PdfObjectDictionary) (*PdfPage, error) {
 	page := NewPdfPage()
 	page.pageDict = dict
@@ -7973,6 +8069,7 @@ func (w *PdfWriter) AddExtension(extName, baseVersion string, extLevel int) {
 
 // Write outputs the object as it is to be written to file.
 func (p *PdfTransformParamsDocMDP) Write() []byte { return p.ToPdfObject().Write() }
+
 func newPdfFontSimpleFromStdName(basefont StdFontName) (pdfFontSimple, error) {
 	stdFontByName, ok := fonts.NewStdFontByName(basefont)
 	if !ok {
@@ -8000,6 +8097,7 @@ func (a *PdfAnnotationLink) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("BS", a.BS)
 	return indirect
 }
+
 func (l *LTV) getOCSPs(certs []*x509.Certificate, certByKey map[string]*x509.Certificate) ([][]byte, error) {
 	dataList := make([][]byte, 0, len(certs))
 	for _, cert := range certs {
@@ -8053,6 +8151,7 @@ const (
 	RevocationStatusGood
 	RevocationStatusRevoked
 )
+
 const (
 	RevocationCheckNone RevocationCheck = iota
 	RevocationCheckOffline
@@ -8072,6 +8171,7 @@ type fontCommon struct {
 // Colorspace returns a best-effort, parameterless CalRGB colorspace. The
 // authoritative parameterized colorspace is tracked by the graphics state.
 func (c *PdfColorCalRGB) Colorspace() PdfColorspace { return NewPdfColorspaceCalRGB() }
+
 func (w *PdfWriter) writeOutlines() error {
 	if w.outlineTree == nil {
 		return nil
@@ -8129,6 +8229,7 @@ func (img *Image) ColorAt(x, y int) (color.Color, error) {
 	common.Log.Debug("ERROR: unsupported image. %d components, %d bits per component", img.ColorComponents, img.BitsPerComponent)
 	return nil, errors.New("unsupported image colorspace")
 }
+
 func newPdfColorspaceDeviceNAttributesFromPdfObject(obj core.PdfObject) (*PdfColorspaceDeviceNAttributes, error) {
 	deviceNAttributesCS := &PdfColorspaceDeviceNAttributes{}
 	var dict *core.PdfObjectDictionary
@@ -8169,6 +8270,7 @@ func newPdfColorspaceDeviceNAttributesFromPdfObject(obj core.PdfObject) (*PdfCol
 	}
 	return deviceNAttributesCS, nil
 }
+
 func (a *PdfAcroForm) fillImageWithAppearance(fieldImageProvider FieldImageProvider, appGen FieldAppearanceGenerator) error {
 	if a == nil {
 		return nil
@@ -8264,6 +8366,7 @@ func (w *PdfWriter) GetPageIndirectObject(pageNum int) (*core.PdfIndirectObject,
 	}
 	return w.pageObjs[pageNum], nil
 }
+
 func newPdfFontType3FromCommon(fc *fontCommon) *pdfFontType3 { return &pdfFontType3{fontCommon: *fc} }
 
 // CharcodesToStrings returns the unicode strings corresponding to `charcodes`.
@@ -8386,6 +8489,7 @@ func (o *OutlineItem) ToPdfOutlineItem() (*PdfOutlineItem, int64) {
 	}
 	return item, n
 }
+
 func isBinaryData(data []byte) bool {
 	if len(data) < 4 {
 		return true
@@ -8448,6 +8552,7 @@ func NewPdfAnnotationSquare() *PdfAnnotationSquare {
 // orphan pages require it (see canSkipCopy), as those need the copy for
 // correctness rather than source protection.
 func (w *PdfWriter) SetSkipObjectCopy(skip bool) { w.skipObjectCopy = skip }
+
 func newPdfOutlineFromIndirectObject(indirect *core.PdfIndirectObject) (*PdfOutline, error) {
 	dict, ok := indirect.PdfObject.(*core.PdfObjectDictionary)
 	if !ok {
@@ -8638,6 +8743,7 @@ func (w *PdfWriter) adjustXRefAffectedVersion(ok bool) {
 		w.version.Minor = 5
 	}
 }
+
 func (r *PdfReader) newPdfOutlineItemFromIndirectObject(indirect *core.PdfIndirectObject) (*PdfOutlineItem, error) {
 	dict, ok := indirect.PdfObject.(*core.PdfObjectDictionary)
 	if !ok {
@@ -8699,6 +8805,7 @@ func NewPdfActionResetForm() *PdfActionResetForm {
 	action.SetContext(resetFormAction)
 	return resetFormAction
 }
+
 func parseMatte(arr *core.PdfObjectArray) (float64, error) {
 	floats, err := arr.ToFloat64Array()
 	if err != nil {
@@ -8730,6 +8837,7 @@ func parseMatte(arr *core.PdfObjectArray) (float64, error) {
 	common.Log.Error("toGray: matte=%s err=%v", arr, err)
 	return 0.0, err
 }
+
 func (t *trustEvaluator) reportUnknownRevocation(result *SignatureValidationResult, strs ...string) {
 	if t.opts.RequireRevocationStatus {
 		result.TrustErrors = append(result.TrustErrors, strs...)
@@ -8806,6 +8914,7 @@ type modelManager struct {
 // none. The returned slice must not be mutated; use SetAlpha or AlphaMap to
 // change the alpha channel.
 func (img *Image) AlphaData() []byte { return img.alpha }
+
 func ocspResponderAuthorizedByIssuer(resp *ocsp.Response, cert, cert2 *x509.Certificate) bool {
 	certificate := resp.Certificate
 	if certificate == nil || certificate.Equal(cert2) {
@@ -8846,6 +8955,7 @@ func (cs *PdfColorspaceSpecialIndexed) ColorFromFloats(vals []float64) (PdfColor
 	}
 	return col, nil
 }
+
 func removeLazyTempFile(tempFile string) {
 	if tempFile == "" {
 		return
@@ -8854,6 +8964,7 @@ func removeLazyTempFile(tempFile string) {
 		common.Log.Debug("Failed removing lazy temp file %q: %v", tempFile, err)
 	}
 }
+
 func findRevocationEntry(crls []crlEvidence, cert *x509.Certificate, t time.Time) *x509.RevocationListEntry {
 	for _, crl := range crls {
 		entryFor := crl.entryFor(cert)
@@ -8899,11 +9010,13 @@ func NewPdfAnnotationPolyLine() *PdfAnnotationPolyLine {
 	annot.SetContext(polyLine)
 	return polyLine
 }
+
 func (img *Image) clearSourceMetadata() {
 	img.iccProfile = nil
 	img.encodedData = nil
 	img.encodedFormat = ""
 }
+
 func subsetTag(data []byte) string {
 	const (
 		subsetTagAlphabet    = "QWERTYUIOPASDFGHJKLZXCVBNM"
@@ -8919,6 +9032,7 @@ func subsetTag(data []byte) string {
 
 // GetContainingPdfObject implements interface PdfModel.
 func (a *PdfAnnotation) GetContainingPdfObject() core.PdfObject { return a.primitive }
+
 func hasExtKeyUsage(cert *x509.Certificate, usage x509.ExtKeyUsage) bool {
 	for _, extKeyUsage := range cert.ExtKeyUsage {
 		if extKeyUsage == usage {
@@ -8961,6 +9075,7 @@ func (m *modelManager) Register(primitive core.PdfObject, model PdfModel) {
 	m.primitiveByModel[model] = primitive
 	m.modelByPrimitive[primitive] = model
 }
+
 func buildFirstXrefTable(writer *PdfWriter, firstXrefObjs []int64, objects map[int64]preserializedObject, hintObjNum int64, hintOffset int64, mainXrefOffset int64, linDictOffset int64, trailerSize int64) []byte {
 	table := map[int64]int64{}
 	for _, firstXrefObj := range firstXrefObjs {
@@ -8976,6 +9091,7 @@ func buildFirstXrefTable(writer *PdfWriter, firstXrefObjs []int64, objects map[i
 	xrefTable, _ := buildXrefTable(writer, firstXrefObjs, table, trailerSize, mainXrefOffset, true, 0, false)
 	return xrefTable
 }
+
 func buildObjectStreamBytes(n int64, objStreams *core.PdfObjectStreams, crypter *core.PdfCrypt) ([]byte, error) {
 	var buf bytes.Buffer
 	var buf2 bytes.Buffer
@@ -9012,6 +9128,7 @@ func buildObjectStreamBytes(n int64, objStreams *core.PdfObjectStreams, crypter 
 	buf3.WriteString("\nendstream\nendobj\n")
 	return buf3.Bytes(), nil
 }
+
 func cffTable(loader *opentype.Loader) ([]byte, error) {
 	mustNewTag := opentype.MustNewTag("CFF ")
 	rawTable, err := loader.RawTable(mustNewTag)
@@ -9023,6 +9140,7 @@ func cffTable(loader *opentype.Loader) ([]byte, error) {
 
 // SetContext set the sub annotation (context).
 func (s *PdfShading) SetContext(ctx PdfModel) { s.context = ctx }
+
 func prependSubsetTag(s, s2 string) string {
 	if strings.Contains(s, "+") {
 		split := strings.Split(s, "+")
@@ -9036,6 +9154,7 @@ func prependSubsetTag(s, s2 string) string {
 // Colorspace returns a best-effort, parameterless Lab colorspace. The
 // authoritative parameterized colorspace is tracked by the graphics state.
 func (c *PdfColorLab) Colorspace() PdfColorspace { return NewPdfColorspaceLab() }
+
 func matchesAuthorityCertIssuer(data, rawIssuer []byte) bool {
 	var rawValues []asn1.RawValue
 	if data2, err := asn1.Unmarshal(data, &rawValues); err != nil || len(data2) > 0 {
@@ -9051,7 +9170,6 @@ func matchesAuthorityCertIssuer(data, rawIssuer []byte) bool {
 
 // SignatureValidationResult defines the response from the signature validation handler.
 type SignatureValidationResult struct {
-
 	// List of errors when validating the signature.
 	Errors   []string
 	IsSigned bool
@@ -9180,11 +9298,13 @@ func (p *PdfPage) AddExtGState(name core.PdfObjectName, egs *core.PdfObjectDicti
 	dict.Set(name, egs)
 	return nil
 }
+
 func (r *PdfReader) newPdfAnnotationPrinterMarkFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationPrinterMark, error) {
 	printerMark := PdfAnnotationPrinterMark{}
 	printerMark.MN = dict.Get("MN")
 	return &printerMark, nil
 }
+
 func buildFirstXrefStream(writer *PdfWriter, firstXrefObjNum int64, nums []int64, preObjByNum map[int64]preserializedObject, n int64, hintOffset int64, linDictOffset int64, firstXrefOffset int64, mainXrefOffset int64, count int64, objStm *objectStreamsState) ([]byte, error) {
 	entries := make([]xrefEntry, 0, len(nums))
 	for _, num := range nums {
@@ -9249,6 +9369,7 @@ func (cs *PdfColorspaceSpecialIndexed) ColorFromPdfObjects(objects []core.PdfObj
 	}
 	return cs.ColorFromFloats(numbersAsFloat)
 }
+
 func (w *PdfWriter) setDocInfo(obj core.PdfObject) {
 	if w.hasObject(w.infoObj) {
 		delete(w.hasObjects, w.infoObj)
@@ -9267,6 +9388,7 @@ func (w *PdfWriter) setDocInfo(obj core.PdfObject) {
 	w.infoObj = &indirect
 	w.addObject(&indirect)
 }
+
 func (h holdReport) precedes(thisUpdate time.Time, crl *parsedCRL) bool {
 	if h.crl != nil && crl != nil {
 		return crl.newerThan(h.crl)
@@ -9337,6 +9459,7 @@ func (m *modelManager) GetPrimitiveFromModel(model PdfModel) core.PdfObject {
 	}
 	return primitiveByModel
 }
+
 func collectPageResourceObjects(page *PdfPage) map[core.PdfObjectName]core.PdfObject {
 	objByName := make(map[core.PdfObjectName]core.PdfObject)
 	if page.Resources == nil {
@@ -9403,6 +9526,7 @@ func (img *Image) GetParamsDict() *core.PdfObjectDictionary {
 	dict.Set("BitsPerComponent", core.MakeInteger(img.BitsPerComponent))
 	return dict
 }
+
 func buildHintStream(layout *linearizationLayout, table map[int64]int64, preObjByNum map[int64]preserializedObject, hintOffset, n int64) ([]byte, int64, error) {
 	pageOffsetHintTable, err := buildPageOffsetHintTable(layout, table, preObjByNum, hintOffset, n)
 	if err != nil {
@@ -9414,6 +9538,7 @@ func buildHintStream(layout *linearizationLayout, table map[int64]int64, preObjB
 	}
 	return core.EncodeMandatoryHintStream(pageOffsetHintTable, sharedObjectHintTable)
 }
+
 func buildXrefTable(writer *PdfWriter, nums []int64, table map[int64]int64, n int64, count int64, ok bool, num int64, found bool) ([]byte, int64) {
 	var buf bytes.Buffer
 	buf.WriteString("xref\r\n")
@@ -9485,6 +9610,7 @@ func (d PdfDate) ToGoTime() time.Time {
 	fixedZone := time.FixedZone(s, n)
 	return time.Date(int(d.year), time.Month(d.month), int(d.day), int(d.hour), int(d.minute), int(d.second), 0, fixedZone)
 }
+
 func (w *PdfWriter) copyObject(obj core.PdfObject, objByObj map[core.PdfObject]core.PdfObject, set map[core.PdfObject]struct{}, ok bool) core.PdfObject {
 	found := !w.appendMode && set != nil
 	if obj2, isObjByObj := objByObj[obj]; isObjByObj {
@@ -9662,6 +9788,7 @@ func (r *PdfReader) GetNameDictionary() (core.PdfObject, error) {
 	}
 	return names, nil
 }
+
 func canStoreInObjectStream(obj core.PdfObject, writer *PdfWriter) bool {
 	indirect, ok := obj.(*core.PdfIndirectObject)
 	if !ok {
@@ -9703,6 +9830,7 @@ func (f FieldFlag) Has(fl FieldFlag) bool { return (f.Mask() & fl.Mask()) > 0 }
 // GetNumComponents returns the number of color components of the colorspace device.
 // Returns 1 for a grayscale device.
 func (cs *PdfColorspaceDeviceGray) GetNumComponents() int { return 1 }
+
 func (r *PdfReader) newPdfActionResetFormFromDict(dict *core.PdfObjectDictionary) (*PdfActionResetForm, error) {
 	return &PdfActionResetForm{Fields: dict.Get("Fields"), Flags: dict.Get("Flags")}, nil
 }
@@ -9835,6 +9963,7 @@ func (ns *PdfStructureNamespace) ToPdfObject() core.PdfObject {
 	}
 	return ns.indirect
 }
+
 func shapedGlyphIDs(encoder textencoding.TextEncoder) []uint16 {
 	shapedGlyphRegistry, ok := encoder.(textencoding.ShapedGlyphRegistry)
 	if !ok {
@@ -9847,6 +9976,7 @@ func shapedGlyphIDs(encoder textencoding.TextEncoder) []uint16 {
 	}
 	return vals
 }
+
 func newPdfPageResourcesColorspacesFromPdfObject(colorSpace core.PdfObject) (*PdfPageResourcesColorspaces, error) {
 	pageResourcesColorspaces := &PdfPageResourcesColorspaces{}
 	if indirect, ok := colorSpace.(*core.PdfIndirectObject); ok {
@@ -9870,6 +10000,7 @@ func newPdfPageResourcesColorspacesFromPdfObject(colorSpace core.PdfObject) (*Pd
 	}
 	return pageResourcesColorspaces, nil
 }
+
 func newPdfFunctionType0FromStream(stream *core.PdfObjectStream) (*PdfFunctionType0, error) {
 	fn0 := &PdfFunctionType0{}
 	fn0.container = stream
@@ -10011,7 +10142,6 @@ func (a *PdfAcroForm) ToPdfObject() core.PdfObject {
 // Artifact represents a PDF artifact, which is a non-visual element
 // that provides additional information about the document structure or content.
 type Artifact struct {
-
 	// Type of the artifact.
 	Type ArtifactType
 
@@ -10071,6 +10201,7 @@ func (f pdfCIDFontType0) GetCharMetrics(code textencoding.CharCode) (fonts.CharM
 	}
 	return fonts.CharMetrics{Wx: defaultWidth}, true
 }
+
 func NewViewerPreferencesFromPdfObject(obj core.PdfObject) (*ViewerPreferences, error) {
 	obj2 := core.ResolveReference(obj)
 	dict, ok := core.GetDict(obj2)
@@ -10172,6 +10303,7 @@ func NewViewerPreferencesFromPdfObject(obj core.PdfObject) (*ViewerPreferences, 
 	}
 	return viewerPreferences, nil
 }
+
 func (c *parsedCRL) signedBy(cert *x509.Certificate, data [32]byte) bool {
 	ok, found := c.memo[data]
 	if !found {
@@ -10344,6 +10476,7 @@ func (r *PdfPageResources) GetXObjectImageByName(keyName core.PdfObjectName) (*X
 	}
 	return xObjectImage, nil
 }
+
 func (w *PdfWriter) snapshotObjectNumbers() func() {
 	type savedNum struct {
 		obj    core.PdfObject
@@ -10413,6 +10546,7 @@ func (f *pdfFontType0) applyLigatureToUnicode(textByCode, code map[cmap.CharCode
 		identityEncoder.SetToUnicodeCMap(f.toUnicodeCMap)
 	}
 }
+
 func newPdfShadingType5FromDict(dict *core.PdfObjectDictionary) (*PdfShadingType5, error) {
 	shading5 := PdfShadingType5{}
 	bitsPerCoordinate := dict.Get("BitsPerCoordinate")
@@ -10481,6 +10615,7 @@ func newPdfShadingType5FromDict(dict *core.PdfObjectDictionary) (*PdfShadingType
 	}
 	return &shading5, nil
 }
+
 func collectIndirectObjects(indirect *core.PdfIndirectObject) []*core.PdfIndirectObject {
 	var indirects []*core.PdfIndirectObject
 	if indirect == nil {
@@ -10536,6 +10671,7 @@ func (r *PdfReader) GetCatalogMarkInfo() (core.PdfObject, bool) {
 	markInfo := r.catalog.Get("MarkInfo")
 	return markInfo, markInfo != nil
 }
+
 func parseType1Dictionary(s string) map[string]string {
 	split := newlineRegexp.Split(s, -1)
 	textByKey := map[string]string{}
@@ -10560,6 +10696,7 @@ func (a *PdfAnnotationHighlight) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("QuadPoints", a.QuadPoints)
 	return indirect
 }
+
 func parseCRL(data []byte) *parsedCRL {
 	revocationList, err := x509.ParseRevocationList(data)
 	if err != nil {
@@ -10672,6 +10809,7 @@ func (r *PdfReader) newPdfActionSoundFromDict(dict *core.PdfObjectDictionary) (*
 
 // SetMCID sets the MCID for the KValue.
 func (kv *KValue) SetMCID(mcid int) { kv.Clear(); kv.mcid = &mcid }
+
 func collectReachableObjectNumbers(indirect *core.PdfIndirectObject, numByObj map[core.PdfObject]int64) map[int64]struct{} {
 	set := map[int64]struct{}{}
 	set2 := map[core.PdfObject]struct{}{}
@@ -10727,6 +10865,7 @@ func NewPdfActionLaunch() *PdfActionLaunch {
 	action.SetContext(launchAction)
 	return launchAction
 }
+
 func newPdfFontType0FromDict(dict *core.PdfObjectDictionary, fc *fontCommon) (*pdfFontType0, error) {
 	descendantFonts, ok := core.GetArray(dict.Get("DescendantFonts"))
 	if !ok {
@@ -10816,7 +10955,6 @@ func (w *PdfWriter) SetLinearized(enabled bool) { w.linearized = enabled }
 
 // LinearizationOptions configures linearized ("Fast Web View") output.
 type LinearizationOptions struct {
-
 	// UseObjectStreams toggles object-stream packaging for compressible
 	// main-section objects, with xref STREAMS replacing the textual
 	// xref tables. Eligible objects are indirect dictionaries that are
@@ -10904,6 +11042,7 @@ func (r *PdfReader) flattenFieldsWithOpts(allannots bool, appgen FieldAppearance
 
 // SetAlpha sets the alpha layer for the image.
 func (img *Image) SetAlpha(alpha []byte) { img.alpha = alpha }
+
 func decodeStreams(streams []*core.PdfObjectStream) [][]byte {
 	dataList := make([][]byte, 0, len(streams))
 	for _, stream := range streams {
@@ -10998,7 +11137,6 @@ func NewPdfAction() *PdfAction {
 // XObjectImage (Table 89 in 8.9.5.1).
 // Implements PdfModel interface.
 type XObjectImage struct {
-
 	// ColorSpace       PdfObject
 	Width            *int64
 	Height           *int64
@@ -11035,6 +11173,7 @@ func (vp *ViewerPreferences) IsHideToolbar() bool {
 	}
 	return *vp.hideToolbar
 }
+
 func (f *pdfFontType0) bytesToCharcodes(data []byte) ([]textencoding.CharCode, bool) {
 	if f.predefinedCMap == nil {
 		return nil, false
@@ -11049,6 +11188,7 @@ func (f *pdfFontType0) bytesToCharcodes(data []byte) ([]textencoding.CharCode, b
 	}
 	return codes, true
 }
+
 func (f *pdfFontSimple) getFontDescriptor() *PdfFontDescriptor {
 	if fontDescriptor := f.fontDescriptor; fontDescriptor != nil {
 		return fontDescriptor
@@ -11060,7 +11200,6 @@ func (f *pdfFontSimple) getFontDescriptor() *PdfFontDescriptor {
 // Implementing as an interface allows for the possibility to use non-standard libraries for faster
 // loading and processing of images.
 type ImageHandler interface {
-
 	// Read any image type and load into a new Image object.
 	Read(r io.Reader) (*Image, error)
 
@@ -11076,6 +11215,7 @@ type ImageHandler interface {
 
 // G returns the value of the green component of the color.
 func (c *PdfColorDeviceRGB) G() float64 { return c[1] }
+
 func (r *PdfReader) newPdfAnnotationFileAttachmentFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationFileAttachment, error) {
 	fileAttachment := PdfAnnotationFileAttachment{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -11087,6 +11227,7 @@ func (r *PdfReader) newPdfAnnotationFileAttachmentFromDict(dict *core.PdfObjectD
 	fileAttachment.Name = dict.Get("Name")
 	return &fileAttachment, nil
 }
+
 func colorFromArray(arr *core.PdfObjectArray) PdfColor {
 	if arr == nil {
 		return nil
@@ -11124,6 +11265,7 @@ func colorFromArray(arr *core.PdfObjectArray) PdfColor {
 
 // GetContainingPdfObject implements interface PdfModel.
 func (a *PdfAction) GetContainingPdfObject() core.PdfObject { return a.primitive }
+
 func (s RevocationStatus) String() string {
 	switch s {
 	case RevocationStatusUnknown:
@@ -11211,6 +11353,7 @@ func (w *PdfWriter) renumberForObjectStreams(layout *linearizationLayout, nums, 
 	}
 	return n, count, num
 }
+
 func (r *PdfReader) resolveReference(ref *core.PdfObjectReference) (core.PdfObject, bool, error) {
 	if cachedObject, ok := r.parser.LoadCachedObject(int(ref.ObjectNumber)); ok {
 		return cachedObject, true, nil
@@ -11225,11 +11368,13 @@ func (r *PdfReader) resolveReference(ref *core.PdfObjectReference) (core.PdfObje
 	r.parser.StoreCachedObject(int(ref.ObjectNumber), lookupByReference)
 	return lookupByReference, false, nil
 }
+
 func getPdfKeywords() string {
 	metadataMu.Lock()
 	defer metadataMu.Unlock()
 	return pdfKeywords
 }
+
 func newPdfStructureNamespaceFromObject(obj core.PdfObject) (*PdfStructureNamespace, bool) {
 	dict, ok := core.GetDict(obj)
 	if !ok {
@@ -11256,6 +11401,7 @@ func SetPdfModifiedDate(modifiedDate time.Time) {
 	defer metadataMu.Unlock()
 	pdfModifiedDate = modifiedDate
 }
+
 func (c fontCommon) coreString() string {
 	s := ""
 	if c.fontDescriptor != nil {
@@ -11263,6 +11409,7 @@ func (c fontCommon) coreString() string {
 	}
 	return fmt.Sprintf("%#q %#q %q obj=%d ToUnicode=%t flags=0x%0x %s", c.subtype, c.baseFont, c.name, c.objectNumber, c.toUnicode != nil, c.fontFlags(), s)
 }
+
 func setAnnotationsAppearanceState(field *PdfField, obj core.PdfObject) {
 	for _, annotation := range field.Annotations {
 		annotation.AS = obj
@@ -11277,6 +11424,7 @@ func (vp *ViewerPreferences) IsHideWindowUI() bool {
 	}
 	return *vp.hideWindowUI
 }
+
 func objectNumbers(obj core.PdfObject) (int64, int64) {
 	switch v := obj.(type) {
 	case *core.PdfIndirectObject:
@@ -11321,7 +11469,6 @@ func NewKValue() *KValue { return &KValue{} }
 
 // WatermarkTextOptions contains options for configuring the text watermark process.
 type WatermarkTextOptions struct {
-
 	// opacity, 0.5 by default.
 	Alpha float64
 
@@ -11358,6 +11505,7 @@ type Permissions struct {
 
 // AddChild adds a child object.
 func (k *KDict) AddChild(kv *KValue) { k.children = append(k.children, kv) }
+
 func (w *PdfWriter) optimize() error {
 	if w.optimizer == nil {
 		return nil
@@ -11374,6 +11522,7 @@ func (w *PdfWriter) optimize() error {
 	w.hasObjects = set
 	return nil
 }
+
 func (t *trustEvaluator) checkOnline(revocation certRevocation, cert, cert2 *x509.Certificate, t2 time.Time, ok bool, evidence revocationEvidence) (certRevocation, []string) {
 	var strs []string
 	evidence = revocationEvidence{ocsps: append([]ocspEvidence(nil), evidence.ocsps...), crls: append([]crlEvidence(nil), evidence.crls...)}
@@ -11547,10 +11696,10 @@ func (x *XObjectImage) ToPdfObject() core.PdfObject {
 	}
 	dict.Set("Type", core.MakeName("XObject"))
 	dict.Set("Subtype", core.MakeName("Image"))
-	dict.Set("Width", core.MakeInteger(*(x.Width)))
-	dict.Set("Height", core.MakeInteger(*(x.Height)))
+	dict.Set("Width", core.MakeInteger(*x.Width))
+	dict.Set("Height", core.MakeInteger(*x.Height))
 	if x.BitsPerComponent != nil {
-		dict.Set("BitsPerComponent", core.MakeInteger(*(x.BitsPerComponent)))
+		dict.Set("BitsPerComponent", core.MakeInteger(*x.BitsPerComponent))
 	}
 	if x.ColorSpace != nil {
 		dict.SetIfNotNil("ColorSpace", x.ColorSpace.ToPdfObject())
@@ -11587,6 +11736,7 @@ func SetPdfAuthor(author string) { metadataMu.Lock(); defer metadataMu.Unlock();
 // SetDocInfo sets the document /Info metadata.
 // This will overwrite any globally declared document info.
 func (a *PdfAppender) SetDocInfo(info *PdfInfo) { a.docInfo = info }
+
 func (r *PdfReader) newPdfAnnotationRedactFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationRedact, error) {
 	redact := PdfAnnotationRedact{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -11603,6 +11753,7 @@ func (r *PdfReader) newPdfAnnotationRedactFromDict(dict *core.PdfObjectDictionar
 	redact.Q = dict.Get("Q")
 	return &redact, nil
 }
+
 func inheritReaderOpts(reader *PdfReader, opts *ReaderOpts) *ReaderOpts {
 	if reader.parser == nil || reader.parser.Opts == nil {
 		return opts
@@ -11650,6 +11801,7 @@ func (f *PdfFont) Subtype() string {
 	}
 	return subtype
 }
+
 func pageToPdfObjectLicensed(page *PdfPage) core.PdfObject {
 	licenseKey := license.GetLicenseKey()
 	if licenseKey != nil && licenseKey.IsLicensed() {
@@ -11676,6 +11828,7 @@ func pageToPdfObjectLicensed(page *PdfPage) core.PdfObject {
 
 // DecodeArray returns an empty slice as there are no components associated with pattern colorspace.
 func (cs *PdfColorspaceSpecialPattern) DecodeArray() []float64 { return []float64{} }
+
 func clampToRange(floats, floats2 []float64) []float64 {
 	if len(floats2) != 2*len(floats) {
 		return floats
@@ -11701,6 +11854,7 @@ func (x *XObjectImage) MakeLazy() error {
 	x.Stream = nil
 	return nil
 }
+
 func (a *PdfAcroForm) fill(provider FieldValueProvider, appGen FieldAppearanceGenerator) error {
 	if a == nil {
 		return nil
@@ -11763,6 +11917,7 @@ func (r *PdfReader) DecryptWithCertificate(cert *x509.Certificate, key crypto.Pr
 	}
 	return true, nil
 }
+
 func (a *PdfAppender) replaceObject(obj, obj2 core.PdfObject) {
 	switch v := obj.(type) {
 	case *core.PdfIndirectObject:
@@ -11829,6 +11984,7 @@ func NewPdfFieldSignature(signature *PdfSignature) *PdfFieldSignature {
 
 // SetNamespace sets the PDF 2.0 structure namespace of this element.
 func (k *KDict) SetNamespace(ns *PdfStructureNamespace) { k.NS = ns }
+
 func buildMainXrefTable(writer *PdfWriter, nums []int64, n int64, preObjByNum map[int64]preserializedObject, count int64, hintOffset int64, mainXrefOffset int64, linDictOffset int64, firstXrefOffset int64) ([]byte, int64) {
 	table := map[int64]int64{}
 	for _, num := range nums {
@@ -11880,6 +12036,7 @@ func NewPdfColorspaceLab() *PdfColorspaceLab {
 	labCS.Range = []float64{-100, 100, -100, 100}
 	return labCS
 }
+
 func (w *PdfWriter) writeTrailer(n int) {
 	w.writeString("xref\r\n")
 	for i := 0; i <= n; {
@@ -12040,6 +12197,7 @@ func (p *PdfPage) AddFont(name core.PdfObjectName, font core.PdfObject) error {
 	dict.Set(name, font)
 	return nil
 }
+
 func (r *PdfReader) newPdfAnnotationScreenFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationScreen, error) {
 	screen := PdfAnnotationScreen{}
 	screen.T = dict.Get("T")
@@ -12117,6 +12275,7 @@ func (f *PdfFunctionType2) ToPdfObject() core.PdfObject {
 	}
 	return dict
 }
+
 func newPdfFontDescriptorFromPdfObject(obj core.PdfObject) (*PdfFontDescriptor, error) {
 	desc := &PdfFontDescriptor{}
 	obj = core.ResolveReference(obj)
@@ -12324,6 +12483,7 @@ func newPdfPatternFromPdfObject(obj core.PdfObject) (*PdfPattern, error) {
 	}
 	return nil, errors.New("unknown pattern")
 }
+
 func newFontCommonFromPdfObject(obj core.PdfObject) (*core.PdfObjectDictionary, *fontCommon, error) {
 	fc := &fontCommon{}
 	if indirect, ok := obj.(*core.PdfIndirectObject); ok {
@@ -12399,6 +12559,7 @@ func NewPdfReaderWithOptsAt(r io.ReaderAt, size int64, opts *ReaderOpts) (*PdfRe
 	const trackNameNewPdfReaderWithOpts = "model:NewPdfReaderWithOpts"
 	return newPdfReaderTracked(r, size, opts, true, false, trackNameNewPdfReaderWithOpts)
 }
+
 func (c *parsedCRL) covers(cert *x509.Certificate) bool {
 	idp := c.idp
 	if idp == nil {
@@ -12437,6 +12598,7 @@ func NewPdfDateFromTime(timeObj time.Time) (PdfDate, error) {
 	count, _ := strconv.ParseInt(format[4:6], 10, 32)
 	return PdfDate{year: int64(timeObj.Year()), month: int64(timeObj.Month()), day: int64(timeObj.Day()), hour: int64(timeObj.Hour()), minute: int64(timeObj.Minute()), second: int64(timeObj.Second()), utOffsetSign: format[0], utOffsetHours: n, utOffsetMinutes: count}, nil
 }
+
 func (r *PdfReader) newPdfActionHideFromDict(dict *core.PdfObjectDictionary) (*PdfActionHide, error) {
 	return &PdfActionHide{T: dict.Get("T"), H: dict.Get("H")}, nil
 }
@@ -12502,6 +12664,7 @@ type PdfFunctionType3 struct {
 func (cs *PdfColorspaceDeviceRGB) DecodeArray() []float64 {
 	return []float64{0.0, 1.0, 0.0, 1.0, 0.0, 1.0}
 }
+
 func decryptEexec(data []byte) []byte {
 	const eexecMultiplier = 52845
 	const eexecAddend = 22719
@@ -12608,6 +12771,7 @@ func (w *PdfWriter) setupObjectStreams(layout *linearizationLayout) (*objectStre
 	w.objects = append(w.objects, objectStreams)
 	return &objectStreamsState{members: indirects, streams: objectStreams, streamObjNum: renumberForObjectStreams, mainXrefObjNum: n, firstXrefObjNum: count, packedObjNums: nums3}, nil
 }
+
 func (w *PdfWriter) addObject(obj core.PdfObject) bool {
 	ok := w.hasObject(obj)
 	if !ok {
@@ -12626,6 +12790,7 @@ func (w *PdfWriter) addObject(obj core.PdfObject) bool {
 func NewStructTreeRoot() *StructTreeRoot {
 	return &StructTreeRoot{K: []*KDict{}, RoleMap: core.MakeDict(), ParentTreeNextKey: 0}
 }
+
 func buildWidthsArray(numByV map[fonts.GID]int, n uint16) *core.PdfObjectArray {
 	arr := &core.PdfObjectArray{}
 	v := fonts.GID(n)
@@ -12718,6 +12883,7 @@ func NewPdfAppender(reader *PdfReader) (*PdfAppender, error) {
 	appender.dss = appender.roReader.DSS
 	return appender, nil
 }
+
 func (w *PdfWriter) serializeForLinearization(layout *linearizationLayout) ([]preserializedObject, error) {
 	preObjs := make([]preserializedObject, 0, len(layout.orderedObjs))
 	for _, orderedObj := range layout.orderedObjs {
@@ -13079,6 +13245,7 @@ func (a *PdfAcroForm) FillWithAppearance(provider FieldValueProvider, appGen Fie
 	}
 	return err
 }
+
 func (p *linearizedPlan) emit(w io.Writer) error {
 	for _, data := range [][]byte{p.header, p.linDict, p.firstXref, p.hintStream, p.firstSection, p.mainSection, p.mainXref} {
 		if _, err := w.Write(data); err != nil {
@@ -13166,6 +13333,7 @@ func (a *PdfAnnotationRedact) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("Q", a.Q)
 	return indirect
 }
+
 func (p *PdfPage) removeXObj(dict *core.PdfObjectDictionary, name core.PdfObjectName) {
 	dict.Remove(name)
 	flateEncoder := core.NewFlateEncoder()
@@ -13192,6 +13360,7 @@ func (p *PdfPage) removeXObj(dict *core.PdfObjectDictionary, name core.PdfObject
 	}
 	p.Contents = array
 }
+
 func (r *PdfReader) newPdfActionGotoFromDict(dict *core.PdfObjectDictionary) (*PdfActionGoTo, error) {
 	return &PdfActionGoTo{D: dict.Get("D")}, nil
 }
@@ -13204,6 +13373,7 @@ func NewPdfActionTrans() *PdfActionTrans {
 	action.SetContext(transAction)
 	return transAction
 }
+
 func findHoldReport(answers []ocspAnswer, crls []crlEvidence, cert *x509.Certificate, t time.Time) (holdReport, bool) {
 	var report holdReport
 	ok := false
@@ -13224,6 +13394,7 @@ func findHoldReport(answers []ocspAnswer, crls []crlEvidence, cert *x509.Certifi
 	}
 	return report, ok
 }
+
 func newPdfFunctionFromPdfObject(obj core.PdfObject) (PdfFunction, error) {
 	obj = core.ResolveReference(obj)
 	if stream, ok := obj.(*core.PdfObjectStream); ok {
@@ -13453,6 +13624,7 @@ func (a *PdfAnnotation) ToPdfObject() core.PdfObject {
 
 // Direction returns the value of the direction.
 func (vp *ViewerPreferences) Direction() Direction { return vp.direction }
+
 func newPdfShadingType3FromDict(dict *core.PdfObjectDictionary) (*PdfShadingType3, error) {
 	shading3 := PdfShadingType3{}
 	coords := dict.Get("Coords")
@@ -13637,7 +13809,6 @@ type PdfWriter struct {
 // AcroForm-level /DA and /Q defaults are intentionally not consulted in this
 // version; most production forms set DA at the field level.
 type FieldProperties struct {
-
 	// Identity.
 	FullName      string
 	PartialName   string
@@ -13917,7 +14088,6 @@ type PdfShadingType1 struct {
 
 // ReaderOpts defines options for creating PdfReader instances.
 type ReaderOpts struct {
-
 	// Password password of the PDF file encryption.
 	// Default: empty ("").
 	Password string
@@ -13985,6 +14155,7 @@ func NewPdfActionSubmitForm() *PdfActionSubmitForm {
 	action.SetContext(submitFormAction)
 	return submitFormAction
 }
+
 func (r *PdfReader) newPdfActionGotoEFromDict(dict *core.PdfObjectDictionary) (*PdfActionGoToE, error) {
 	filespec, err := newPdfFilespecFromPdfObject(dict.Get("F"))
 	if err != nil {
@@ -13992,6 +14163,7 @@ func (r *PdfReader) newPdfActionGotoEFromDict(dict *core.PdfObjectDictionary) (*
 	}
 	return &PdfActionGoToE{D: dict.Get("D"), NewWindow: dict.Get("NewWindow"), T: dict.Get("T"), F: filespec}, nil
 }
+
 func (r *SignatureValidationResult) copyCoverageFrom(result *SignatureValidationResult) {
 	r.IsCoveringEntireFile = result.IsCoveringEntireFile
 	r.IsCoveringEntireRevision = result.IsCoveringEntireRevision
@@ -14002,6 +14174,7 @@ func (r *SignatureValidationResult) copyCoverageFrom(result *SignatureValidation
 
 // C returns the value of the cyan component of the color.
 func (c *PdfColorDeviceCMYK) C() float64 { return c[0] }
+
 func (cs *PdfColorspaceICCBased) ImageToRGB(img Image) (Image, error) {
 	cs.buildTransform()
 	if cs.transformReady && img.ColorComponents == 3 {
@@ -14067,6 +14240,7 @@ func (img *Image) ToGoImage() (image.Image, error) {
 	}
 	return img2, nil
 }
+
 func (w *PdfWriter) finishLazyStreams(err error) {
 	w.writeFailed = err != nil
 	if err == nil {
@@ -14268,6 +14442,7 @@ func (r *PdfPageResources) GetContainingPdfObject() core.PdfObject { return r.pr
 
 // NS returns the namespace URI.
 func (ns *PdfStructureNamespace) NS() string { return ns.uri }
+
 func (img *Image) resampleLowBits(nums []uint32) {
 	bytesPerLine := imageutil.BytesPerLine(int(img.Width), int(img.BitsPerComponent), img.ColorComponents)
 	acquireBytes := core.AcquireBytes(bytesPerLine * int(img.Height))
@@ -14427,6 +14602,7 @@ func NewPdfPageResourcesColorspaces() *PdfPageResourcesColorspaces {
 	pageResourcesColorspaces.container = &core.PdfIndirectObject{}
 	return pageResourcesColorspaces
 }
+
 func (t *trustEvaluator) dssCertificates() []*x509.Certificate {
 	if !t.dssCertsLoaded && t.reader.DSS != nil {
 		t.dssCertsLoaded = true
@@ -14485,6 +14661,7 @@ func (r *PdfReader) GetCatalogVersion() (core.PdfObject, bool) {
 	version := r.catalog.Get("Version")
 	return version, version != nil
 }
+
 func ocspEvidenceFromDER(dataList [][]byte) []ocspEvidence {
 	ocsps := make([]ocspEvidence, 0, len(dataList))
 	for _, data := range dataList {
@@ -14528,6 +14705,7 @@ func (s *PdfShadingType3) ToPdfObject() core.PdfObject {
 	}
 	return s.primitive
 }
+
 func newPdfColorspaceCalGrayFromPdfObject(obj core.PdfObject) (*PdfColorspaceCalGray, error) {
 	calGrayCS := NewPdfColorspaceCalGray()
 	if indirect, ok := obj.(*core.PdfIndirectObject); ok {
@@ -15059,7 +15237,6 @@ func (a *PdfAppender) Write(w io.Writer) error {
 
 // KDict represents a K dictionary object.
 type KDict struct {
-
 	// The structure type, a name object identifying the nature of the
 	// structure element and its role within the document,
 	// such as a chapter, paragraph, or footnote
@@ -15167,6 +15344,7 @@ func (o *PdfOutputIntent) ToPdfObject() core.PdfObject {
 	}
 	return dict
 }
+
 func (w *PdfWriter) ensureLinearizedDocumentIDs(preObjs []preserializedObject) {
 	if w.ids != nil {
 		return
@@ -15191,6 +15369,7 @@ func SetPdfKeywords(keywords string) {
 	defer metadataMu.Unlock()
 	pdfKeywords = keywords
 }
+
 func iccProfileNumComponents(data []byte) int {
 	if len(data) < 128 {
 		return 0
@@ -15206,6 +15385,7 @@ func iccProfileNumComponents(data []byte) int {
 		return 0
 	}
 }
+
 func findChainWithValidIntermediates(certsList [][]*x509.Certificate, fn func(*x509.Certificate) bool) []*x509.Certificate {
 	for _, certs := range certsList {
 		ok := true
@@ -15227,9 +15407,11 @@ func NewPdfColorPatternType3() *PdfColorPatternType3 {
 	patternType3Color := &PdfColorPatternType3{}
 	return patternType3Color
 }
+
 func (r *PdfReader) newPdfActionJavaScriptFromDict(dict *core.PdfObjectDictionary) (*PdfActionJavaScript, error) {
 	return &PdfActionJavaScript{JS: dict.Get("JS")}, nil
 }
+
 func (h holdReport) lifted(answers []ocspAnswer, crls []crlEvidence, cert *x509.Certificate, t time.Time) bool {
 	fn := func(t2 time.Time) bool { return t.IsZero() || !t2.After(t) }
 	for _, answer := range answers {
@@ -15378,6 +15560,7 @@ func (w *PdfWriter) SetPieceInfo(pieceInfo core.PdfObject) error {
 	}
 	return nil
 }
+
 func (w *PdfWriter) refreshPagesAfterCopy() {
 	if w.root == nil {
 		return
@@ -15393,6 +15576,7 @@ func (w *PdfWriter) refreshPagesAfterCopy() {
 	w.pages = indirect
 	w.pageObjs = collectIndirectObjects(indirect)
 }
+
 func parseCIDWidths(obj core.PdfObject) (map[textencoding.CharCode]float64, error) {
 	if obj == nil {
 		return nil, nil
@@ -15508,6 +15692,7 @@ func NewPdfActionRendition() *PdfActionRendition {
 // image, or nil if the source carried none. The returned slice must not be
 // mutated.
 func (img *Image) ICCProfile() []byte { return img.iccProfile }
+
 func writeLazyStream(w io.Writer, n int, stream *core.PdfObjectStream, crypter *core.PdfCrypt) error {
 	if stream.TempFile == "" {
 		return fmt.Errorf("lazy stream %d: already written (lazy streams are consumed by the first write)", n)
@@ -15547,6 +15732,7 @@ func writeLazyStream(w io.Writer, n int, stream *core.PdfObjectStream, crypter *
 	open.Close()
 	return nil
 }
+
 func updateSignatureByteRangeOffsets(preObjByNum map[int64]preserializedObject) {
 	for _, preObj := range preObjByNum {
 		indirect, ok := preObj.obj.(*core.PdfIndirectObject)
@@ -15682,6 +15868,7 @@ func NewPdfAnnotationLine() *PdfAnnotationLine {
 	annot.SetContext(line)
 	return line
 }
+
 func (r *PdfReader) lookupPageByObject(obj core.PdfObject) (*PdfPage, error) {
 	return nil, errors.New("page not found")
 }
@@ -15761,6 +15948,7 @@ func (cs *PdfColorspaceSpecialSeparation) ColorToRGB(color PdfColor) (PdfColor, 
 
 // Set applies flag fl to the flag's bitmask and returns the combined flag.
 func (f FieldFlag) Set(fl FieldFlag) FieldFlag { return FieldFlag(f.Mask() | fl.Mask()) }
+
 func setFieldValue(field *PdfField, obj core.PdfObject) error {
 	switch field.GetContext().(type) {
 	case *PdfFieldText:
@@ -16029,7 +16217,6 @@ func (s *PdfSignature) GetCerts() ([]*x509.Certificate, error) {
 // operator just like other colour spaces, and a particular pattern shall be installed as the current colour with the
 // SCN or scn operator.
 type PdfPattern struct {
-
 	// Type: Pattern
 	PatternType int64
 	context     PdfModel
@@ -16217,6 +16404,7 @@ func (k *KDict) RemoveChildAt(index int) bool {
 	k.children = append(k.children[:index], k.children[index+1:]...)
 	return true
 }
+
 func (r *PdfReader) newPdfAnnotationInkFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationInk, error) {
 	ink := PdfAnnotationInk{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -16237,6 +16425,7 @@ func (c *PdfColorCalGray) ToInteger(bits int) uint32 {
 	f := math.Pow(2, float64(bits)) - 1
 	return uint32(f * c.Val())
 }
+
 func buildPageOffsetHintTable(layout *linearizationLayout, table map[int64]int64, preObjByNum map[int64]preserializedObject, n, count int64) (*core.PageOffsetHintTable, error) {
 	if layout.pageCount <= 0 {
 		return nil, fmt.Errorf("hint encoder: numPages=%d", layout.pageCount)
@@ -16333,6 +16522,7 @@ func (vp *ViewerPreferences) IsCenterWindow() bool {
 	}
 	return *vp.centerWindow
 }
+
 func (w *PdfWriter) checkCrossReferenceStream() bool {
 	ok := w.version.Major > 1 || (w.version.Major == 1 && w.version.Minor > 4)
 	if w.useObjectStreams != nil {
@@ -16459,6 +16649,7 @@ func (cs *PdfColorspaceDeviceNAttributes) ToPdfObject() core.PdfObject {
 
 // NewPdfColorspaceDeviceRGB returns a new RGB colorspace object.
 func NewPdfColorspaceDeviceRGB() *PdfColorspaceDeviceRGB { return &PdfColorspaceDeviceRGB{} }
+
 func (w *PdfWriter) reserveLinearizationObjectNumbers(layout *linearizationLayout) int64 {
 	table := make(map[int64]int64, len(layout.firstSection)+len(layout.mainSection))
 	n := int64(2)
@@ -16517,6 +16708,7 @@ func (w *PdfWriter) reserveLinearizationObjectNumbers(layout *linearizationLayou
 	layout.maxObjNum = count
 	return count
 }
+
 func newPdfReaderCore(r io.ReaderAt, opts *ReaderOpts, autoDecrypt, ok bool, s string) (*PdfReader, error) {
 	if opts == nil {
 		opts = NewReaderOpts()
@@ -16542,6 +16734,7 @@ func newPdfReaderCore(r io.ReaderAt, opts *ReaderOpts, autoDecrypt, ok bool, s s
 	reader.trackID = randomID
 	return reader, nil
 }
+
 func newOutlineDestFromPdfObject(obj core.PdfObject, reader *PdfReader) (*OutlineDest, error) {
 	arr, ok := core.GetArray(obj)
 	if !ok {
@@ -16667,6 +16860,7 @@ func (f *PdfFieldChoice) ToPdfObject() core.PdfObject {
 	}
 	return indirect
 }
+
 func newVRIFromDict(dict *core.PdfObjectDictionary) *VRI {
 	tu, _ := core.GetString(dict.Get("TU"))
 	ts, _ := core.GetString(dict.Get("TS"))
@@ -16697,6 +16891,7 @@ func registerGlyphWidthsFromGlyphIndexes(w core.PdfObject, gids []unitype.GlyphI
 		wIndirect.PdfObject = widthsArray
 	}
 }
+
 func (w *PdfWriter) writeXRefStreams(n int, count int64) error {
 	num := n + 1
 	w.crossReferences[num] = crossReference{Type: 1, ObjectNumber: num, Offset: count}
@@ -17092,6 +17287,7 @@ func NewStandard14Font(basefont StdFontName) (*PdfFont, error) {
 	}
 	return &PdfFont{context: &fontSimple}, nil
 }
+
 func resolveColorspaceWithICC(colorSpace PdfColorspace, img *Image) PdfColorspace {
 	if len(img.iccProfile) > 0 {
 		if iccBasedColorspace := newICCBasedColorspaceFromProfile(img.iccProfile, colorSpace); iccBasedColorspace != nil {
@@ -17100,6 +17296,7 @@ func resolveColorspaceWithICC(colorSpace PdfColorspace, img *Image) PdfColorspac
 	}
 	return colorSpace
 }
+
 func registerOtfGlyphWidths(w core.PdfObject, vals []uint16, otf *fonts.OtfType) {
 	if otf == nil || len(vals) == 0 || len(otf.Widths) == 0 {
 		return
@@ -17253,6 +17450,7 @@ func (img *Image) AlphaMap(mapFunc AlphaMapFunc) {
 		img.alpha[i] = mapFunc(alpha)
 	}
 }
+
 func stringsFromArray(opt *core.PdfObjectArray) []string {
 	strs := make([]string, 0, opt.Len())
 	for _, obj := range opt.Elements() {
@@ -17347,7 +17545,6 @@ func (f *PdfFont) BytesToCharcodes(data []byte) []textencoding.CharCode {
 
 // PdfColor interface represents a generic color in PDF.
 type PdfColor interface {
-
 	// Components returns the color's component values in its own colorspace.
 	Components() []float64
 
@@ -17389,6 +17586,7 @@ func (f *pdfFontSimple) Encoder() textencoding.TextEncoder {
 	simpleTextEncoder, _ := textencoding.NewSimpleTextEncoder("StandardEncoding", nil)
 	return simpleTextEncoder
 }
+
 func encodeImageData(encoder core.StreamEncoder, img *Image) ([]byte, error) {
 	if _, ok := encoder.(*core.DCTEncoder); ok && img.canPassThroughJPEG() {
 		return img.encodedData, nil
@@ -17512,6 +17710,7 @@ func (f *pdfFontType0) updateSubsetToUnicode(runes []rune, vals []uint16) {
 	}
 	f.toUnicodeCMap = cmap.NewToUnicodeCMap(textByCode)
 }
+
 func sha1Digest(data []byte) ([]byte, error) {
 	digest := sha1.New()
 	if _, err := io.Copy(digest, bytes.NewReader(data)); err != nil {
@@ -17519,6 +17718,7 @@ func sha1Digest(data []byte) ([]byte, error) {
 	}
 	return digest.Sum(nil), nil
 }
+
 func mergeFontDescriptor(fontDescriptor, std14Descriptor *PdfFontDescriptor) {
 	if fontDescriptor == nil || std14Descriptor == nil {
 		return
@@ -17529,6 +17729,7 @@ func mergeFontDescriptor(fontDescriptor, std14Descriptor *PdfFontDescriptor) {
 		}
 	}
 }
+
 func (t *trustEvaluator) fetch(key fetchKey, fn func() fetchResult) fetchResult {
 	if fetchCache, ok := t.fetchCache[key]; ok {
 		return fetchCache
@@ -17636,6 +17837,7 @@ func (r *PdfPageResources) GetColorspaceByName(keyName core.PdfObjectName) (PdfC
 	}
 	return colorspace, true
 }
+
 func cmapFromGlyphMap(chars map[rune]fonts.GID) *cmap.CMap {
 	if len(chars) == 0 {
 		return nil
@@ -17650,12 +17852,14 @@ func cmapFromGlyphMap(chars map[rune]fonts.GID) *cmap.CMap {
 	}
 	return cmap.NewToUnicodeCMap(textByCode)
 }
+
 func (r *PdfReader) newPdfAnnotationRichMediaFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationRichMedia, error) {
 	richMedia := &PdfAnnotationRichMedia{}
 	richMedia.RichMediaSettings = dict.Get("RichMediaSettings")
 	richMedia.RichMediaContent = dict.Get("RichMediaContent")
 	return richMedia, nil
 }
+
 func (r *PdfReader) newPdfAnnotationTextFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationText, error) {
 	text := PdfAnnotationText{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -17669,6 +17873,7 @@ func (r *PdfReader) newPdfAnnotationTextFromDict(dict *core.PdfObjectDictionary)
 	text.StateModel = dict.Get("StateModel")
 	return &text, nil
 }
+
 func newDSSFromDict(indirect *core.PdfIndirectObject, dict *core.PdfObjectDictionary) (*DSS, error) {
 	if indirect == nil {
 		indirect = core.MakeIndirectObject(nil)
@@ -17684,6 +17889,7 @@ func newDSSFromDict(indirect *core.PdfIndirectObject, dict *core.PdfObjectDictio
 	}
 	return &DSS{Certs: streamsFromObject(dict.Get("Certs")), OCSPs: streamsFromObject(dict.Get("OCSPs")), CRLs: streamsFromObject(dict.Get("CRLs")), VRI: vriByKey, primitive: indirect}, nil
 }
+
 func newICCBasedColorspaceFromProfile(iccProfile []byte, cs PdfColorspace) *PdfColorspaceICCBased {
 	if cs == nil {
 		return nil
@@ -17744,7 +17950,6 @@ func (r *PdfReader) GetTrailer() (*core.PdfObjectDictionary, error) {
 //
 //	Keep in mind that it might change in the subsequent minor versions.
 type StandardValidator interface {
-
 	// ValidateStandard checks if the input reader
 	ValidateStandard(compliancePdfReader *CompliancePdfReader) error
 }
@@ -17756,6 +17961,7 @@ func (r *PdfReader) newPdfActionImportDataFromDict(dict *core.PdfObjectDictionar
 	}
 	return &PdfActionImportData{F: filespec}, nil
 }
+
 func (r *PdfReader) newPdfAnnotationMarkupFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationMarkup, error) {
 	markup := &PdfAnnotationMarkup{}
 	if t := dict.Get("T"); t != nil {
@@ -17821,6 +18027,7 @@ func (a *PdfActionThread) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("B", a.B)
 	return indirect
 }
+
 func finalizeLinearizationDict(writer *PdfWriter, plan *linearizedPlan, inputs convergedPlanInputs) error {
 	plan.linDict = buildLinearizationDict(linearizationDictObjNum2, plan.fileLength, plan.hintOffset, int64(inputs.hintLen), plan.firstPageEnd, inputs.layout.pageCount, inputs.xrefFirstEntryOffset, inputs.layout.firstPageObjNum)
 	if len(plan.linDict) != inputs.linDictLen {
@@ -17963,6 +18170,7 @@ func (cs *PdfColorspaceCalRGB) ToPdfObject() core.PdfObject {
 	}
 	return arr
 }
+
 func encryptedWriterCatalog(writer *PdfWriter) *core.PdfIndirectObject {
 	if writer.crypter == nil {
 		return nil
@@ -17980,6 +18188,7 @@ func (vp *ViewerPreferences) PickTrayByPDFSize() bool {
 
 // Val returns the color value.
 func (c *PdfColorDeviceGray) Val() float64 { return float64(*c) }
+
 func (l *LTV) buildCertChain(certs, certs2 []*x509.Certificate) ([]*x509.Certificate, map[string]*x509.Certificate, error) {
 	certByKey := map[string]*x509.Certificate{}
 	for _, cert := range certs {
@@ -18084,6 +18293,7 @@ func (cs *PdfColorspaceLab) ColorFromPdfObjects(objects []core.PdfObject) (PdfCo
 	}
 	return cs.ColorFromFloats(numbersAsFloat)
 }
+
 func toUnicodeCMapFromObject(toUnicode core.PdfObject, fc *fontCommon) (*cmap.CMap, error) {
 	toUnicodeStream, ok := core.GetStream(toUnicode)
 	if !ok {
@@ -18100,6 +18310,7 @@ func toUnicodeCMapFromObject(toUnicode core.PdfObject, fc *fontCommon) (*cmap.CM
 	}
 	return cm, err
 }
+
 func (t *trustEvaluator) evaluate(sig *PdfSignature, result *SignatureValidationResult, certs []*x509.Certificate) {
 	result.IsTrusted = false
 	result.TrustChain = nil
@@ -18380,6 +18591,7 @@ func (r *PdfReader) GetNumPages() (int, error) {
 	}
 	return len(r.pageObjs), nil
 }
+
 func (p *PdfPage) loadFont(s string) (*truetype.Font, error) {
 	file, err := os.ReadFile(s)
 	if err != nil {
@@ -18423,6 +18635,7 @@ func (p *PdfTilingPattern) GetContentStreamWithEncoder() ([]byte, core.StreamEnc
 	}
 	return data, encoder, nil
 }
+
 func (t *trustEvaluator) validationTime(p7 *pkcs7.PKCS7, result *SignatureValidationResult, certs []*x509.Certificate, evidence revocationEvidence) (t2 time.Time, ok bool) {
 	if !t.opts.ValidationTime.IsZero() {
 		return t.opts.ValidationTime, false
@@ -18474,6 +18687,7 @@ func (w *PdfWriter) writeObjectsInStreams(set map[core.PdfObject]bool) error {
 
 // SetViewArea sets the value of the viewArea.
 func (vp *ViewerPreferences) SetViewArea(viewArea PageBoundary) { vp.viewArea = viewArea }
+
 func (r *PdfReader) newPdfFieldSignatureFromDict(dict *core.PdfObjectDictionary) (*PdfFieldSignature, error) {
 	signatureField := &PdfFieldSignature{}
 	v, ok := core.GetIndirect(dict.Get("V"))
@@ -18497,6 +18711,7 @@ func (w *PdfWriter) SetVersion(majorVersion, minorVersion int) {
 
 // SetPrintArea sets the value of the printArea.
 func (vp *ViewerPreferences) SetPrintArea(printArea PageBoundary) { vp.printArea = printArea }
+
 func appearanceFormAndRect(annot *PdfAnnotation) (*XObjectForm, *PdfRectangle, error) {
 	dict, ok := core.GetDict(annot.AP)
 	if !ok {
@@ -18570,6 +18785,7 @@ func (f pdfFontType3) GetCharMetrics(code textencoding.CharCode) (fonts.CharMetr
 func (cs *PdfColorspaceSpecialIndexed) DecodeArray() []float64 {
 	return []float64{0, float64(cs.HiVal)}
 }
+
 func newPdfFunctionType3FromPdfObject(obj core.PdfObject) (*PdfFunctionType3, error) {
 	fn3 := &PdfFunctionType3{}
 	var dict *core.PdfObjectDictionary
@@ -18662,6 +18878,7 @@ func (f *PdfFont) String() string {
 	}
 	return fmt.Sprintf("FONT{%T %s %s}", f.context, f.baseFields().coreString(), s)
 }
+
 func planLinearization(writer *PdfWriter, layout *linearizationLayout, preObjs []preserializedObject, n int64, objStm *objectStreamsState) (*linearizedPlan, error) {
 	if len(preObjs) == 0 {
 		return nil, fmt.Errorf("linearization plan: nothing to serialize")
@@ -18767,6 +18984,7 @@ func NewPdfAnnotationText() *PdfAnnotationText {
 	annot.SetContext(text)
 	return text
 }
+
 func newCryptFilter(algo EncryptionAlgorithm) (crypt.Filter, error) {
 	switch algo {
 	case RC4_128bit:
@@ -18838,6 +19056,7 @@ func (f *PdfFunctionType3) Evaluate(x []float64) ([]float64, error) {
 	}
 	return clampToRange(evaluate, f.Range), nil
 }
+
 func (r *PdfReader) traverseObjectData(obj core.PdfObject) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -18873,6 +19092,7 @@ func (f pdfCIDFontType2) GetCharMetrics(code textencoding.CharCode) (fonts.CharM
 	}
 	return fonts.CharMetrics{Wx: float64(runeToGID)}, true
 }
+
 func (img *Image) samplesAddPadding(samples []uint32) []uint32 {
 	n := imageutil.BytesPerLine(int(img.Width), int(img.BitsPerComponent), img.ColorComponents) * (8 / int(img.BitsPerComponent))
 	count := n * int(img.Height)
@@ -18912,6 +19132,7 @@ func crlIsCurrent(thisUpdate, nextUpdate time.Time, cert *x509.Certificate, t ti
 	}
 	return !t.After(nextUpdate)
 }
+
 func newFontFileFromPdfObject(obj core.PdfObject) (*fontFile, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("newFontFileFromPdfObject: obj=%s", obj)
@@ -18989,6 +19210,7 @@ func (h DefaultImageHandler) Read(reader io.Reader) (*Image, error) {
 	img2.iccProfile = extract
 	return img2, nil
 }
+
 func newPdfShadingType2FromDict(dict *core.PdfObjectDictionary) (*PdfShadingType2, error) {
 	shading2 := PdfShadingType2{}
 	coords := dict.Get("Coords")
@@ -19333,6 +19555,7 @@ func (cs *PdfColorspaceSpecialPattern) ColorFromFloats(vals []float64) (PdfColor
 	}
 	return cs.UnderlyingCS.ColorFromFloats(vals)
 }
+
 func (a *PdfAppender) mergeResources(obj, obj2 core.PdfObject, nameByName map[core.PdfObjectName]core.PdfObjectName) core.PdfObject {
 	if obj2 == nil && obj == nil {
 		return nil
@@ -19430,6 +19653,7 @@ func NewStandard14FontWithEncoding(basefont StdFontName, alphabet map[rune]int) 
 	fontSimple.SetEncoder(enc)
 	return &PdfFont{context: &fontSimple}, enc, nil
 }
+
 func (w *PdfWriter) seekByName(obj core.PdfObject, strs []string, s string) ([]core.PdfObject, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Seek by name.. %T", obj)
@@ -19533,6 +19757,7 @@ func (o *OutlineItem) ToPdfObject() core.PdfObject {
 	item, _ := o.ToPdfOutlineItem()
 	return item.ToPdfObject()
 }
+
 func (r *PdfReader) newPdfAnnotationProjectionFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationProjection, error) {
 	projection := &PdfAnnotationProjection{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -19556,6 +19781,7 @@ func (r *PdfReader) PrintPdfObjects(w io.Writer) error {
 	}
 	return nil
 }
+
 func (w *PdfWriter) writeString(s string) {
 	if w.writeErr != nil {
 		return
@@ -19564,6 +19790,7 @@ func (w *PdfWriter) writeString(s string) {
 	w.writePos += int64(writeString)
 	w.writeErr = err
 }
+
 func thresholdImage(img *Image, b uint8) (*Image, error) {
 	img2, err := img.ToGoImage()
 	if err != nil {
@@ -19592,9 +19819,11 @@ func (f *PdfField) String() string {
 	}
 	return ""
 }
+
 func buildHintStreamObject(n int64, data []byte, count int64) ([]byte, error) {
 	return core.BuildHintStreamObject(n, data, count)
 }
+
 func (w *PdfWriter) writeNamesDictionary() error {
 	if w.names == nil {
 		return nil
@@ -19701,6 +19930,7 @@ func (s *PdfShadingType6) ToPdfObject() core.PdfObject {
 	}
 	return s.primitive
 }
+
 func (r *PdfReader) newPdfAnnotationPolygonFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationPolygon, error) {
 	polygon := PdfAnnotationPolygon{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -19758,6 +19988,7 @@ func (w *PdfWriter) writeBytes(data []byte) {
 	w.writePos += int64(n)
 	w.writeErr = err
 }
+
 func (cs *PdfColorspaceICCBased) imageToRGBManaged(img Image) (Image, error) {
 	floats := img.decode
 	if len(floats) != 6 {
@@ -19824,6 +20055,7 @@ func (cs *PdfColorspaceICCBased) imageToRGBManaged(img Image) (Image, error) {
 	}
 	return imageFromImageBase(&imageBase), nil
 }
+
 func newPdfColorspaceSpecialIndexedFromPdfObject(obj core.PdfObject) (*PdfColorspaceSpecialIndexed, error) {
 	specialIndexedCS := NewPdfColorspaceSpecialIndexed()
 	if indirect, ok := obj.(*core.PdfIndirectObject); ok {
@@ -19908,6 +20140,7 @@ func newPdfColorspaceSpecialIndexedFromPdfObject(obj core.PdfObject) (*PdfColors
 
 // A returns the value of the A component of the color.
 func (c *PdfColorLab) A() float64 { return c[1] }
+
 func ocspResponderAuthorized(resp *ocsp.Response, cert *x509.Certificate) bool {
 	certificate := resp.Certificate
 	if certificate == nil || certificate.Equal(cert) {
@@ -20014,6 +20247,7 @@ func (w *PdfWriter) hasOrphanPages() bool {
 	}
 	return false
 }
+
 func (c fontCommon) fontFlags() int {
 	if c.fontDescriptor == nil {
 		return 0
@@ -20057,6 +20291,7 @@ func (r *PdfReader) GetPreviousRevision() (*PdfReader, error) {
 	readerCore.revisionCache = r.revisionCache
 	return readerCore, nil
 }
+
 func (w *PdfWriter) makeOffSetReference(n int64) {
 	s := fmt.Sprintf("startxref\n%d\n", n)
 	w.writeString(s)
@@ -20139,6 +20374,7 @@ func (r *PdfReader) PageFromIndirectObject(ind *core.PdfIndirectObject) (*PdfPag
 	}
 	return nil, 0, errors.New("page not found")
 }
+
 func scaleGlyphWidths(chars map[rune]fonts.GID, widths []uint16, unitsPerEm uint16) (map[rune]int, map[fonts.GID]int) {
 	f := 1000.0 / float64(unitsPerEm)
 	if unitsPerEm == 0 {
@@ -20175,6 +20411,7 @@ func NewPermissions(docMdp *PdfSignature) *Permissions {
 	perms.primitive = dict
 	return &perms
 }
+
 func (t *trustEvaluator) checkCertRevocation(cert, cert2 *x509.Certificate, t2 time.Time, ok bool, evidence revocationEvidence) certRevocation {
 	sum256, data := sha256.Sum256(cert.Raw), sha256.Sum256(cert2.Raw)
 	var answers []ocspAnswer
@@ -20242,6 +20479,7 @@ func (t *trustEvaluator) checkCertRevocation(cert, cert2 *x509.Certificate, t2 t
 	}
 	return revocation
 }
+
 func getCreationDate() time.Time {
 	metadataMu.Lock()
 	defer metadataMu.Unlock()
@@ -20358,6 +20596,7 @@ func (p *PdfPage) GetXObjectByName(name core.PdfObjectName) (core.PdfObject, boo
 	}
 	return nil, false
 }
+
 func (n *Names) addEmbeddedFile(file *EmbeddedFile) error {
 	if n.EmbeddedFiles == nil {
 		n.EmbeddedFiles = core.MakeDict()
@@ -20401,6 +20640,7 @@ func (n *Names) addEmbeddedFile(file *EmbeddedFile) error {
 
 // RemoveStructParentsKey removes the StructParents key.
 func (p *PdfPage) RemoveStructParentsKey() { p.StructParents = nil }
+
 func sortInt64s(nums []int64) {
 	for i := 1; i < len(nums); i++ {
 		num := nums[i]
@@ -20424,6 +20664,7 @@ func (i *PdfInfo) GetCustomInfo(name string) *core.PdfObjectString {
 	}
 	return str
 }
+
 func (f *pdfFontType0) subsetCFF(font *pdfCIDFontType0) error {
 	if font == nil {
 		return nil
@@ -20603,6 +20844,7 @@ func (a *PdfActionSubmitForm) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("Flags", a.Flags)
 	return indirect
 }
+
 func runesToGIDs(runes []rune, chars map[rune]fonts.GID) []uint16 {
 	vals := make([]uint16, 0, len(runes))
 	for _, n := range runes {
@@ -20612,12 +20854,14 @@ func runesToGIDs(runes []rune, chars map[rune]fonts.GID) []uint16 {
 	}
 	return vals
 }
+
 func (c *parsedCRL) newerThan(crl *parsedCRL) bool {
 	if c.Number != nil && crl.Number != nil && bytes.Equal(c.idpRaw, crl.idpRaw) {
 		return c.Number.Cmp(crl.Number) > 0
 	}
 	return c.ThisUpdate.After(crl.ThisUpdate)
 }
+
 func (r *PdfReader) newPdfActionNamedFromDict(dict *core.PdfObjectDictionary) (*PdfActionNamed, error) {
 	return &PdfActionNamed{N: dict.Get("N")}, nil
 }
@@ -20654,6 +20898,7 @@ func (a *PdfActionGoTo) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("D", a.D)
 	return indirect
 }
+
 func (l *LTV) enable(certs, chain []*x509.Certificate, s string) error {
 	certChain, certByKey, err := l.buildCertChain(certs, chain)
 	if err != nil {
@@ -20741,6 +20986,7 @@ func (f *PdfFont) FontDescriptor() *PdfFontDescriptor {
 	common.Log.Error("All fonts have a Descriptor. font=%s", f)
 	return nil
 }
+
 func equalDistinguishedNames(data, rawIssuer []byte) bool {
 	if bytes.Equal(data, rawIssuer) {
 		return true
@@ -20776,6 +21022,7 @@ func equalDistinguishedNames(data, rawIssuer []byte) bool {
 	}
 	return true
 }
+
 func newPdfShadingType4FromDict(dict *core.PdfObjectDictionary) (*PdfShadingType4, error) {
 	shading4 := PdfShadingType4{}
 	bitsPerCoordinate := dict.Get("BitsPerCoordinate")
@@ -20915,6 +21162,7 @@ func DefaultFont() *PdfFont {
 	fontSimple := newPdfFontSimpleFromStdFont(stdFontByName)
 	return &PdfFont{context: &fontSimple}
 }
+
 func (w *PdfWriter) writeAcroFormFields() error {
 	if w.acroForm == nil {
 		return nil
@@ -20947,6 +21195,7 @@ func NewPdfAnnotationMovie() *PdfAnnotationMovie {
 	annot.SetContext(movie)
 	return movie
 }
+
 func (r *PdfReader) newPdfActionRenditionFromDict(dict *core.PdfObjectDictionary) (*PdfActionRendition, error) {
 	return &PdfActionRendition{R: dict.Get("R"), AN: dict.Get("AN"), OP: dict.Get("OP"), JS: dict.Get("JS")}, nil
 }
@@ -21018,6 +21267,7 @@ func (r *PdfReader) AcroFormNeedsRepair() (bool, error) {
 	}
 	return false, nil
 }
+
 func formBBox(form *XObjectForm) (*PdfRectangle, bool, error) {
 	if arr, ok := form.BBox.(*core.PdfObjectArray); ok {
 		rect, err := NewPdfRectangle(*arr)
@@ -21114,6 +21364,7 @@ func NewPdfAnnotationUnderline() *PdfAnnotationUnderline {
 	annot.SetContext(underline)
 	return underline
 }
+
 func (w *PdfWriter) mapObjectStreams(ok bool) (map[core.PdfObject]bool, bool) {
 	set := make(map[core.PdfObject]bool)
 	objs := make([]core.PdfObject, 0, len(w.objects))
@@ -21166,6 +21417,7 @@ func NewPdfReaderFromFile(pdfFile string, opts *ReaderOpts) (*PdfReader, *os.Fil
 	readerTracked.fileName = pdfFile
 	return readerTracked, open, nil
 }
+
 func (r *PdfReader) newPdfActionURIFromDict(dict *core.PdfObjectDictionary) (*PdfActionURI, error) {
 	return &PdfActionURI{URI: dict.Get("URI"), IsMap: dict.Get("IsMap")}, nil
 }
@@ -21188,12 +21440,14 @@ func (d *PdfFontDescriptor) String() string {
 	strs = append(strs, fmt.Sprintf("FontFile3=%t", d.FontFile3 != nil))
 	return fmt.Sprintf("FONT_DESCRIPTOR{%s}", strings.Join(strs, ", "))
 }
+
 func (f *pdfFontType0) getFontDescriptor() *PdfFontDescriptor {
 	if f.fontDescriptor == nil && f.DescendantFont != nil {
 		return f.DescendantFont.FontDescriptor()
 	}
 	return f.fontDescriptor
 }
+
 func (a *PdfAcroForm) signatureFields() []*PdfFieldSignature {
 	var signatureFields []*PdfFieldSignature
 	for _, allField := range a.AllFields() {
@@ -21317,6 +21571,7 @@ func (p *PdfPage) AddWatermarkImage(ximg *XObjectImage, opt WatermarkImageOption
 	s2 := fmt.Sprintf("q\n"+"%.0f 0 0 %.0f %.4f %.4f cm\n"+"/%s Do\n"+"Q", 1.0, 1.0, x, y2, generateXObjectName)
 	return p.AppendContentBytes([]byte(s2), true)
 }
+
 func newPdfBorderStyleFromPdfObject(obj core.PdfObject) (*PdfBorderStyle, error) {
 	borderStyle := &PdfBorderStyle{}
 	borderStyle.container = obj
@@ -21382,6 +21637,7 @@ func newPdfBorderStyleFromPdfObject(obj core.PdfObject) (*PdfBorderStyle, error)
 	}
 	return borderStyle, nil
 }
+
 func streamsFromObject(obj core.PdfObject) []*core.PdfObjectStream {
 	if obj == nil {
 		return nil
@@ -21499,6 +21755,7 @@ func NewXObjectImageStencilMask(img *Image, encoder core.StreamEncoder, threshol
 	xObjectImage.Stream = encodeBytes
 	return xObjectImage, nil
 }
+
 func validateImageMatte(xobj *XObjectImage) error {
 	if xobj.SMask == nil {
 		return nil
@@ -21666,6 +21923,7 @@ func (r *PdfPageResources) SetXObjectImageByName(keyName core.PdfObjectName, xim
 func (vp *ViewerPreferences) SetPrintPageRange(printPageRange []int) {
 	vp.printPageRange = printPageRange
 }
+
 func (cs *PdfColorspaceICCBased) buildTransform() {
 	cs.transformOnce.Do(func() {
 		if cs.N != 3 || len(cs.Data) < 128 {
@@ -21704,6 +21962,7 @@ func (f pdfCIDFontType0) GetRuneMetrics(r rune) (fonts.CharMetrics, bool) {
 	}
 	return fonts.CharMetrics{Wx: float64(runeToGID)}, true
 }
+
 func anyCRLCovers(crls []crlEvidence, cert *x509.Certificate, t time.Time) bool {
 	for _, crl := range crls {
 		if crl.isDelta() || !crl.covers(cert) {
@@ -21723,6 +21982,7 @@ func anyCRLCovers(crls []crlEvidence, cert *x509.Certificate, t time.Time) bool 
 	}
 	return false
 }
+
 func (f *fontFile) parseASCIIPart(data []byte) error {
 	if len(data) < 2 || string(data[:2]) != "%!" {
 		return errors.New("invalid start of ASCII segment")
@@ -21911,6 +22171,7 @@ func (a *PdfAnnotationUnderline) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("QuadPoints", a.QuadPoints)
 	return indirect
 }
+
 func (r *PdfReader) buildNameNodes(indirect *core.PdfIndirectObject, set map[core.PdfObject]struct{}) error {
 	if indirect == nil {
 		return nil
@@ -22019,6 +22280,7 @@ func NewPdfActionURI() *PdfActionURI {
 	action.SetContext(uriAction)
 	return uriAction
 }
+
 func writeTrailerDict(buf *bytes.Buffer, writer *PdfWriter, n int64, count int64, ok bool) {
 	buf.WriteString("<<")
 	fmt.Fprintf(buf, "/Size %d", n)
@@ -22043,6 +22305,7 @@ func writeTrailerDict(buf *bytes.Buffer, writer *PdfWriter, n int64, count int64
 	}
 	buf.WriteString(">>")
 }
+
 func newIDTreeFromPdfObject(obj core.PdfObject) *IDTree {
 	obj = core.ResolveReference(obj)
 	array := core.MakeArray()
@@ -22114,6 +22377,7 @@ func NewPdfColorPatternType1() *PdfColorPatternType1 {
 
 // DecodeArray returns the range of color component values in DeviceGray colorspace.
 func (cs *PdfColorspaceDeviceGray) DecodeArray() []float64 { return []float64{0, 1.0} }
+
 func (f PdfFont) actualFont() pdfFont {
 	if f.context == nil {
 		common.Log.Debug("ERROR: actualFont. context is nil. font=%s", f)
@@ -22257,6 +22521,7 @@ func (r *PdfReader) GetCatalogLanguage() (core.PdfObject, bool) {
 	lang := r.catalog.Get("Lang")
 	return lang, lang != nil
 }
+
 func (s *PdfShading) getShadingDict() (*core.PdfObjectDictionary, error) {
 	obj := s.primitive
 	if indirect, ok := obj.(*core.PdfIndirectObject); ok {
@@ -22428,6 +22693,7 @@ const (
 
 // B returns the value of the blue component of the color.
 func (c *PdfColorDeviceRGB) B() float64 { return c[2] }
+
 func cidToGIDMapFromObject(obj core.PdfObject) []uint16 {
 	stream, ok := core.GetStream(obj)
 	if !ok {
@@ -22525,6 +22791,7 @@ func (cs *PdfColorspaceLab) DecodeArray() []float64 {
 // Schema returns the namespace schema, a reference to a file containing a
 // schema for the namespace (ISO 32000-2 14.7.4.2, table 356). Nil if unset.
 func (ns *PdfStructureNamespace) Schema() core.PdfObject { return ns.schema }
+
 func firstPageHintOffset(layout *linearizationLayout, table map[int64]int64, n, count int64) (uint32, error) {
 	if len(layout.firstShared) == 0 {
 		return 0, nil
@@ -22542,6 +22809,7 @@ const (
 
 // IsCheckbox returns true if the button field represents a checkbox, false otherwise.
 func (f *PdfFieldButton) IsCheckbox() bool { return f.GetType() == ButtonTypeCheckbox }
+
 func newPdfFontDescriptorFromTtf(ttf *fonts.TtfType, f float64, n int) *PdfFontDescriptor {
 	v := 1000.0 / float64(ttf.UnitsPerEm)
 	if ttf.UnitsPerEm == 0 {
@@ -22563,6 +22831,7 @@ func newPdfFontDescriptorFromTtf(ttf *fonts.TtfType, f float64, n int) *PdfFontD
 	desc.Flags = core.MakeInteger(int64(count))
 	return desc
 }
+
 func newPdfFontFromPdfObjectInternal(fontObj core.PdfObject, ok bool) (*PdfFont, error) {
 	dict, fc, err := newFontCommonFromPdfObject(fontObj)
 	if dict != nil {
@@ -22659,6 +22928,7 @@ func newPdfFontFromPdfObjectInternal(fontObj core.PdfObject, ok bool) (*PdfFont,
 	}
 	return font, nil
 }
+
 func (img *Image) getSuitableEncoder() (core.StreamEncoder, error) {
 	var (
 		width, height = int(img.Width), int(img.Height)
@@ -22731,11 +23001,13 @@ func (img *Image) getSuitableEncoder() (core.StreamEncoder, error) {
 
 // DecodeArray returns the component range values for the Separation colorspace.
 func (cs *PdfColorspaceSpecialSeparation) DecodeArray() []float64 { return []float64{0, 1.0} }
+
 func (w *PdfWriter) setWriter(writer io.Writer) {
 	w.writePos = w.startOffset
 	w.writeErr = nil
 	w.bufWriter = bufio.NewWriter(writer)
 }
+
 func (w *PdfWriter) writeOutputIntents() error {
 	if len(w.outputIntents) == 0 {
 		return nil
@@ -22777,6 +23049,7 @@ func (a *PdfActionGoTo3DView) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("V", a.V)
 	return indirect
 }
+
 func (t *trustEvaluator) intermediatePool(certs, certs2 []*x509.Certificate) *x509.CertPool {
 	certPool := x509.NewCertPool()
 	for _, cert := range certs2 {
@@ -22787,6 +23060,7 @@ func (t *trustEvaluator) intermediatePool(certs, certs2 []*x509.Certificate) *x5
 	}
 	return certPool
 }
+
 func (r SignatureValidationResult) String() string {
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "Name: %s\n", r.Name)
@@ -22907,6 +23181,7 @@ func (a *PdfAction) GetContext() PdfModel {
 	}
 	return a.context
 }
+
 func collectStructureElements(obj core.PdfObject, obj2 core.PdfObject, objsByObj map[core.PdfObject][]core.PdfObject, objByKey map[string]core.PdfObject, objs *[]core.PdfObject) {
 	var indirect *core.PdfIndirectObject
 	if indirect2, ok := core.GetIndirect(obj); ok {
@@ -22982,6 +23257,7 @@ func (r *PdfPageResources) HasShadingByName(keyName core.PdfObjectName) bool {
 	_, ok := r.GetShadingByName(keyName)
 	return ok
 }
+
 func newPdfShadingType1FromDict(dict *core.PdfObjectDictionary) (*PdfShadingType1, error) {
 	shading1 := PdfShadingType1{}
 	if domain := dict.Get("Domain"); domain != nil {
@@ -23048,6 +23324,7 @@ func (a *PdfActionNamed) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("N", a.N)
 	return indirect
 }
+
 func (a *Artifact) GenerateMap() map[string]core.PdfObject {
 	objByKey := make(map[string]core.PdfObject)
 	if a.Type != ArtifactTypeNone {
@@ -23103,6 +23380,7 @@ func (r *PdfReader) GetOutlinesFlattened() ([]*PdfOutlineTreeNode, []string, err
 	fn(r.outlineTree, &nodes, &strs, 0)
 	return nodes, strs, nil
 }
+
 func (r *PdfReader) newPdfAcroFormFromDict(indirect *core.PdfIndirectObject, dict *core.PdfObjectDictionary) (*PdfAcroForm, error) {
 	acroForm := NewPdfAcroForm()
 	if indirect != nil {
@@ -23222,6 +23500,7 @@ func (e *MultipleFontEncoder) GetColorGlyphInfoByText(text string) *ColorGlyphIn
 	}
 	return nil
 }
+
 func (w *PdfWriter) setHashIDs(digest hash.Hash) error {
 	data := digest.Sum(nil)
 	if w.id0 == "" {
@@ -23272,6 +23551,7 @@ func (a *PdfAppender) ReplacePage(pageNum int, page *PdfPage) {
 		}
 	}
 }
+
 func (s *PdfSignature) extractChainFromPKCS7() ([]*x509.Certificate, error) {
 	if s.Contents == nil {
 		return nil, errors.New("signature Contents not set")
@@ -23304,6 +23584,7 @@ func (s *PdfSignature) extractChainFromPKCS7() ([]*x509.Certificate, error) {
 func (f *PdfFont) StringToCharcodeBytes(str string) ([]byte, int) {
 	return f.RunesToCharcodeBytes([]rune(str))
 }
+
 func newPdfCIDFontType2FromDict(dict *core.PdfObjectDictionary, fc *fontCommon) (*pdfCIDFontType2, error) {
 	if fc.subtype != "CIDFontType2" {
 		common.Log.Debug("ERROR: Font SubType != CIDFontType2. font=%s", fc)
@@ -23465,6 +23746,7 @@ func (w *PdfWriter) SetCatalogLanguage(lang core.PdfObject) error {
 	w.catalog.Set("Lang", lang)
 	return nil
 }
+
 func newOCSPEvidence(body []byte, ok bool) ocspEvidence {
 	return ocspEvidence{raw: body, digest: sha256.Sum256(body), online: ok}
 }
@@ -23639,6 +23921,7 @@ func (r *PdfReader) loadForms() (*PdfAcroForm, error) {
 	form.direct = !ok
 	return form, nil
 }
+
 func fixFontWidthsRange(dict *core.PdfObjectDictionary) {
 	widths, ok := core.GetArray(dict.Get("Widths"))
 	firstChar, isFirstChar := core.GetIntVal(dict.Get("FirstChar"))
@@ -23655,6 +23938,7 @@ func fixFontWidthsRange(dict *core.PdfObjectDictionary) {
 
 // BaseFont returns the font's "BaseFont" field.
 func (f *PdfFont) BaseFont() string { return f.baseFields().baseFont }
+
 func measureXrefTable(writer *PdfWriter, nums []int64, n int64, count int64, ok bool, found bool) int {
 	xrefTable, _ := buildXrefTable(writer, nums, map[int64]int64{}, n, count, ok, 0, found)
 	return len(xrefTable)
@@ -23677,6 +23961,7 @@ func (s *PdfSignature) SetLocation(location string) {
 func (r *PdfReader) CheckAccessRights(password []byte) (bool, security.Permissions, error) {
 	return r.parser.CheckAccessRights(password)
 }
+
 func decodedTextString(str *core.PdfObjectString) string {
 	data := str.Bytes()
 	if len(data) >= 2 && data[0] == 0xFE && data[1] == 0xFF {
@@ -23684,6 +23969,7 @@ func decodedTextString(str *core.PdfObjectString) string {
 	}
 	return str.String()
 }
+
 func (r *PdfReader) newPdfAnnotationPolyLineFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationPolyLine, error) {
 	polyLine := PdfAnnotationPolyLine{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -23700,6 +23986,7 @@ func (r *PdfReader) newPdfAnnotationPolyLineFromDict(dict *core.PdfObjectDiction
 	polyLine.Measure = dict.Get("Measure")
 	return &polyLine, nil
 }
+
 func (l *LTV) getCerts(certs []*x509.Certificate) ([][]byte, error) {
 	dataList := make([][]byte, 0, len(certs))
 	for _, cert := range certs {
@@ -23757,6 +24044,7 @@ func (cs *PdfColorspaceDeviceCMYK) ColorFromFloats(vals []float64) (PdfColor, er
 
 // M returns the value of the magenta component of the color.
 func (c *PdfColorDeviceCMYK) M() float64 { return c[1] }
+
 func (r *PdfReader) newPdfActionGotoRFromDict(dict *core.PdfObjectDictionary) (*PdfActionGoToR, error) {
 	filespec, err := newPdfFilespecFromPdfObject(dict.Get("F"))
 	if err != nil {
@@ -23930,12 +24218,14 @@ func NewPdfFilespec() *PdfFilespec {
 	filespec.primitive = core.MakeIndirectObject(core.MakeDict())
 	return filespec
 }
+
 func (l *LTV) validateSig(sig *PdfSignature) error {
 	if sig == nil || sig.Contents == nil || len(sig.Contents.Bytes()) == 0 {
 		return fmt.Errorf("invalid signature field: %v", sig)
 	}
 	return nil
 }
+
 func (r *PdfReader) loadStructure() error {
 	if r.parser.GetCrypter() != nil && !r.parser.IsAuthenticated() {
 		return fmt.Errorf("file need to be decrypted first")
@@ -24072,6 +24362,7 @@ func (f *PdfField) FieldType() FieldType {
 	}
 	return FieldTypeUnknown
 }
+
 func newPdfFunctionType2FromPdfObject(obj core.PdfObject) (*PdfFunctionType2, error) {
 	fn2 := &PdfFunctionType2{}
 	var dict *core.PdfObjectDictionary
@@ -24173,6 +24464,7 @@ type pdfCIDFontType0 struct {
 
 // K returns the value of the key component of the color.
 func (c *PdfColorDeviceCMYK) K() float64 { return c[3] }
+
 func fillSignatureCoverage(parser *core.PdfParser, nums []int64, contents *core.PdfObjectString, result *SignatureValidationResult) {
 	result.byteRangeChecked = true
 	n := nums[len(nums)-2] + nums[len(nums)-1]
@@ -24337,6 +24629,7 @@ func (a *PdfActionMovie) ToPdfObject() core.PdfObject {
 
 // GetContainingPdfObject implements model.PdfModel interface.
 func (o *PdfOutputIntent) GetContainingPdfObject() core.PdfObject { return o.primitive }
+
 func (r *PdfReader) newPdfAnnotation3DFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotation3D, error) {
 	annot3D := PdfAnnotation3D{}
 	annot3D.T3DD = dict.Get("3DD")
@@ -24381,6 +24674,7 @@ func (p *PdfPattern) ToPdfObject() core.PdfObject {
 	dict.Set("PatternType", core.MakeInteger(p.PatternType))
 	return p.primitive
 }
+
 func (p *PdfPage) generateImage(text string, fontSize float64, fontPath string, fontColor color.Color) ([]byte, error) {
 	rgba, n, count, _ := fontColor.RGBA()
 	rgba2 := color.RGBA{uint8(rgba >> 8), uint8(n >> 8), uint8(count >> 8), 255}
@@ -24507,6 +24801,7 @@ func (f FieldFlag) String() string {
 	}
 	return strings.Trim(s, "|")
 }
+
 func (w *PdfWriter) checkPendingObjects() {
 	for obj, missingParent := range w.missingParents {
 		if !w.hasObject(obj) {
@@ -24594,6 +24889,7 @@ func (r *PdfReader) GetRevision(revisionNumber int) (*PdfReader, error) {
 	}
 	return reader, nil
 }
+
 func (x *XObjectImage) getParamsDict() *core.PdfObjectDictionary {
 	dict := core.MakeDict()
 	dict.Set("Width", core.MakeInteger(*x.Width))
@@ -24764,7 +25060,6 @@ func (w *PdfWriter) Write(writer io.Writer) (err error) {
 
 // StructureTagInfo represents a tagged structure in a PDF document that used by Drawable components.
 type StructureTagInfo struct {
-
 	// Marked Content ID, if applicable.
 	Mcid int64
 
@@ -24960,6 +25255,7 @@ func (r *PdfPageResources) GetColorspaces() (*PdfPageResourcesColorspaces, error
 
 // Encoder returns the font's text encoder.
 func (f pdfFontType3) Encoder() textencoding.TextEncoder { return f.encoder }
+
 func (r *PdfReader) newPdfAnnotationSoundFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationSound, error) {
 	sound := PdfAnnotationSound{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -25135,6 +25431,7 @@ const revocationUnknownMessage = "revocation status unknown: no usable revocatio
 func (r *PdfReader) newPdfActionTransFromDict(dict *core.PdfObjectDictionary) (*PdfActionTrans, error) {
 	return &PdfActionTrans{Trans: dict.Get("Trans")}, nil
 }
+
 func (w *PdfWriter) writeObject(n int, obj core.PdfObject) error {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Write obj #%d\n", n)
@@ -25244,6 +25541,7 @@ func (x *XObjectForm) GetContainingPdfObject() core.PdfObject { return x.primiti
 
 // Direct returns the object itself; the transform parameters are always a direct object.
 func (p *PdfTransformParamsDocMDP) Direct() core.PdfObject { return p }
+
 func (w *PdfWriter) writeObjects() {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Writing %d obj", len(w.objects))
@@ -25310,6 +25608,7 @@ func (r *PdfReader) Decrypt(password []byte) (bool, error) {
 func NewMultipleFontEncoder(fonts []*PdfFont) *MultipleFontEncoder {
 	return &MultipleFontEncoder{fontList: fonts, CurrentFont: fonts[0]}
 }
+
 func (r *PdfReader) newPdfActionLaunchFromDict(dict *core.PdfObjectDictionary) (*PdfActionLaunch, error) {
 	filespec, err := newPdfFilespecFromPdfObject(dict.Get("F"))
 	if err != nil {
@@ -25330,6 +25629,7 @@ func (r *PdfPageResources) GenerateXObjectName() core.PdfObjectName {
 		n++
 	}
 }
+
 func (w *PdfWriter) setEncryption(crypter *core.PdfCrypt, encryptInfo *core.EncryptInfo) {
 	w.crypter = crypter
 	if encryptInfo.Major != 0 {
@@ -25386,6 +25686,7 @@ func (p *PdfPage) Duplicate() *PdfPage {
 	page.originalDict = page.pageDict.ShallowCopy()
 	return &page
 }
+
 func (d *DSS) generateHashMap(streams []*core.PdfObjectStream) (map[string]*core.PdfObjectStream, error) {
 	streamByKey := map[string]*core.PdfObjectStream{}
 	for _, stream := range streams {
@@ -25472,10 +25773,12 @@ func (p *PdfPage) HasFontByName(name core.PdfObjectName) bool {
 	}
 	return false
 }
+
 func (w *PdfWriter) hasObject(obj core.PdfObject) bool {
 	_, ok := w.hasObjects[obj]
 	return ok
 }
+
 func registerGlyphWidthsFromGIDs(w core.PdfObject, vals []uint16) {
 	var n uint16
 	for _, val := range vals {
@@ -25512,10 +25815,12 @@ func (p *PdfTransformParamsDocMDP) ToPdfObject() core.PdfObject {
 	dict.SetIfNotNil("P", p.P)
 	return dict
 }
+
 func sortedUniqueGlyphIndexes(gids []unitype.GlyphIndex) []unitype.GlyphIndex {
 	slices.Sort(gids)
 	return slices.Compact(gids)
 }
+
 func (img *Image) samplesTrimPadding(nums []uint32) []uint32 {
 	n := img.ColorComponents * int(img.Width) * int(img.Height)
 	if len(nums) == n {
@@ -25881,6 +26186,7 @@ func (r *PdfReader) RepairAcroForm(opts *AcroFormRepairOptions) error {
 	r.AcroForm.Fields = &fields
 	return nil
 }
+
 func (f *PdfField) resolveValueString(ok bool) string {
 	var obj core.PdfObject
 	_, _ = f.inherit(func(field *PdfField) bool {
@@ -25944,7 +26250,6 @@ func (r *PdfReader) GetPieceInfo() (core.PdfObject, bool) {
 
 // EncryptOptions represents encryption options for an output PDF.
 type EncryptOptions struct {
-
 	// Permissions granted when the document is opened with the user password
 	// (Encrypt) or to every recipient (EncryptForRecipients). The zero value
 	// grants none; security.PermOwner grants all, as does a nil
@@ -25978,6 +26283,7 @@ func (c *parsedCRL) entryFor(cert *x509.Certificate) *x509.RevocationListEntry {
 	}
 	return nil
 }
+
 func (r *PdfReader) newPdfActionFromIndirectObject(indirect *core.PdfIndirectObject) (*PdfAction, error) {
 	dict, ok := indirect.PdfObject.(*core.PdfObjectDictionary)
 	if !ok {
@@ -26169,6 +26475,7 @@ func (r *PdfReader) newPdfActionFromIndirectObject(indirect *core.PdfIndirectObj
 	common.Log.Debug("ERROR: Ignoring unknown action: %s", typeAction)
 	return nil, nil
 }
+
 func (f *PdfField) resolveQ() Quadding {
 	quadding := QuaddingLeft
 	_, _ = f.inherit(func(field *PdfField) bool {
@@ -26246,6 +26553,7 @@ func (img *Image) Resample(targetBitsPerComponent int64) {
 	}
 	img.Data = acquireBytes
 }
+
 func (w *PdfWriter) writeDocumentVersion() {
 	if w.appendMode {
 		w.writeString("\n")
@@ -26367,6 +26675,7 @@ func (t *trustEvaluator) verifySignatureTimestamp(data, encryptedDigest []byte, 
 	}
 	return ts.Time, checkChainRevocation.warnings, nil
 }
+
 func (r *PdfReader) newPdfAnnotationSquareFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationSquare, error) {
 	square := PdfAnnotationSquare{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -26380,6 +26689,7 @@ func (r *PdfReader) newPdfAnnotationSquareFromDict(dict *core.PdfObjectDictionar
 	square.RD = dict.Get("RD")
 	return &square, nil
 }
+
 func newPdfCIDFontType2FromCommon(fc *fontCommon) *pdfCIDFontType2 {
 	return &pdfCIDFontType2{fontCommon: *fc}
 }
@@ -26411,6 +26721,7 @@ func (p *PdfColorPatternType1) Components() []float64 {
 	}
 	return p.Color.Components()
 }
+
 func (s *PdfSignature) extractChainFromCert() ([]*x509.Certificate, error) {
 	var arr *core.PdfObjectArray
 	switch v := core.TraceToDirectObject(s.Cert).(type) {
@@ -26435,6 +26746,7 @@ func (s *PdfSignature) extractChainFromCert() ([]*x509.Certificate, error) {
 	}
 	return x509.ParseCertificates(buf.Bytes())
 }
+
 func pdfObjectToString(obj core.PdfObject) (string, error) {
 	obj = core.TraceToDirectObject(obj)
 	switch v := obj.(type) {
@@ -26449,6 +26761,7 @@ func pdfObjectToString(obj core.PdfObject) (string, error) {
 	}
 	return "", fmt.Errorf("invalid content stream object holder (%T)", obj)
 }
+
 func getPdfProducer() string {
 	metadataMu.Lock()
 	defer metadataMu.Unlock()
@@ -26580,6 +26893,7 @@ func (f *PdfFunctionType4) ToPdfObject() core.PdfObject {
 	stream.PdfObjectDictionary = dict
 	return stream
 }
+
 func (l *LTV) getCRLs(certs []*x509.Certificate) ([][]byte, error) {
 	dataList := make([][]byte, 0, len(certs))
 	for _, cert := range certs {
@@ -26819,6 +27133,7 @@ func (r *PdfReader) ToWriter(opts *ReaderToWriterOpts) (*PdfWriter, error) {
 	}
 	return &writer, nil
 }
+
 func unicodeCategory(n rune) string {
 	for s, rangeTable := range unicode.Categories {
 		if len(s) == 2 && unicode.Is(rangeTable, n) {
@@ -26827,6 +27142,7 @@ func unicodeCategory(n rune) string {
 	}
 	return "Cn"
 }
+
 func (r *PdfReader) newPdfAnnotationHighlightFromDict(dict *core.PdfObjectDictionary) (*PdfAnnotationHighlight, error) {
 	highlight := PdfAnnotationHighlight{}
 	markup, err := r.newPdfAnnotationMarkupFromDict(dict)
@@ -26909,7 +27225,6 @@ func (r *PdfReader) newPdfAnnotationTrapNetFromDict(dict *core.PdfObjectDictiona
 // Work is in progress to support all colorspaces. At the moment ICCBased color spaces fall back to the alternate
 // colorspace which works OK in most cases. For full color support, will need fully featured ICC support.
 type PdfColorspace interface {
-
 	// String returns the PdfColorspace's name.
 	String() string
 
@@ -27031,7 +27346,6 @@ func (r *PdfReader) buildPageList(indirect *core.PdfIndirectObject, indirect2 *c
 // the integrity of a signature. Trust anchors always come from the caller;
 // certificates embedded in the document are used as intermediates only.
 type SignatureValidationOpts struct {
-
 	// Roots is the set of trusted anchors. When nil no trust check is
 	// performed and SignatureValidationResult.IsTrusted stays false. Use
 	// the authorities you accept for document signing; the system pool
@@ -27082,6 +27396,7 @@ func partitionObjectNumbers(writer *PdfWriter, layout *linearizationLayout, objB
 	}
 	return nums, nums2
 }
+
 func newPdfColorspaceSpecialPatternFromPdfObject(obj core.PdfObject) (*PdfColorspaceSpecialPattern, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("New Pattern CS from obj: %s %T", obj.String(), obj)
@@ -27127,6 +27442,7 @@ func newPdfColorspaceSpecialPatternFromPdfObject(obj core.PdfObject) (*PdfColors
 	}
 	return specialPatternCS, nil
 }
+
 func (f *pdfFontSimple) addEncoding() error {
 	var (
 		s           string
@@ -27217,6 +27533,7 @@ func (cs *PdfColorspaceCalGray) ColorToRGB(color PdfColor) (PdfColor, error) {
 	val = math.Min(math.Max(val, 0), 1.0)
 	return NewPdfColorDeviceRGB(f, v, val), nil
 }
+
 func (f *PdfField) inherit(fn func(*PdfField) bool) (bool, error) {
 	set := map[*PdfField]bool{}
 	ok := false
@@ -27321,6 +27638,7 @@ func (img *Image) ConvertToBinary() error {
 	img.clearSourceMetadata()
 	return nil
 }
+
 func fieldWidgets(field *PdfField) []*PdfAnnotationWidget {
 	widgets := append([]*PdfAnnotationWidget(nil), field.Annotations...)
 	if signatureField, ok := field.GetContext().(*PdfFieldSignature); ok && signatureField.PdfAnnotationWidget != nil {

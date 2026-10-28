@@ -15,15 +15,16 @@ package pdfua
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/OpenMellon/go-xmp/models/dc"
 	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/openpdf/model/internal/docutil"
 	"github.com/OpenMellon/openpdf/model/xmputil"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 // Error implements error interface.
@@ -40,10 +41,12 @@ func (e VerificationError) Error() string {
 	}
 	return sb.String()
 }
+
 func newRoleMapResolver(root *core.PdfObjectDictionary) structTypeFunc {
 	roleMap, _ := core.GetDict(core.TraceToDirectObject(root.Get("RoleMap")))
 	return func(elem *core.PdfObjectDictionary) string { return resolveStandardType(elem, roleMap) }
 }
+
 func newNamespaceResolver(root *core.PdfObjectDictionary) structTypeFunc {
 	roleMap, _ := core.GetDict(core.TraceToDirectObject(root.Get("RoleMap")))
 	return func(elem *core.PdfObjectDictionary) string {
@@ -54,6 +57,7 @@ func newNamespaceResolver(root *core.PdfObjectDictionary) structTypeFunc {
 
 // StandardName gets the name of the standard.
 func (p *Profile1) StandardName() string { return p.std.String() }
+
 func checkStructTreeRootAndMarkInfo(r *model.CompliancePdfReader, rules ruleNos) []ViolatedRule {
 	var violations []ViolatedRule
 	if _, ok := structTreeRootOf(r); !ok {
@@ -79,6 +83,7 @@ func checkStructTreeRootAndMarkInfo(r *model.CompliancePdfReader, rules ruleNos)
 	}
 	return violations
 }
+
 func checkTables(r *model.CompliancePdfReader) []ViolatedRule {
 	root, ok := structTreeRootOf(r)
 	if !ok {
@@ -96,10 +101,12 @@ func checkTables(r *model.CompliancePdfReader) []ViolatedRule {
 	})
 	return violations
 }
+
 func elemNamespace(elem *core.PdfObjectDictionary) string {
 	ns, _ := core.GetDict(core.TraceToDirectObject(elem.Get("NS")))
 	return nsURI(ns)
 }
+
 func intAttr(elem, classMap *core.PdfObjectDictionary, key core.PdfObjectName, owner string, def int) int {
 	obj := lookupAttr(elem, classMap, key, owner, isInt)
 	if obj == nil {
@@ -108,6 +115,7 @@ func intAttr(elem, classMap *core.PdfObjectDictionary, key core.PdfObjectName, o
 	val, _ := core.GetIntVal(obj)
 	return val
 }
+
 func classifyStructType(elem *structElem, roleMap *core.PdfObjectDictionary, known map[string]bool) structureTypeFindings {
 	var findings structureTypeFindings
 	findings.circular = known[elem.typeName] || hasCircularNSMapping(elem.dict)
@@ -121,6 +129,7 @@ func classifyStructType(elem *structElem, roleMap *core.PdfObjectDictionary, kno
 	}
 	return findings
 }
+
 func dictGet(obj core.PdfObject, key core.PdfObjectName) core.PdfObject {
 	if obj == nil {
 		return nil
@@ -139,6 +148,7 @@ func (v ViolatedRule) String() string { return fmt.Sprintf("%s: %s", v.RuleNo, v
 
 // Part gets the PDF/UA part.
 func (p *Profile2) Part() int { return p.std.part }
+
 func (u *fontUsage) walkOps(ops *contentstream.ContentStreamOperations, scope resourceScope, depth int) {
 	for _, op := range *ops {
 		if len(op.Params) == 0 {
@@ -168,6 +178,7 @@ func sumColSpans(cells []*core.PdfObjectDictionary, classMap *core.PdfObjectDict
 	}
 	return total
 }
+
 func streamResources(stream *core.PdfObjectStream) *core.PdfObjectDictionary {
 	res, _ := core.GetDict(stream.Get("Resources"))
 	return res
@@ -181,6 +192,7 @@ func NewProfile2(options *Profile2Options) *Profile2 {
 	applyProfile2Defaults(options)
 	return &Profile2{std: ua2Standard(), opts: *options}
 }
+
 func classMapOf(root *core.PdfObjectDictionary) *core.PdfObjectDictionary {
 	classMap, _ := core.GetDict(core.TraceToDirectObject(root.Get("ClassMap")))
 	return classMap
@@ -236,6 +248,7 @@ func resolveNamespacedType(elem, roleMap *core.PdfObjectDictionary) (string, str
 	}
 	return "", ""
 }
+
 func roleMapCycles(roleMap *core.PdfObjectDictionary) []string {
 	if roleMap == nil {
 		return nil
@@ -260,6 +273,7 @@ func roleMapCycles(roleMap *core.PdfObjectDictionary) []string {
 	}
 	return cyclic
 }
+
 func setDisplayDocTitle(doc *docutil.Document) {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -276,6 +290,7 @@ func setDisplayDocTitle(doc *docutil.Document) {
 	}
 	prefs.Set("DisplayDocTitle", core.MakeBool(true))
 }
+
 func (w *contentWalker) emit(ruleNo, detail string) {
 	if w.emitted[ruleNo] {
 		return
@@ -283,6 +298,7 @@ func (w *contentWalker) emit(ruleNo, detail string) {
 	w.violations = append(w.violations, newViolation(ruleNo, detail))
 	w.emitted[ruleNo] = true
 }
+
 func (u *fontUsage) budget(depth int) bool {
 	if depth >= maxResourceDepth || u.visits >= maxStreamVisits {
 		u.determined = false
@@ -291,6 +307,7 @@ func (u *fontUsage) budget(depth int) bool {
 	u.visits++
 	return true
 }
+
 func catalogVersion(r *model.CompliancePdfReader) (core.Version, bool) {
 	verObj, ok := r.GetCatalogVersion()
 	if !ok {
@@ -314,6 +331,7 @@ func catalogVersion(r *model.CompliancePdfReader) (core.Version, bool) {
 	}
 	return core.Version{Major: major, Minor: minor}, true
 }
+
 func checkLang(r *model.CompliancePdfReader, rules ruleNos) ViolatedRule {
 	lang, ok := r.GetCatalogLanguage()
 	if !ok {
@@ -328,6 +346,7 @@ func checkLang(r *model.CompliancePdfReader, rules ruleNos) ViolatedRule {
 	}
 	return noViolation
 }
+
 func checkTabsEntries(r *model.CompliancePdfReader) []ViolatedRule {
 	numPages, err := r.GetNumPages()
 	if err != nil {
@@ -355,6 +374,7 @@ func checkTabsEntries(r *model.CompliancePdfReader) []ViolatedRule {
 	}
 	return violations
 }
+
 func streamsFromObject(obj core.PdfObject) []*core.PdfObjectStream {
 	obj = core.TraceToDirectObject(obj)
 	if stream, ok := core.GetStream(obj); ok {
@@ -495,8 +515,10 @@ type catalogXMP struct {
 	doc     *xmputil.Document
 }
 
-const maxListedIDs = 10
-const maxKidVisits = 100_000
+const (
+	maxListedIDs = 10
+	maxKidVisits = 100_000
+)
 
 func mapNamespacedType(typ string, ns, roleMap *core.PdfObjectDictionary) (string, *core.PdfObjectDictionary, bool) {
 	if ns != nil {
@@ -573,6 +595,7 @@ func (c *fontCandidates) addResources(res *core.PdfObjectDictionary, depth int) 
 		}
 	}
 }
+
 func checkXMPIdentifier(xmp catalogXMP, part, rev int, rules ruleNos) []ViolatedRule {
 	if !xmp.present {
 		return nil
@@ -594,6 +617,7 @@ func checkXMPIdentifier(xmp catalogXMP, part, rev int, rules ruleNos) []Violated
 	}
 	return violations
 }
+
 func selectSuspectViolations(fonts []suspectFont, used map[*core.PdfObjectDictionary]bool, restrict bool) []ViolatedRule {
 	var violations []ViolatedRule
 	for _, f := range fonts {
@@ -604,6 +628,7 @@ func selectSuspectViolations(fonts []suspectFont, used map[*core.PdfObjectDictio
 	}
 	return violations
 }
+
 func (w *contentWalker) evalContent(stack []mcFrame) {
 	state := 0
 	inArtifact := false
@@ -625,6 +650,7 @@ func (w *contentWalker) evalContent(stack []mcFrame) {
 		w.emit(w.rules.unmarkedContent, "real content shall be inside a marked-content sequence identified by an MCID (BDC with MCID property)")
 	}
 }
+
 func isReportableAnnot(annot *core.PdfObjectDictionary) bool {
 	if subtype, ok := core.GetName(annot.Get("Subtype")); ok && string(*subtype) == "Popup" {
 		return false
@@ -634,6 +660,7 @@ func isReportableAnnot(annot *core.PdfObjectDictionary) bool {
 	}
 	return true
 }
+
 func (u *fontUsage) walkPattern(name core.PdfObjectName, scope resourceScope, depth int) {
 	for _, res := range scope.lookIn() {
 		if res == nil {
@@ -666,11 +693,13 @@ func summarizeIDs(names []string) string {
 	}
 	return fmt.Sprintf("%s and %d more", strings.Join(names[:maxListedIDs], ", "), len(names)-maxListedIDs)
 }
+
 func (w *contentWalker) markUndetermined() {
 	if w.fonts != nil {
 		w.fonts.determined = false
 	}
 }
+
 func scanContent(r *model.CompliancePdfReader, rules ruleNos) contentScan {
 	suspects := findSuspectFonts(r, rules)
 	w := newContentWalker(r, rules, len(suspects) != 0)
@@ -680,6 +709,7 @@ func scanContent(r *model.CompliancePdfReader, rules ruleNos) contentScan {
 
 // StandardName gets the name of the standard.
 func (p *Profile2) StandardName() string { return p.std.String() }
+
 func (u *fontUsage) walkStream(stream *core.PdfObjectStream, scope resourceScope, depth int) {
 	data, err := core.DecodeStream(stream)
 	if err != nil {
@@ -688,6 +718,7 @@ func (u *fontUsage) walkStream(stream *core.PdfObjectStream, scope resourceScope
 	}
 	u.walkContent(data, scope.with(resourcesFromDict(streamResources(stream))), depth)
 }
+
 func loadCatalogXMP(r *model.CompliancePdfReader) catalogXMP {
 	metaObj, ok := r.GetCatalogMetadata()
 	if !ok {
@@ -709,6 +740,7 @@ func loadCatalogXMP(r *model.CompliancePdfReader) catalogXMP {
 	}
 	return catalogXMP{present: true, doc: doc}
 }
+
 func setPDF20Version(doc *docutil.Document) {
 	doc.Version.Major, doc.Version.Minor = 2, 0
 	catalog, ok := doc.FindCatalog()
@@ -717,6 +749,7 @@ func setPDF20Version(doc *docutil.Document) {
 	}
 	catalog.SetVersion()
 }
+
 func (c *fontCandidates) descend(stream *core.PdfObjectStream, depth int) bool {
 	if _, seen := c.activeStreams[stream]; seen {
 		return true
@@ -782,9 +815,11 @@ func (w *contentWalker) run() {
 		}
 	}
 }
+
 func newViolation(ruleNo string, detail string) ViolatedRule {
 	return ViolatedRule{RuleNo: ruleNo, Detail: detail}
 }
+
 func spanAttr(elem, classMap *core.PdfObjectDictionary, key core.PdfObjectName) int {
 	n := intAttr(elem, classMap, key, "Table", 1)
 	if n < 1 {
@@ -905,6 +940,7 @@ func checkTable(tableElem, classMap *core.PdfObjectDictionary, resolve structTyp
 	}
 	return nil
 }
+
 func checkAnnotationAltText(r *model.CompliancePdfReader) (violations []ViolatedRule) {
 	numPages, err := r.GetNumPages()
 	if err != nil {
@@ -1013,6 +1049,7 @@ func (p *Profile1) ApplyStandard(document *docutil.Document) error {
 func DefaultProfile1Options() *Profile1Options {
 	return &Profile1Options{Xmp: XmpOptions{MarshalIndent: "\t"}}
 }
+
 func objectNumber(obj core.PdfObject) (int64, bool) {
 	switch ref := obj.(type) {
 	case *core.PdfObjectReference:
@@ -1043,6 +1080,7 @@ func typeOrEmpty(elem *core.PdfObjectDictionary, resolve structTypeFunc) string 
 	}
 	return resolve(elem)
 }
+
 func isStandardType(typ, ns string) bool {
 	switch ns {
 	case model.StructureNamespaceMathML:
@@ -1055,6 +1093,7 @@ func isStandardType(typ, ns string) bool {
 	}
 	return false
 }
+
 func checkFont(fontDict *core.PdfObjectDictionary, rules ruleNos) []ViolatedRule {
 	font, err := model.NewPdfFontFromPdfObject(fontDict)
 	if err != nil {
@@ -1089,6 +1128,7 @@ func checkFont(fontDict *core.PdfObjectDictionary, rules ruleNos) []ViolatedRule
 	}
 	return violations
 }
+
 func rectOffPage(rectObj core.PdfObject, page *model.PdfPage) bool {
 	arr, ok := core.GetArray(core.TraceToDirectObject(rectObj))
 	if !ok || arr.Len() != 4 {
@@ -1111,6 +1151,7 @@ func rectOffPage(rectObj core.PdfObject, page *model.PdfPage) bool {
 	boxMinY, boxMaxY := min(box.Lly, box.Ury), max(box.Lly, box.Ury)
 	return maxX < boxMinX || minX > boxMaxX || maxY < boxMinY || minY > boxMaxY
 }
+
 func streamsInDict(obj core.PdfObject) []*core.PdfObjectStream {
 	dict, ok := core.GetDict(core.TraceToDirectObject(obj))
 	if !ok {
@@ -1212,6 +1253,7 @@ func (p *Profile2) ValidateStandard(r *model.CompliancePdfReader) error {
 	}
 	return nil
 }
+
 func collectFontDicts(r *model.CompliancePdfReader) []*core.PdfObjectDictionary {
 	cands := &fontCandidates{seenFonts: map[core.PdfObject]struct{}{}, activeStreams: map[*core.PdfObjectStream]struct{}{}}
 	numPages, err := r.GetNumPages()
@@ -1332,6 +1374,7 @@ func nsURI(ns *core.PdfObjectDictionary) string {
 	}
 	return uri.Decoded()
 }
+
 func checkFigureAlt(r *model.CompliancePdfReader, rules ruleNos, newResolver func(*core.PdfObjectDictionary) structTypeFunc) []ViolatedRule {
 	root, ok := structTreeRootOf(r)
 	if !ok {
@@ -1355,6 +1398,7 @@ func checkFigureAlt(r *model.CompliancePdfReader, rules ruleNos, newResolver fun
 	}
 	return nil
 }
+
 func buildTableGrid(tableElem, classMap *core.PdfObjectDictionary, resolve structTypeFunc, checkGroups bool) (*tableGrid, []ViolatedRule) {
 	tr := collectTableRows(tableElem, resolve)
 	numRows := sumRowSpans(tr.rows, classMap)
@@ -1423,6 +1467,7 @@ func buildTableGrid(tableElem, classMap *core.PdfObjectDictionary, resolve struc
 	}
 	return grid, nil
 }
+
 func ensureMarkInfo(doc *docutil.Document) {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -1471,6 +1516,7 @@ func nameAttr(elem, classMap *core.PdfObjectDictionary, key core.PdfObjectName, 
 	}
 	return ""
 }
+
 func collectTableRows(tableElem *core.PdfObjectDictionary, resolve structTypeFunc) tableRows {
 	cellsOf := func(row *core.PdfObjectDictionary) []*core.PdfObjectDictionary {
 		var cells []*core.PdfObjectDictionary
@@ -1500,6 +1546,7 @@ func collectTableRows(tableElem *core.PdfObjectDictionary, resolve structTypeFun
 	}
 	return tr
 }
+
 func findAttr(attrs core.PdfObject, key core.PdfObjectName, owner string, accept func(core.PdfObject) bool) core.PdfObject {
 	fromDict := func(d *core.PdfObjectDictionary) core.PdfObject {
 		if ownerName, ok := core.GetName(d.Get("O")); !ok || string(*ownerName) != owner {
@@ -1528,6 +1575,7 @@ func findAttr(attrs core.PdfObject, key core.PdfObjectName, owner string, accept
 	}
 	return nil
 }
+
 func checkEncryption(r *model.CompliancePdfReader) ViolatedRule {
 	trailer, err := r.GetTrailer()
 	if err != nil {
@@ -1559,7 +1607,6 @@ func NewProfile1(options *Profile1Options) *Profile1 {
 
 // VerificationError is the PDF/UA verification error containing all violated rules.
 type VerificationError struct {
-
 	// ViolatedRules are the rules that were violated during verification.
 	ViolatedRules []ViolatedRule
 
@@ -1584,6 +1631,7 @@ func hasAdobeCIDOrdering(font *core.PdfObjectDictionary) bool {
 	ordering, okOrd := core.GetString(sysInfo.Get("Ordering"))
 	return okReg && registry.Decoded() == "Adobe" && okOrd && adobeCJKOrderings[ordering.Decoded()]
 }
+
 func isInt(obj core.PdfObject) bool {
 	_, ok := core.GetIntVal(obj)
 	return ok
@@ -1630,6 +1678,7 @@ func ensurePDF2Namespace(doc *docutil.Document) {
 	namespaces.Append(newNS)
 	root.Set("Namespaces", namespaces)
 }
+
 func checkRoleMapUA2(r *model.CompliancePdfReader) []ViolatedRule {
 	root, ok := structTreeRootOf(r)
 	if !ok {
@@ -1695,6 +1744,7 @@ func checkRoleMapUA2(r *model.CompliancePdfReader) []ViolatedRule {
 	}
 	return violations
 }
+
 func checkTitleAndViewerPrefs(r *model.CompliancePdfReader, xmp catalogXMP, rules ruleNos) []ViolatedRule {
 	var violations []ViolatedRule
 	if xmp.present {
@@ -1726,6 +1776,7 @@ func checkTitleAndViewerPrefs(r *model.CompliancePdfReader, xmp catalogXMP, rule
 	}
 	return violations
 }
+
 func hasMCID(props core.PdfObject, res *model.PdfPageResources) bool {
 	dict := propertyDict(props, res)
 	if dict == nil {
@@ -1734,10 +1785,12 @@ func hasMCID(props core.PdfObject, res *model.PdfPageResources) bool {
 	_, ok := core.GetIntVal(dict.Get("MCID"))
 	return ok
 }
+
 func isName(obj core.PdfObject) bool {
 	_, ok := core.GetName(obj)
 	return ok
 }
+
 func (u *fontUsage) selectFont(name core.PdfObjectName, scope resourceScope, depth int) {
 	for _, res := range scope.lookIn() {
 		if res == nil {
@@ -1756,6 +1809,7 @@ func (u *fontUsage) selectFont(name core.PdfObjectName, scope resourceScope, dep
 		return
 	}
 }
+
 func writeXMP(doc *docutil.Document, std standardType, opts XmpOptions) error {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -1798,6 +1852,7 @@ func writeXMP(doc *docutil.Document, std standardType, opts XmpOptions) error {
 	}
 	return catalog.SetMetadata(data)
 }
+
 func checkRootDocument(root, roleMap *core.PdfObjectDictionary) []ViolatedRule {
 	kids := structChildren(root.Get("K"), func(elem *core.PdfObjectDictionary) string {
 		typ, _ := resolveNamespacedType(elem, roleMap)
@@ -1825,6 +1880,7 @@ func checkRootDocument(root, roleMap *core.PdfObjectDictionary) []ViolatedRule {
 	}
 	return nil
 }
+
 func collectAnnotStructInfo(root *core.PdfObjectDictionary) map[int64]annotStructInfo {
 	info := map[int64]annotStructInfo{}
 	walkStructTree(root, newRoleMapResolver(root), func(elem *structElem) {
@@ -1849,6 +1905,7 @@ func collectAnnotStructInfo(root *core.PdfObjectDictionary) map[int64]annotStruc
 	})
 	return info
 }
+
 func (u *fontUsage) walkForm(name core.PdfObjectName, scope resourceScope, depth int) {
 	for _, res := range scope.lookIn() {
 		if res == nil || dictGet(res.XObject, name) == nil {
@@ -1904,7 +1961,6 @@ func annotAppearanceStreams(page *model.PdfPage) ([]*core.PdfObjectStream, bool)
 
 // XmpOptions are the options used when writing the PDF/UA XMP metadata.
 type XmpOptions struct {
-
 	// Copyright information.
 	Copyright string
 
@@ -1933,9 +1989,11 @@ func (u *fontUsage) addPage(page *model.PdfPage, ops *contentstream.ContentStrea
 		u.walkStream(stream, scope, 0)
 	}
 }
+
 func (s resourceScope) lookIn() [2]*model.PdfPageResources {
 	return [2]*model.PdfPageResources{s.local, s.page}
 }
+
 func checkPDF20Version(r *model.CompliancePdfReader) ViolatedRule {
 	ver := r.PdfVersion()
 	major, minor := ver.Major, ver.Minor
@@ -1964,7 +2022,6 @@ const maxGridCells = 1 << 20
 
 // Profile1Options are the options for the PDF/UA-1 profile.
 type Profile1Options struct {
-
 	// DefaultLanguage is set as the catalog Lang entry by ApplyStandard when
 	// the document defines none. Ignored when empty.
 	DefaultLanguage string
@@ -1980,6 +2037,7 @@ func resourcesFromDict(dict *core.PdfObjectDictionary) *model.PdfPageResources {
 	res, _ := model.NewPdfPageResourcesFromDict(dict)
 	return res
 }
+
 func cellScope(elem, classMap *core.PdfObjectDictionary) string {
 	obj := lookupAttr(elem, classMap, "Scope", "Table", isName)
 	if obj == nil {
@@ -1988,6 +2046,7 @@ func cellScope(elem, classMap *core.PdfObjectDictionary) string {
 	name, _ := core.GetName(obj)
 	return string(*name)
 }
+
 func (c *fontCandidates) addType3Resources(font *core.PdfObjectDictionary, depth int) bool {
 	if subtype, ok := core.GetName(font.Get("Subtype")); !ok || string(*subtype) != "Type3" {
 		return true
@@ -2013,6 +2072,7 @@ func (c *fontCandidates) addType3Resources(font *core.PdfObjectDictionary, depth
 	}
 	return true
 }
+
 func (w *contentWalker) usedFonts() map[*core.PdfObjectDictionary]bool {
 	if w.fonts == nil {
 		return nil
@@ -2053,6 +2113,7 @@ var adobeCJKOrderings = map[string]bool{"Japan1": true, "GB1": true, "CNS1": tru
 func newFontUsage() *fontUsage {
 	return &fontUsage{used: map[*core.PdfObjectDictionary]bool{}, determined: true, activeForms: map[*core.PdfObjectStream]bool{}, visited: map[walkKey]bool{}}
 }
+
 func checkTableRegularity(tableElem, classMap *core.PdfObjectDictionary, resolve structTypeFunc) []ViolatedRule {
 	_, violations := buildTableGrid(tableElem, classMap, resolve, true)
 	return violations
@@ -2108,6 +2169,7 @@ func walkStructTree(root *core.PdfObjectDictionary, resolve structTypeFunc, visi
 	}
 	walk(root.Get("K"), nil, 0)
 }
+
 func applyProfile1Defaults(opts *Profile1Options) {
 	if opts.Xmp.MarshalIndent == "" {
 		opts.Xmp.MarshalIndent = "\t"
@@ -2139,6 +2201,7 @@ func fieldHasTU(field *model.PdfField) bool {
 	}
 	return false
 }
+
 func newContentWalker(r *model.CompliancePdfReader, rules ruleNos, trackFonts bool) *contentWalker {
 	w := &contentWalker{r: r, rules: rules, emitted: map[string]bool{}, visiting: map[*core.PdfObjectStream]bool{}}
 	if trackFonts {
@@ -2202,6 +2265,7 @@ func checkRoleMapUA1(r *model.CompliancePdfReader) []ViolatedRule {
 	})
 	return violations
 }
+
 func forEachOBJR(elem *core.PdfObjectDictionary, visit func(core.PdfObject)) {
 	check := func(kid core.PdfObject) {
 		d, ok := core.GetDict(core.TraceToDirectObject(kid))
@@ -2235,6 +2299,7 @@ func findSuspectFonts(r *model.CompliancePdfReader, rules ruleNos) []suspectFont
 	}
 	return suspects
 }
+
 func requireStructTree(doc *docutil.Document) error {
 	catalog, ok := doc.FindCatalog()
 	if !ok {
@@ -2245,6 +2310,7 @@ func requireStructTree(doc *docutil.Document) error {
 	}
 	return nil
 }
+
 func charProcStreams(font *core.PdfObjectDictionary) []*core.PdfObjectStream {
 	procs, ok := core.GetDict(core.TraceToDirectObject(font.Get("CharProcs")))
 	if !ok {
@@ -2273,18 +2339,21 @@ func (u *fontUsage) walkContent(data []byte, scope resourceScope, depth int) {
 	}
 	u.walkOps(ops, scope, depth)
 }
+
 func (g *tableGrid) at(r, c int) *core.PdfObjectDictionary {
 	if r < 0 || c < 0 || r >= g.rows || c >= g.cols {
 		return nil
 	}
 	return g.cells[r*g.cols+c]
 }
+
 func checkMetadataPresent(xmp catalogXMP, rules ruleNos) ViolatedRule {
 	if xmp.present {
 		return noViolation
 	}
 	return newViolation(rules.metadataStream, "the document catalog shall contain a Metadata entry holding a metadata stream with Type /Metadata and Subtype /XML")
 }
+
 func checkHeadings(r *model.CompliancePdfReader) []ViolatedRule {
 	root, ok := structTreeRootOf(r)
 	if !ok {
@@ -2324,6 +2393,7 @@ func checkHeadings(r *model.CompliancePdfReader) []ViolatedRule {
 	})
 	return violations
 }
+
 func setDefaultLanguage(doc *docutil.Document, lang string) {
 	if lang == "" {
 		return
@@ -2337,9 +2407,11 @@ func setDefaultLanguage(doc *docutil.Document, lang string) {
 		catDict.Set("Lang", core.MakeString(lang))
 	}
 }
+
 func (w *contentWalker) usageDetermined() bool {
 	return w.fonts != nil && w.fonts.determined && !w.truncated
 }
+
 func (w *contentWalker) walk(ops *contentstream.ContentStreamOperations, res *model.PdfPageResources, stack []mcFrame, depth int) {
 	for _, op := range *ops {
 		if w.done() {
@@ -2387,6 +2459,7 @@ func (w *contentWalker) walk(ops *contentstream.ContentStreamOperations, res *mo
 		}
 	}
 }
+
 func headerIDs(elem, classMap *core.PdfObjectDictionary) []string {
 	obj := lookupAttr(elem, classMap, "Headers", "Table", func(v core.PdfObject) bool { _, ok := core.GetArray(v); return ok })
 	arr, ok := core.GetArray(obj)
@@ -2414,6 +2487,7 @@ func mapRole(roleMap *core.PdfObjectDictionary, typ string) (string, bool) {
 	}
 	return string(*name), true
 }
+
 func appearanceStreams(annot *core.PdfObjectDictionary) []*core.PdfObjectStream {
 	ap, ok := core.GetDict(core.TraceToDirectObject(annot.Get("AP")))
 	if !ok {
@@ -2425,6 +2499,7 @@ func appearanceStreams(annot *core.PdfObjectDictionary) []*core.PdfObjectStream 
 	}
 	return streams
 }
+
 func (u *fontUsage) walkCharProcs(font *core.PdfObjectDictionary, scope resourceScope, depth int) {
 	if subtype, ok := core.GetName(font.Get("Subtype")); !ok || string(*subtype) != "Type3" {
 		return
@@ -2501,6 +2576,7 @@ func findHeaderCells(grid *tableGrid, classMap *core.PdfObjectDictionary, resolv
 	}
 	return false, true
 }
+
 func undefinedIDs(ids []string, defined map[string]struct{}) []string {
 	var missing []string
 	for _, id := range ids {
@@ -2524,12 +2600,14 @@ type suspectFont struct {
 func (s standardType) String() string {
 	return fmt.Sprintf("PDF/UA-%d", s.part)
 }
+
 func streamData(stream *core.PdfObjectStream) []byte {
 	if data, err := core.DecodeStream(stream); err == nil {
 		return data
 	}
 	return stream.Stream
 }
+
 func annotPageMap(r *model.CompliancePdfReader) map[int64]*model.PdfPage {
 	pages := map[int64]*model.PdfPage{}
 	numPages, err := r.GetNumPages()
@@ -2553,6 +2631,7 @@ func annotPageMap(r *model.CompliancePdfReader) map[int64]*model.PdfPage {
 	}
 	return pages
 }
+
 func resolveStandardType(elem, roleMap *core.PdfObjectDictionary) string {
 	name, ok := core.GetName(elem.Get("S"))
 	if !ok {
@@ -2581,7 +2660,6 @@ func resolveStandardType(elem, roleMap *core.PdfObjectDictionary) string {
 
 // Profile2Options are the options for the PDF/UA-2 profile.
 type Profile2Options struct {
-
 	// DefaultLanguage is set as the catalog Lang entry by ApplyStandard when
 	// the document defines none. Ignored when empty.
 	DefaultLanguage string
@@ -2599,6 +2677,7 @@ type standardType struct {
 
 // Part gets the PDF/UA part.
 func (p *Profile1) Part() int { return p.std.part }
+
 func lookupAttr(elem, classMap *core.PdfObjectDictionary, key core.PdfObjectName, owner string, accept func(core.PdfObject) bool) core.PdfObject {
 	if val := findAttr(elem.Get("A"), key, owner, accept); val != nil {
 		return val
@@ -2623,6 +2702,7 @@ func lookupAttr(elem, classMap *core.PdfObjectDictionary, key core.PdfObjectName
 	}
 	return nil
 }
+
 func containsLinkOBJR(elem *core.PdfObjectDictionary) bool {
 	isLinkOBJR := func(obj core.PdfObject) bool {
 		d, ok := core.GetDict(core.TraceToDirectObject(obj))
@@ -2651,6 +2731,7 @@ func containsLinkOBJR(elem *core.PdfObjectDictionary) bool {
 	}
 	return isLinkOBJR(kids)
 }
+
 func propertyDict(obj core.PdfObject, res *model.PdfPageResources) *core.PdfObjectDictionary {
 	obj = core.TraceToDirectObject(obj)
 	if d, ok := obj.(*core.PdfObjectDictionary); ok {
@@ -2667,6 +2748,7 @@ func propertyDict(obj core.PdfObject, res *model.PdfPageResources) *core.PdfObje
 	}
 	return nil
 }
+
 func widgetHiddenOrNoView(w *model.PdfAnnotationWidget) bool {
 	d, ok := core.GetDict(w.GetContainingPdfObject())
 	if !ok {
@@ -2735,12 +2817,14 @@ func structChildren(kids core.PdfObject, resolve structTypeFunc) []*core.PdfObje
 	walkKids(kids, 0)
 	return result
 }
+
 func (s resourceScope) with(res *model.PdfPageResources) resourceScope {
 	if res == nil {
 		return s
 	}
 	return resourceScope{local: res, page: s.page}
 }
+
 func checkXFA(r *model.CompliancePdfReader) []ViolatedRule {
 	if r.AcroForm == nil || r.AcroForm.XFA == nil {
 		return nil

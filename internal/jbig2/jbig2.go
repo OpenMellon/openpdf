@@ -4,12 +4,13 @@
 package jbig2
 
 import (
+	"sort"
+
 	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"github.com/OpenMellon/openpdf/internal/jbig2/decoder"
 	"github.com/OpenMellon/openpdf/internal/jbig2/document"
 	"github.com/OpenMellon/openpdf/internal/jbig2/document/segments"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
-	"sort"
 )
 
 func DecodeGlobals(encoded []byte) (Globals, error) {
@@ -28,6 +29,7 @@ func DecodeGlobals(encoded []byte) (Globals, error) {
 	}
 	return globals, nil
 }
+
 func (g Globals) ToDocumentGlobals() *document.Globals {
 	if g == nil {
 		return nil

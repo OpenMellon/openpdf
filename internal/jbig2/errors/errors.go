@@ -5,6 +5,7 @@ package errors
 
 import (
 	"fmt"
+
 	"golang.org/x/xerrors"
 )
 
@@ -16,6 +17,7 @@ func Wrap(err error, processName, message string) error {
 	wrapped.cause = err
 	return wrapped
 }
+
 func (e *processError) Error() string {
 	var text string
 	if e.prefix != "" {
@@ -49,6 +51,7 @@ var _ xerrors.Wrapper = (*processError)(nil)
 func Errorf(processName, message string, arguments ...interface{}) error {
 	return newProcessError(fmt.Sprintf(message, arguments...), processName)
 }
+
 func Wrapf(err error, processName, message string, arguments ...interface{}) error {
 	if inner, ok := err.(*processError); ok {
 		inner.prefix = ""

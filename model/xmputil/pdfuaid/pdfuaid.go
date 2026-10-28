@@ -5,12 +5,14 @@ package pdfuaid
 
 import (
 	"fmt"
+
 	"github.com/OpenMellon/go-xmp/xmp"
 	"github.com/OpenMellon/openpdf/model/xmputil/pdfaextension"
 )
 
 // NewModel creates a new model.
 func NewModel(name string) xmp.Model { return &Model{} }
+
 func init() {
 	xmp.Register(Namespace, xmp.XmpMetadata)
 	pdfaextension.RegisterSchema(Namespace, &Schema)

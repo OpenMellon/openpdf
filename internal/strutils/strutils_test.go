@@ -2,8 +2,9 @@ package strutils_test
 
 import (
 	"bytes"
-	"github.com/OpenMellon/openpdf/internal/strutils"
 	"testing"
+
+	"github.com/OpenMellon/openpdf/internal/strutils"
 )
 
 func TestUTF16RoundTrip(t *testing.T) {

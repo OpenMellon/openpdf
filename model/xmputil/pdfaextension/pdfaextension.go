@@ -5,19 +5,21 @@ package pdfaextension
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
+	"strings"
+	"sync"
+
 	"github.com/OpenMellon/go-xmp/models/dc"
 	"github.com/OpenMellon/go-xmp/models/pdf"
 	xmpbase "github.com/OpenMellon/go-xmp/models/xmp_base"
 	xmpmm "github.com/OpenMellon/go-xmp/models/xmp_mm"
 	"github.com/OpenMellon/go-xmp/xmp"
-	"reflect"
-	"sort"
-	"strings"
-	"sync"
 )
 
 // Namespaces implements xmp.Model interface.
 func (mdl *Model) Namespaces() xmp.NamespaceList { return xmp.NamespaceList{Namespace} }
+
 func init() {
 	xmp.Register(Namespace, xmp.XmpMetadata)
 	xmp.Register(SchemaNS)
@@ -216,7 +218,6 @@ var PdfSchema = Schema{NamespaceURI: "http://ns.adobe.com/pdf/1.3/", Prefix: "pd
 
 // Schema is the pdfa extension schema.
 type Schema struct {
-
 	// NamespaceURI is schema namespace URI.
 	NamespaceURI string `xmp:"pdfaSchema:namespaceURI"`
 
@@ -338,7 +339,6 @@ var XmpMediaManagementSchema = Schema{NamespaceURI: "http://ns.adobe.com/xap/1.0
 
 // Property is a schema that describes single property.
 type Property struct {
-
 	// Category is the property category.
 	Category PropertyCategory `xmp:"pdfaProperty:category"`
 

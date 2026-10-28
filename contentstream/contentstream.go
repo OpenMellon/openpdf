@@ -20,17 +20,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/imageutil"
-	"github.com/OpenMellon/openpdf/internal/transform"
-	"github.com/OpenMellon/openpdf/model"
 	"image/color"
 	"image/jpeg"
 	"io"
 	"math"
 	"regexp"
 	"strconv"
+
+	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/internal/imageutil"
+	"github.com/OpenMellon/openpdf/internal/transform"
+	"github.com/OpenMellon/openpdf/model"
 )
 
 // Add_re appends 're' operand to the content stream:
@@ -56,6 +57,7 @@ func (cc *ContentCreator) Add_M(miterlimit float64) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (p *ContentStreamParser) parseBool() (core.PdfObjectBool, error) {
 	buf, err := p.reader.Peek(4)
 	if err != nil {
@@ -79,6 +81,7 @@ func (p *ContentStreamParser) parseBool() (core.PdfObjectBool, error) {
 // Bytes converts the content stream operations to a content stream byte presentation, i.e. the kind that can be
 // stored as a PDF stream or string format.
 func (cc *ContentCreator) Bytes() []byte { return cc.operations.Bytes() }
+
 func (p *ContentStreamParser) parseObject() (obj core.PdfObject, ok bool, err error) {
 	p.skipSpaces()
 	for {
@@ -194,6 +197,7 @@ func (cc *ContentCreator) Add_Tz(scale float64) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (p *ContentStreamParser) parseString() (*core.PdfObjectString, error) {
 	p.reader.ReadByte()
 	var buf []byte
@@ -318,6 +322,7 @@ func (cc *ContentCreator) Add_Tw(wordSpace float64) *ContentCreator {
 func (img *ContentStreamInlineImage) GetEncoder() (core.StreamEncoder, error) {
 	return newEncoderFromInlineImage(img)
 }
+
 func newDCTEncoderFromInlineImage(img *ContentStreamInlineImage) (*core.DCTEncoder, error) {
 	v := core.NewDCTEncoder()
 	v2 := bytes.NewReader(img.data)
@@ -498,6 +503,7 @@ func (img *ContentStreamInlineImage) ToImage(resources *model.PdfPageResources) 
 	}
 	return v3, nil
 }
+
 func (p *ContentStreamParser) parseOperand() (*core.PdfObjectString, error) {
 	var buf []byte
 	for {
@@ -533,6 +539,7 @@ func (cc *ContentCreator) AddOperand(op ContentStreamOperation) *ContentCreator 
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (proc *ContentStreamProcessor) handleCommand_cm(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	if len(op.Params) != 6 {
 		common.Log.Debug("ERROR: Invalid number of parameters for cm: %d", len(op.Params))
@@ -546,6 +553,7 @@ func (proc *ContentStreamProcessor) handleCommand_cm(op *ContentStreamOperation,
 	proc.graphicsState.CTM.Concat(v)
 	return nil
 }
+
 func (ops *ContentStreamOperations) isWrapped() bool {
 	if len(*ops) < 2 {
 		return false
@@ -602,6 +610,7 @@ func (img *ContentStreamInlineImage) IsMask() (bool, error) {
 	}
 	return false, nil
 }
+
 func newMultiEncoderFromInlineImage(img *ContentStreamInlineImage) (*core.MultiEncoder, error) {
 	v := core.NewMultiEncoder()
 	var dict *core.PdfObjectDictionary
@@ -688,6 +697,7 @@ func (cc *ContentCreator) Add_K(c, m, y, k float64) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func autoConvertRGBToGray(objs []core.PdfObject) (core.PdfObject, error) {
 	common.Log.Debug("Auto convert color to grayscale, you can turn off this by setting RelaxedMode to false")
 	if len(objs) != 3 {
@@ -716,6 +726,7 @@ func (cc *ContentCreator) Add_quote(textstr core.PdfObjectString) *ContentCreato
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (proc *ContentStreamProcessor) getColorspace(s string, resources *model.PdfPageResources) (model.PdfColorspace, error) {
 	switch s {
 	case "DeviceGray":
@@ -793,6 +804,7 @@ func (cc *ContentCreator) Add_W() *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (p *ContentStreamParser) parseNumber() (core.PdfObject, error) {
 	return core.ParseNumber(p.reader)
 }
@@ -834,6 +846,7 @@ func (cc *ContentCreator) Add_k(c, m, y, k float64) *ContentCreator {
 
 // Direct returns the object itself; an inline image is always a direct object.
 func (img *ContentStreamInlineImage) Direct() core.PdfObject { return img }
+
 func (proc *ContentStreamProcessor) handleCommand_g(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	v := model.NewPdfColorspaceDeviceGray()
 	objs := op.Params
@@ -859,6 +872,7 @@ func (proc *ContentStreamProcessor) handleCommand_g(op *ContentStreamOperation, 
 	proc.graphicsState.ColorNonStroking = col
 	return nil
 }
+
 func (proc *ContentStreamProcessor) handleCommand_scn(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	cs := proc.graphicsState.ColorspaceNonStroking
 	objs := op.Params
@@ -897,6 +911,7 @@ func (cc *ContentCreator) Add_CS(name core.PdfObjectName) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (p *ContentStreamParser) parseNull() (core.PdfObjectNull, error) {
 	_, err := p.reader.Discard(4)
 	return core.PdfObjectNull{}, err
@@ -969,6 +984,7 @@ func (cc *ContentCreator) Add_w(lineWidth float64) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (proc *ContentStreamProcessor) handleCommand_cs(op *ContentStreamOperation, resources *model.PdfPageResources) error {
 	if len(op.Params) < 1 {
 		common.Log.Debug("Invalid CS command, skipping over")
@@ -1093,6 +1109,7 @@ func (cc *ContentCreator) Add_B() *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (p *ContentStreamParser) parseArray() (*core.PdfObjectArray, error) {
 	arr := core.MakeArray()
 	p.reader.ReadByte()
@@ -1114,6 +1131,7 @@ func (p *ContentStreamParser) parseArray() (*core.PdfObjectArray, error) {
 	}
 	return arr, nil
 }
+
 func (p *ContentStreamParser) parseHexString() (*core.PdfObjectString, error) {
 	p.reader.ReadByte()
 	buf := []byte("0123456789abcdefABCDEF")
@@ -1212,6 +1230,7 @@ func (cc *ContentCreator) Add_S() *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func newEncoderFromInlineImage(img *ContentStreamInlineImage) (core.StreamEncoder, error) {
 	if img.Filter == nil {
 		return core.NewRawEncoder(), nil
@@ -1390,6 +1409,7 @@ func (cc *ContentCreator) Add_ri(intent core.PdfObjectName) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (p *ContentStreamParser) skipComments() error {
 	if _, err := p.skipSpaces(); err != nil {
 		return err
@@ -1512,6 +1532,7 @@ func (proc *ContentStreamProcessor) Process(resources *model.PdfPageResources) e
 
 // Operand returns true if `hce` is equivalent to HandlerConditionEnumOperand.
 func (v HandlerConditionEnum) Operand() bool { return v == HandlerConditionEnumOperand }
+
 func (p *ContentStreamParser) skipSpaces() (int, error) {
 	n := 0
 	for {
@@ -1613,10 +1634,12 @@ func (cc *ContentCreator) Add_BMC(tag core.PdfObjectName) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func isPatternColorspace(cs model.PdfColorspace) bool {
 	_, ok := cs.(*model.PdfColorspaceSpecialPattern)
 	return ok
 }
+
 func (proc *ContentStreamProcessor) handleCommand_rg(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	v := model.NewPdfColorspaceDeviceRGB()
 	objs := op.Params
@@ -1653,6 +1676,7 @@ func (cc *ContentCreator) Add_RG(r, g, b float64) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func integersToObjects(v []int64) []core.PdfObject {
 	var objs []core.PdfObject
 	for _, n := range v {
@@ -1660,6 +1684,7 @@ func integersToObjects(v []int64) []core.PdfObject {
 	}
 	return objs
 }
+
 func (p *ContentStreamParser) parseDict() (*core.PdfObjectDictionary, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Reading content stream dict!")
@@ -1769,6 +1794,7 @@ func (cc *ContentCreator) Add_g(gray float64) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (p *ContentStreamParser) parseName() (core.PdfObjectName, error) {
 	s := ""
 	ok := false
@@ -1820,6 +1846,7 @@ func (cc *ContentCreator) Wrap() { cc.operations.WrapIfNeeded() }
 func (gs *GraphicsState) Transform(x, y float64) (float64, float64) {
 	return gs.CTM.Transform(x, y)
 }
+
 func (proc *ContentStreamProcessor) handleCommand_SC(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	cs := proc.graphicsState.ColorspaceStroking
 	objs := op.Params
@@ -1890,6 +1917,7 @@ func (cc *ContentCreator) Add_i(flatness float64) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (img *ContentStreamInlineImage) String() string {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("InlineImage(len=%d)\n", len(img.data)))
@@ -2001,6 +2029,7 @@ func floatsToObjects(floats []float64) []core.PdfObject {
 	}
 	return objs
 }
+
 func (proc *ContentStreamProcessor) handleCommand_CS(op *ContentStreamOperation, resources *model.PdfPageResources) error {
 	if len(op.Params) < 1 {
 		common.Log.Debug("Invalid cs command, skipping over")
@@ -2038,6 +2067,7 @@ func (cc *ContentCreator) Add_f_starred() *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (proc *ContentStreamProcessor) handleCommand_G(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	v := model.NewPdfColorspaceDeviceGray()
 	objs := op.Params
@@ -2062,6 +2092,7 @@ func (proc *ContentStreamProcessor) handleCommand_G(op *ContentStreamOperation, 
 	proc.graphicsState.ColorStroking = col
 	return nil
 }
+
 func newIndexedColorspaceFromArray(obj core.PdfObject) (model.PdfColorspace, error) {
 	arr, ok := obj.(*core.PdfObjectArray)
 	if !ok {
@@ -2254,6 +2285,7 @@ func (cc *ContentCreator) Add_TL(leading float64) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (proc *ContentStreamProcessor) handleCommand_k(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	v := model.NewPdfColorspaceDeviceCMYK()
 	if len(op.Params) != v.GetNumComponents() {
@@ -2269,6 +2301,7 @@ func (proc *ContentStreamProcessor) handleCommand_k(op *ContentStreamOperation, 
 	proc.graphicsState.ColorNonStroking = col
 	return nil
 }
+
 func (proc *ContentStreamProcessor) handleCommand_RG(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	v := model.NewPdfColorspaceDeviceRGB()
 	objs := op.Params
@@ -2293,6 +2326,7 @@ func (proc *ContentStreamProcessor) handleCommand_RG(op *ContentStreamOperation,
 	proc.graphicsState.ColorStroking = col
 	return nil
 }
+
 func (img *ContentStreamInlineImage) toImageBase(resources *model.PdfPageResources) (*imageutil.ImageBase, error) {
 	if img.imageBase != nil {
 		return img.imageBase, nil
@@ -2377,6 +2411,7 @@ func NewContentStreamProcessor(ops []*ContentStreamOperation) *ContentStreamProc
 func (proc *ContentStreamProcessor) SetInitialGraphicsState(gs GraphicsState) {
 	proc.initialGraphicsState = &gs
 }
+
 func newLZWEncoderFromInlineImage(img *ContentStreamInlineImage, dict *core.PdfObjectDictionary) (*core.LZWEncoder, error) {
 	v := core.NewLZWEncoder()
 	if dict == nil {
@@ -2497,6 +2532,7 @@ func (cc *ContentCreator) Add_scn_pattern(name core.PdfObjectName, c ...float64)
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func (proc *ContentStreamProcessor) handleCommand_sc(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	cs := proc.graphicsState.ColorspaceNonStroking
 	objs := op.Params
@@ -2577,6 +2613,7 @@ func (cc *ContentCreator) Add_j(lineJoinStyle string) *ContentCreator {
 	cc.operations = append(cc.operations, &op)
 	return cc
 }
+
 func newFlateEncoderFromInlineImage(img *ContentStreamInlineImage, dict *core.PdfObjectDictionary) (*core.FlateEncoder, error) {
 	v := core.NewFlateEncoder()
 	if img.imageBase != nil {
@@ -2641,6 +2678,7 @@ func newFlateEncoderFromInlineImage(img *ContentStreamInlineImage, dict *core.Pd
 	}
 	return v, nil
 }
+
 func (proc *ContentStreamProcessor) handleCommand_SCN(op *ContentStreamOperation, _ *model.PdfPageResources) error {
 	cs := proc.graphicsState.ColorspaceStroking
 	objs := op.Params
@@ -2901,6 +2939,7 @@ var knownOperands = map[string]struct{}{"b": {}, "B": {}, "b*": {}, "B*": {}, "B
 
 // All returns true if `hce` is equivalent to HandlerConditionEnumAllOperands.
 func (v HandlerConditionEnum) All() bool { return v == HandlerConditionEnumAllOperands }
+
 func namesToObjects(v []core.PdfObjectName) []core.PdfObject {
 	var objs []core.PdfObject
 	for _, name := range v {

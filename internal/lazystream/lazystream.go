@@ -3,5 +3,7 @@
 
 package lazystream
 
-var Take func(owner, key any) (data []byte, ok bool)
-var Drop func(owner any)
+var (
+	Take func(owner, key any) (data []byte, ok bool)
+	Drop func(owner any)
+)

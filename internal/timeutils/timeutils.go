@@ -18,6 +18,7 @@ func parsePart(text string, fallback int64) int64 {
 	value, _ := strconv.ParseInt(text, 10, 32)
 	return value
 }
+
 func ParsePdfTime(pdfTime string) (time.Time, error) {
 	matches := pdfDatePattern.FindAllStringSubmatch(pdfTime, 1)
 	if len(matches) < 1 {

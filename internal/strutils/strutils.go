@@ -5,8 +5,9 @@ package strutils
 
 import (
 	"bytes"
-	"github.com/OpenMellon/openpdf/common"
 	"unicode/utf16"
+
+	"github.com/OpenMellon/openpdf/common"
 )
 
 func PDFDocEncodingToString(b []byte) string { return string(PDFDocEncodingToRunes(b)) }
@@ -16,6 +17,7 @@ func init() {
 		runeToPDFDoc[r] = code
 	}
 }
+
 func UTF16ToRunes(b []byte) []rune {
 	if len(b) == 1 {
 		return []rune{rune(b[0])}
@@ -32,6 +34,7 @@ func UTF16ToRunes(b []byte) []rune {
 	runes := utf16.Decode(units)
 	return runes
 }
+
 func StringToUTF16(s string) string {
 	units := utf16.Encode([]rune(s))
 	var buffer bytes.Buffer
@@ -56,6 +59,7 @@ func PDFDocEncodingToRunes(b []byte) []rune {
 	}
 	return runes
 }
+
 func StringToPDFDocEncoding(s string) []byte {
 	var buffer bytes.Buffer
 	for _, r := range s {

@@ -1,11 +1,12 @@
 package sampling_test
 
 import (
-	"github.com/OpenMellon/openpdf/internal/imageutil"
-	"github.com/OpenMellon/openpdf/internal/sampling"
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/OpenMellon/openpdf/internal/imageutil"
+	"github.com/OpenMellon/openpdf/internal/sampling"
 )
 
 func TestResampleWidths(t *testing.T) {

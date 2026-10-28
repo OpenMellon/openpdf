@@ -7,6 +7,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"image"
+	"io"
+	"math"
+	"strings"
+	"time"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/bitwise"
 	"github.com/OpenMellon/openpdf/internal/jbig2/basic"
@@ -17,11 +23,6 @@ import (
 	arithmeticencoder "github.com/OpenMellon/openpdf/internal/jbig2/encoder/arithmetic"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
 	jbig2internal "github.com/OpenMellon/openpdf/internal/jbig2/internal"
-	"image"
-	"io"
-	"math"
-	"strings"
-	"time"
 )
 
 type Regioner interface {
@@ -40,6 +41,7 @@ func (tr *TextRegion) createRegionBitmap() error {
 	}
 	return nil
 }
+
 func (h *Header) String() string {
 	builder := &strings.Builder{}
 	builder.WriteString("\n[SEGMENT-HEADER]\n")
@@ -57,6 +59,7 @@ func (h *Header) String() string {
 	fmt.Fprintf(builder, "\t- SegmentDataStartOffset: %v\n", h.SegmentDataStartOffset)
 	return builder.String()
 }
+
 func (pis *PageInformationSegment) readContainsRefinement() error {
 	bit, err := pis.reader.ReadBit()
 	if err != nil {
@@ -67,6 +70,7 @@ func (pis *PageInformationSegment) readContainsRefinement() error {
 	}
 	return nil
 }
+
 func (gr *GenericRegion) getPixel(x, y int) int8 {
 	if x < 0 || x >= gr.Bitmap.Width {
 		return 0
@@ -79,6 +83,7 @@ func (gr *GenericRegion) getPixel(x, y int) int8 {
 	}
 	return 0
 }
+
 func (sd *SymbolDictionary) huffDecodeBmSize() (int64, error) {
 	if sd.huffBMSize == nil {
 		var (
@@ -109,6 +114,7 @@ func (h *Header) writeSegmentDataLength(bw bitwise.BinaryWriter) (n int, err err
 	}
 	return n, nil
 }
+
 func (pis *PageInformationSegment) encodeFlags(bw bitwise.BinaryWriter) (err error) {
 	const processName = "encodeFlags"
 	if err = bw.SkipBits(1); err != nil {
@@ -166,6 +172,7 @@ func (gr *GenericRegion) computeSegmentDataStructure() error {
 	gr.DataLength = int64(gr.reader.AbsoluteLength()) - gr.DataHeaderLength
 	return nil
 }
+
 func (gr *GenericRegion) GetRegionBitmap() (bm *bitmap.Bitmap, err error) {
 	if gr.Bitmap != nil {
 		return gr.Bitmap, nil
@@ -221,6 +228,7 @@ func (gr *GenericRegion) GetRegionBitmap() (bm *bitmap.Bitmap, err error) {
 	}
 	return gr.Bitmap, nil
 }
+
 func (hr *HalftoneRegion) GetPatterns() ([]*bitmap.Bitmap, error) {
 	var (
 		bms []*bitmap.Bitmap
@@ -248,6 +256,7 @@ func (hr *HalftoneRegion) GetPatterns() ([]*bitmap.Bitmap, error) {
 	}
 	return bms, nil
 }
+
 func (h *Header) readHeaderFlags() error {
 	const processName = "readHeaderFlags"
 	bit, err := h.Reader.ReadBit()
@@ -271,6 +280,7 @@ func (h *Header) readHeaderFlags() error {
 	h.Type = Type(int(segmentType))
 	return nil
 }
+
 func (pis *PageInformationSegment) checkInput() error {
 	if pis.PageBMHeight == math.MaxInt32 {
 		if !pis.IsStripe {
@@ -279,6 +289,7 @@ func (pis *PageInformationSegment) checkInput() error {
 	}
 	return nil
 }
+
 func (tr *TextRegion) encodeSymbols(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "encodeSymbols"
 	buf := make([]byte, 4)
@@ -350,6 +361,7 @@ func (tr *TextRegion) encodeSymbols(bw bitwise.BinaryWriter) (n int, err error) 
 	n += int(writeTo)
 	return n, nil
 }
+
 func (hr *HalftoneRegion) computeX(m, n int) int {
 	return hr.shiftAndFill(int(hr.HGridX) + m*int(hr.HRegionY) + n*int(hr.HRegionX))
 }
@@ -364,6 +376,7 @@ func (h *Header) readSegmentNumber(r *bitwise.Reader) error {
 	h.SegmentNumber = binary.BigEndian.Uint32(buf)
 	return nil
 }
+
 func (tr *TextRegion) readHuffmanFlags() error {
 	var (
 		bit  int
@@ -416,6 +429,7 @@ func (tr *TextRegion) readHuffmanFlags() error {
 	tr.SbHuffFS = int8(bits) & 0xf
 	return nil
 }
+
 func (grr *GenericRefinementRegion) String() string {
 	builder := &strings.Builder{}
 	builder.WriteString("\n[GENERIC REGION]\n")
@@ -457,6 +471,7 @@ func (grr *GenericRefinementRegion) Init(header *Header, r *bitwise.Reader) erro
 	grr.RegionInfo = NewRegionSegment(r)
 	return grr.parseHeader()
 }
+
 func (pis *PageInformationSegment) String() string {
 	builder := &strings.Builder{}
 	builder.WriteString("\n[PAGE-INFORMATION-SEGMENT]\n")
@@ -473,6 +488,7 @@ func (pis *PageInformationSegment) String() string {
 	fmt.Fprintf(builder, "\t- MaxStripeSize: %v\n", pis.MaxStripeSize)
 	return builder.String()
 }
+
 func (gr *GenericRegion) String() string {
 	builder := &strings.Builder{}
 	builder.WriteString("\n[GENERIC REGION]\n")
@@ -546,6 +562,7 @@ func (gr *GenericRegion) decodeTemplate3(lineNumber, width, paddedWidth int, byt
 	}
 	return nil
 }
+
 func (gr *GenericRegion) decodeTemplate2(lineNumber, width, paddedWidth int, byteIndex, prevByteIndex int) (err error) {
 	const processName = "decodeTemplate2"
 	var (
@@ -623,6 +640,7 @@ func (gr *GenericRegion) decodeTemplate2(lineNumber, width, paddedWidth int, byt
 	}
 	return nil
 }
+
 func (tr *TextRegion) decodeDfs() (int64, error) {
 	if tr.IsHuffmanEncoded {
 		if tr.SbHuffFS == 3 {
@@ -647,6 +665,7 @@ func (tr *TextRegion) decodeDfs() (int64, error) {
 	}
 	return int64(dfs), nil
 }
+
 func (hr *HalftoneRegion) GetRegionBitmap() (*bitmap.Bitmap, error) {
 	if hr.HalftoneRegionBitmap != nil {
 		return hr.HalftoneRegionBitmap, nil
@@ -677,6 +696,7 @@ func (hr *HalftoneRegion) GetRegionBitmap() (*bitmap.Bitmap, error) {
 	}
 	return hr.HalftoneRegionBitmap, nil
 }
+
 func (tr *TextRegion) decodeStripT() (t int64, err error) {
 	if tr.IsHuffmanEncoded {
 		if tr.SbHuffDT == 3 {
@@ -719,6 +739,7 @@ func (tr *TextRegion) decodeStripT() (t int64, err error) {
 	t *= int64(-tr.SbStrips)
 	return t, nil
 }
+
 func (h *Header) readNumberOfReferredToSegments(r *bitwise.Reader) (uint64, error) {
 	const processName = "readNumberOfReferredToSegments"
 	count, err := r.ReadBits(3)
@@ -788,6 +809,7 @@ func (h *Header) referenceSize() uint {
 		return 4
 	}
 }
+
 func (pis *PageInformationSegment) encodeStripingInformation(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "encodeStripingInformation"
 	if !pis.IsStripe {
@@ -803,6 +825,7 @@ func (pis *PageInformationSegment) encodeStripingInformation(bw bitwise.BinaryWr
 	}
 	return n, nil
 }
+
 func (gr *GenericRegion) setParameters(isMMREncoded bool, dataOffset, dataLength int64, bitmapHeight, bitmapWidth uint32) {
 	gr.IsMMREncoded = isMMREncoded
 	gr.DataOffset = dataOffset
@@ -812,6 +835,7 @@ func (gr *GenericRegion) setParameters(isMMREncoded bool, dataOffset, dataLength
 	gr.mmrDecoder = nil
 	gr.Bitmap = nil
 }
+
 func (sd *SymbolDictionary) decodeThroughTextRegion(width, height, numInstances uint32) error {
 	if sd.textRegion == nil {
 		sd.textRegion = newTextRegion(sd.reader, nil)
@@ -823,6 +847,7 @@ func (sd *SymbolDictionary) decodeThroughTextRegion(width, height, numInstances 
 	sd.textRegion.setParameters(sd.arithDecoder, sd.IsHuffmanEncoded, true, width, height, numInstances, 1, sd.numberOfImportedSymbols+sd.numberOfDecodedSymbols, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, sd.SdrTemplate, sd.SdrATX, sd.SdrATY, sd.allSymbols, sd.symbolCodeLength)
 	return sd.addSymbol(sd.textRegion)
 }
+
 func (hr *HalftoneRegion) Init(hd *Header, r *bitwise.Reader) error {
 	hr.reader = r
 	hr.header = hd
@@ -835,6 +860,7 @@ type Type int
 func (pis *PageInformationSegment) CombinationOperatorOverrideAllowed() bool {
 	return pis.combinationOperatorOverride
 }
+
 func (hr *HalftoneRegion) renderPattern(grayScale [][]int) (err error) {
 	var x, y int
 	for i := 0; i < int(hr.HGridHeight); i++ {
@@ -849,12 +875,14 @@ func (hr *HalftoneRegion) renderPattern(grayScale [][]int) (err error) {
 	}
 	return nil
 }
+
 func (tr *TextRegion) getSymbols() error {
 	if tr.Header.RTSegments != nil {
 		return tr.initSymbols()
 	}
 	return nil
 }
+
 func (gr *GenericRegion) overrideAtTemplate0a(context, x, y, result, bitIndex, shift int) int {
 	if gr.GBAtOverride[0] {
 		context &= 0xFFEF
@@ -890,6 +918,7 @@ func (gr *GenericRegion) overrideAtTemplate0a(context, x, y, result, bitIndex, s
 	}
 	return context
 }
+
 func (grr *GenericRefinementRegion) decodeTypicalPredictedLineTemplate1(lineNumber, width, rowStride, refRowStride, paddedWidth, refOffset, byteIndex, referenceDY, refByteIndex int) (err error) {
 	var (
 		context, typicalContext int
@@ -1053,6 +1082,7 @@ func (tr *TextRegion) decodeRdh() (int64, error) {
 	}
 	return int64(rdh), nil
 }
+
 func (tr *TextRegion) decodeIb(ri, id int64) (*bitmap.Bitmap, error) {
 	const processName = "decodeIb"
 	var (
@@ -1106,6 +1136,7 @@ func (tr *TextRegion) decodeIb(ri, id int64) (*bitmap.Bitmap, error) {
 	}
 	return bm, nil
 }
+
 func (sd *SymbolDictionary) setRetainedCodingContexts(src *SymbolDictionary) {
 	sd.arithDecoder = src.arithDecoder
 	sd.IsHuffmanEncoded = src.IsHuffmanEncoded
@@ -1118,6 +1149,7 @@ func (sd *SymbolDictionary) setRetainedCodingContexts(src *SymbolDictionary) {
 	sd.SdrATY = src.SdrATY
 	sd.cx = src.cx
 }
+
 func (gr *GenericRegion) decodeSLTP() (int, error) {
 	switch gr.GBTemplate {
 	case 0:
@@ -1131,6 +1163,7 @@ func (gr *GenericRegion) decodeSLTP() (int, error) {
 	}
 	return gr.arithDecoder.DecodeBit(gr.cx)
 }
+
 func highestBit(n int) int {
 	if n == 0 {
 		return 0
@@ -1142,10 +1175,12 @@ func highestBit(n int) int {
 	n |= n >> 16
 	return (n + 1) >> 1
 }
+
 func (grr *GenericRefinementRegion) decodeSLTP() (int, error) {
 	grr.Template.setIndex(grr.cx)
 	return grr.arithDecoder.DecodeBit(grr.cx)
 }
+
 func (pd *PatternDictionary) GetDictionary() ([]*bitmap.Bitmap, error) {
 	if pd.Patterns != nil {
 		return pd.Patterns, nil
@@ -1164,6 +1199,7 @@ func (pd *PatternDictionary) GetDictionary() ([]*bitmap.Bitmap, error) {
 	}
 	return pd.Patterns, nil
 }
+
 func (sd *SymbolDictionary) decodeHeightClassCollectiveBitmap(bmSize int64, height, width uint32) (*bitmap.Bitmap, error) {
 	if bmSize == 0 {
 		bm, err := bitmap.New(int(width), int(height))
@@ -1192,6 +1228,7 @@ func (sd *SymbolDictionary) decodeHeightClassCollectiveBitmap(bmSize int64, heig
 	}
 	return regionBitmap, nil
 }
+
 func (grr *GenericRefinementRegion) GetRegionBitmap() (*bitmap.Bitmap, error) {
 	var err error
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
@@ -1264,6 +1301,7 @@ func (grr *GenericRefinementRegion) GetRegionBitmap() (*bitmap.Bitmap, error) {
 	}
 	return grr.RegionBitmap, nil
 }
+
 func (pis *PageInformationSegment) readDefaultPixelValue() error {
 	bit, err := pis.reader.ReadBit()
 	if err != nil {
@@ -1272,6 +1310,7 @@ func (pis *PageInformationSegment) readDefaultPixelValue() error {
 	pis.DefaultPixelValue = uint8(bit & 0xf)
 	return nil
 }
+
 func (sd *SymbolDictionary) String() string {
 	builder := &strings.Builder{}
 	builder.WriteString("\n[SYMBOL-DICTIONARY]\n")
@@ -1323,6 +1362,7 @@ func (tr *TextRegion) InitEncode(globalSymbolsMap, localSymbolsMap map[int]int, 
 	tr.boxes = boxes
 	tr.symBits = symBits
 }
+
 func (gr *GenericRegion) writeGBAtPixels(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "writeGBAtPixels"
 	if gr.UseMMR {
@@ -1352,6 +1392,7 @@ func (gr *GenericRegion) writeGBAtPixels(bw bitwise.BinaryWriter) (n int, err er
 	}
 	return n, nil
 }
+
 func (gr *GenericRegion) setParametersMMR(isMMREncoded bool, dataOffset, dataLength int64, bitmapHeight, bitmapWidth uint32, gbTemplate byte, isTPGDon, useSkip bool, gbAtX, gbAtY []int8) {
 	gr.DataOffset = dataOffset
 	gr.DataLength = dataLength
@@ -1364,6 +1405,7 @@ func (gr *GenericRegion) setParametersMMR(isMMREncoded bool, dataOffset, dataLen
 	gr.GBAtX = gbAtX
 	gr.GBAtY = gbAtY
 }
+
 func (gr *GenericRegion) overrideAtTemplate2(context, x, y, result, bitIndex int) int {
 	context &= 0x3FB
 	if gr.GBAtY[0] == 0 && gr.GBAtX[0] >= -int8(bitIndex) {
@@ -1407,6 +1449,7 @@ func (hr *HalftoneRegion) computeGrayScalePlanes(bms []*bitmap.Bitmap, bitsPerVa
 	}
 	return grayScale, nil
 }
+
 func (gr *GenericRegion) updateOverrideFlags() error {
 	const processName = "updateOverrideFlags"
 	if gr.GBAtX == nil || gr.GBAtY == nil {
@@ -1484,6 +1527,7 @@ func (gr *GenericRegion) updateOverrideFlags() error {
 	}
 	return nil
 }
+
 func (t Type) String() string {
 	switch t {
 	case TSymbolDictionary:
@@ -1644,6 +1688,7 @@ func (sd *SymbolDictionary) GetDictionary() ([]*bitmap.Bitmap, error) {
 	}
 	return sd.exportedSymbols, nil
 }
+
 func (sd *SymbolDictionary) readNumberOfExportedSymbols() error {
 	count, err := sd.reader.ReadBits(32)
 	if err != nil {
@@ -1671,6 +1716,7 @@ func (gr *GenericRegion) copyLineAbove(lineNumber int) error {
 	}
 	return nil
 }
+
 func NewHeader(d Documenter, r *bitwise.Reader, offset int64, organizationType OrganizationType) (*Header, error) {
 	header := &Header{Reader: r}
 	if err := header.parse(d, r, offset, organizationType); err != nil {
@@ -1678,6 +1724,7 @@ func NewHeader(d Documenter, r *bitwise.Reader, offset int64, organizationType O
 	}
 	return header, nil
 }
+
 func (grr *GenericRefinementRegion) updateOverride() error {
 	if grr.GrAtX == nil || grr.GrAtY == nil {
 		return errors.New("AT pixels not set")
@@ -1719,6 +1766,7 @@ func (sd *SymbolDictionary) encodeRefinementATFlags(bw bitwise.BinaryWriter) (n 
 	}
 	return n, nil
 }
+
 func (gr *GenericRegion) setParametersWithAt(isMMREncoded bool, gbTemplate byte, isTPGDon, useSkip bool, gbAtX, gbAtY []int8, bitmapWidth, bitmapHeight uint32, cx *arithmeticdecoder.DecoderStats, arithDecoder *arithmeticdecoder.Decoder) {
 	gr.IsMMREncoded = isMMREncoded
 	gr.GBTemplate = gbTemplate
@@ -1739,6 +1787,7 @@ func (gr *GenericRegion) setParametersWithAt(isMMREncoded bool, gbTemplate byte,
 		common.Log.Trace("[GENERIC-REGION] setParameters SDAt: %s", gr)
 	}
 }
+
 func (sd *SymbolDictionary) setCodingStatistics() error {
 	if sd.cxIADT == nil {
 		sd.cxIADT = arithmeticdecoder.NewStats(512, 1)
@@ -1772,9 +1821,11 @@ func (sd *SymbolDictionary) setCodingStatistics() error {
 	}
 	return nil
 }
+
 func (h *Header) readHeaderLength(r *bitwise.Reader, startPos int64) {
 	h.HeaderLength = r.AbsolutePosition() - startPos
 }
+
 func (sd *SymbolDictionary) readNumberOfNewSymbols() error {
 	count, err := sd.reader.ReadBits(32)
 	if err != nil {
@@ -1783,6 +1834,7 @@ func (sd *SymbolDictionary) readNumberOfNewSymbols() error {
 	sd.NumberOfNewSymbols = uint32(count & math.MaxUint32)
 	return nil
 }
+
 func (gr *GenericRegion) overrideAtTemplate0b(context, x, y, result, bitIndex, shift int) int {
 	if gr.GBAtOverride[0] {
 		context &= 0xFFFD
@@ -1897,11 +1949,13 @@ func (pis *PageInformationSegment) readIsLossless() error {
 	}
 	return nil
 }
+
 func (h *Header) readDataStartOffset(r *bitwise.Reader, ot OrganizationType) {
 	if ot == OSequential {
 		h.SegmentDataStartOffset = uint64(r.AbsolutePosition())
 	}
 }
+
 func (tr *TextRegion) blit(bm *bitmap.Bitmap, curT int64) error {
 	if tr.IsTransposed == 0 && (tr.ReferenceCorner == 2 || tr.ReferenceCorner == 3) {
 		tr.currentS += int64(bm.Width - 1)
@@ -2011,6 +2065,7 @@ func (tr *TextRegion) checkInput() error {
 	}
 	return nil
 }
+
 func (pis *PageInformationSegment) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	const processName = "PageInformationSegment.Encode"
 	buf := make([]byte, 4)
@@ -2059,6 +2114,7 @@ func (sd *SymbolDictionary) setSymbolsArray() error {
 	}
 	return nil
 }
+
 func (h *Header) subInputReader() (*bitwise.Reader, error) {
 	segmentDataLength := int(h.SegmentDataLength)
 	if h.SegmentDataLength == math.MaxInt32 {
@@ -2066,6 +2122,7 @@ func (h *Header) subInputReader() (*bitwise.Reader, error) {
 	}
 	return h.Reader.NewPartialReader(int(h.SegmentDataStartOffset), segmentDataLength, false)
 }
+
 func (sd *SymbolDictionary) readRefinementAtPixels(count int) error {
 	sd.SdrATX = make([]int8, count)
 	sd.SdrATY = make([]int8, count)
@@ -2087,6 +2144,7 @@ func (sd *SymbolDictionary) readRefinementAtPixels(count int) error {
 	}
 	return nil
 }
+
 func (sd *SymbolDictionary) encodeSymbols(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "encodeSymbol"
 	e := arithmeticencoder.New()
@@ -2168,6 +2226,7 @@ func (tr *TextRegion) GetRegionBitmap() (*bitmap.Bitmap, error) {
 	}
 	return tr.RegionBitmap, nil
 }
+
 func (hr *HalftoneRegion) checkInput() error {
 	if hr.IsMMREncoded {
 		if hr.HTemplate != 0 {
@@ -2179,6 +2238,7 @@ func (hr *HalftoneRegion) checkInput() error {
 	}
 	return nil
 }
+
 func (sd *SymbolDictionary) setExportedSymbols(exportFlags []int) {
 	for i := uint32(0); i < sd.numberOfImportedSymbols+sd.NumberOfNewSymbols; i++ {
 		if exportFlags[i] == 1 {
@@ -2195,6 +2255,7 @@ func (sd *SymbolDictionary) setExportedSymbols(exportFlags []int) {
 		}
 	}
 }
+
 func (gr *GenericRegion) parseHeader() (err error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("[GENERIC-REGION] ParsingHeader...")
@@ -2266,11 +2327,13 @@ func (gr *GenericRegion) parseHeader() (err error) {
 	}
 	return nil
 }
+
 func (sd *SymbolDictionary) Init(h *Header, r *bitwise.Reader) error {
 	sd.Header = h
 	sd.reader = r
 	return sd.parseHeader()
 }
+
 func (tr *TextRegion) decodeCurrentT() (int64, error) {
 	if tr.SbStrips != 1 {
 		if tr.IsHuffmanEncoded {
@@ -2355,6 +2418,7 @@ func (sd *SymbolDictionary) setInSyms() error {
 	sd.importedSymbols = make([]*bitmap.Bitmap, 0)
 	return nil
 }
+
 func (tr *TextRegion) readUseRefinement() error {
 	if !tr.UseRefinement || tr.SbrTemplate != 0 {
 		return nil
@@ -2387,6 +2451,7 @@ func (tr *TextRegion) readUseRefinement() error {
 	tr.SbrATY[1] = int8(b)
 	return nil
 }
+
 func (sd *SymbolDictionary) decodeRefinedSymbol(symWidth, hcHeight uint32) error {
 	var (
 		symbolID int
@@ -2447,6 +2512,7 @@ func (sd *SymbolDictionary) decodeRefinedSymbol(symWidth, hcHeight uint32) error
 	}
 	return nil
 }
+
 func (tr *TextRegion) setParameters(arithDecoder *arithmeticdecoder.Decoder, isHuffmanEncoded, useRefinement bool, bitmapWidth, bitmapHeight uint32, numberOfSymbolInstances uint32, sbStrips int8, numberOfSymbols uint32, defaultPixel int8, combinationOperator bitmap.CombinationOperator, isTransposed int8, referenceCorner int16, sbDsOffset, sbHuffFS, sbHuffDS, sbHuffDT, sbHuffRDWidth, sbHuffRDHeight, sbHuffRDX, sbHuffRDY, sbHuffRSize, sbrTemplate int8, sbrATX, sbrATY []int8, symbols []*bitmap.Bitmap, symbolCodeLength int8) {
 	tr.arithDecoder = arithDecoder
 	tr.IsHuffmanEncoded = isHuffmanEncoded
@@ -2475,6 +2541,7 @@ func (tr *TextRegion) setParameters(arithDecoder *arithmeticdecoder.Decoder, isH
 	tr.Symbols = symbols
 	tr.symbolCodeLength = symbolCodeLength
 }
+
 func (h *Header) writeSegmentPageAssociation(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "writeSegmentPageAssociation"
 	if h.pageSize() != 4 {
@@ -2490,6 +2557,7 @@ func (h *Header) writeSegmentPageAssociation(bw bitwise.BinaryWriter) (n int, er
 	}
 	return n, nil
 }
+
 func (sd *SymbolDictionary) encodeNumSyms(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "encodeNumSyms"
 	buf := make([]byte, 4)
@@ -2504,6 +2572,7 @@ func (sd *SymbolDictionary) encodeNumSyms(bw bitwise.BinaryWriter) (n int, err e
 	}
 	return n + m, nil
 }
+
 func (hr *HalftoneRegion) parseHeader() error {
 	if err := hr.RegionSegment.parseHeader(); err != nil {
 		return err
@@ -2572,6 +2641,7 @@ func (hr *HalftoneRegion) parseHeader() error {
 	}
 	return hr.checkInput()
 }
+
 func (gr *GenericRegion) InitEncode(bm *bitmap.Bitmap, xLoc, yLoc, template int, duplicateLineRemoval bool) error {
 	const processName = "GenericRegion.InitEncode"
 	if bm == nil {
@@ -2599,6 +2669,7 @@ func (gr *GenericRegion) InitEncode(bm *bitmap.Bitmap, xLoc, yLoc, template int,
 	gr.IsTPGDon = duplicateLineRemoval
 	return nil
 }
+
 func (tr *TextRegion) symbolIDCodeLengths() error {
 	var (
 		cs             []*huffman.Code
@@ -2674,6 +2745,7 @@ func (tr *TextRegion) symbolIDCodeLengths() error {
 	tr.symbolCodeTable, err = huffman.NewFixedSizeTable(symbolCodes)
 	return err
 }
+
 func (tr *TextRegion) decodeRI() (int64, error) {
 	if !tr.UseRefinement {
 		return 0, nil
@@ -2685,6 +2757,7 @@ func (tr *TextRegion) decodeRI() (int64, error) {
 	ri, err := tr.arithDecoder.DecodeInt(tr.cxIARI)
 	return int64(ri), err
 }
+
 func (pis *PageInformationSegment) readResolution() error {
 	bits, err := pis.reader.ReadBits(32)
 	if err != nil {
@@ -2703,6 +2776,7 @@ func (ts *TableSegment) Init(h *Header, r *bitwise.Reader) error {
 	ts.reader = r
 	return ts.parseHeader()
 }
+
 func (grr *GenericRefinementRegion) decodeOptimized(lineNumber, width, rowStride, refRowStride, paddedWidth, refOffset, refOffsetNext int) error {
 	var (
 		err     error
@@ -2726,6 +2800,7 @@ func (grr *GenericRefinementRegion) decodeOptimized(lineNumber, width, rowStride
 	}
 	return err
 }
+
 func (tr *TextRegion) decodeSymbolInstances() error {
 	stripT, err := tr.decodeStripT()
 	if err != nil {
@@ -2791,6 +2866,7 @@ func (tr *TextRegion) decodeSymbolInstances() error {
 	}
 	return nil
 }
+
 func (grr *GenericRefinementRegion) getGrReference() (*bitmap.Bitmap, error) {
 	segments := grr.header.RTSegments
 	if len(segments) == 0 {
@@ -2806,6 +2882,7 @@ func (grr *GenericRefinementRegion) getGrReference() (*bitmap.Bitmap, error) {
 	}
 	return r.GetRegionBitmap()
 }
+
 func (h *Header) writeSegmentNumber(bw bitwise.BinaryWriter) (n int, err error) {
 	buf := make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, h.SegmentNumber)
@@ -2814,6 +2891,7 @@ func (h *Header) writeSegmentNumber(bw bitwise.BinaryWriter) (n int, err error) 
 	}
 	return n, nil
 }
+
 func (h *Header) GetSegmentData() (Segmenter, error) {
 	var segmentData Segmenter
 	if h.SegmentData != nil {
@@ -2840,6 +2918,7 @@ func (h *Header) GetSegmentData() (Segmenter, error) {
 	}
 	return segmentData, nil
 }
+
 func (gr *GenericRegion) decodeTemplate1(lineNumber, width, paddedWidth int, byteIndex, prevByteIndex int) (err error) {
 	const processName = "decodeTemplate1"
 	var (
@@ -2917,6 +2996,7 @@ func (gr *GenericRegion) decodeTemplate1(lineNumber, width, paddedWidth int, byt
 	}
 	return nil
 }
+
 func (tr *TextRegion) initSymbols() error {
 	const processName = "initSymbols"
 	for _, rtSegment := range tr.Header.RTSegments {
@@ -2943,6 +3023,7 @@ func (tr *TextRegion) initSymbols() error {
 	tr.NumberOfSymbols = uint32(len(tr.Symbols))
 	return nil
 }
+
 func (pis *PageInformationSegment) readIsStriped() error {
 	bit, err := pis.reader.ReadBit()
 	if err != nil {
@@ -2953,6 +3034,7 @@ func (pis *PageInformationSegment) readIsStriped() error {
 	}
 	return nil
 }
+
 func (tr *TextRegion) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	const processName = "TextRegion.Encode"
 	if n, err = tr.RegionInfo.Encode(w); err != nil {
@@ -3001,10 +3083,12 @@ func (sd *SymbolDictionary) decodeHeightClassDeltaHeightWithHuffman() (int64, er
 	}
 	return 0, nil
 }
+
 func newTextRegion(reader *bitwise.Reader, header *Header) *TextRegion {
 	textRegion := &TextRegion{reader: reader, Header: header, RegionInfo: NewRegionSegment(reader)}
 	return textRegion
 }
+
 func (tr *TextRegion) readAmountOfSymbolInstances() error {
 	count, err := tr.reader.ReadBits(32)
 	if err != nil {
@@ -3018,6 +3102,7 @@ func (tr *TextRegion) readAmountOfSymbolInstances() error {
 	}
 	return nil
 }
+
 func (tr *TextRegion) String() string {
 	builder := &strings.Builder{}
 	builder.WriteString("\n[TEXT REGION]\n")
@@ -3046,6 +3131,7 @@ func (tr *TextRegion) String() string {
 	builder.WriteString(fmt.Sprintf("\t- SbrATX: %v\n", tr.SbrATX))
 	return builder.String()
 }
+
 func (tr *TextRegion) decodeIds() (int64, error) {
 	const processName = "decodeIds"
 	if tr.IsHuffmanEncoded {
@@ -3166,6 +3252,7 @@ func (h *Header) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	}
 	return n, nil
 }
+
 func (pis *PageInformationSegment) Init(h *Header, r *bitwise.Reader) (err error) {
 	pis.reader = r
 	if err = pis.parseHeader(); err != nil {
@@ -3173,6 +3260,7 @@ func (pis *PageInformationSegment) Init(h *Header, r *bitwise.Reader) (err error
 	}
 	return nil
 }
+
 func (gr *GenericRegion) overrideAtTemplate3(context, x, y, result, bitIndex int) int {
 	context &= 0x3EF
 	if gr.GBAtY[0] == 0 && gr.GBAtX[0] >= -int8(bitIndex) {
@@ -3182,6 +3270,7 @@ func (gr *GenericRegion) overrideAtTemplate3(context, x, y, result, bitIndex int
 	}
 	return context
 }
+
 func (sd *SymbolDictionary) retrieveImportSymbols() error {
 	for _, rtSegment := range sd.Header.RTSegments {
 		if rtSegment.Type == 0 {
@@ -3203,6 +3292,7 @@ func (sd *SymbolDictionary) retrieveImportSymbols() error {
 	}
 	return nil
 }
+
 func (sd *SymbolDictionary) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	const processName = "SymbolDictionary.Encode"
 	if sd == nil {
@@ -3230,6 +3320,7 @@ func (sd *SymbolDictionary) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	n += encodeATFlags
 	return n, nil
 }
+
 func (rs *RegionSegment) parseHeader() error {
 	const processName = "parseHeader"
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
@@ -3268,6 +3359,7 @@ func (rs *RegionSegment) parseHeader() error {
 	}
 	return nil
 }
+
 func (pd *PatternDictionary) setGbAtPixels() {
 	if pd.HDTemplate == 0 {
 		pd.GBAtX = make([]int8, 4)
@@ -3285,6 +3377,7 @@ func (pd *PatternDictionary) setGbAtPixels() {
 		pd.GBAtY = []int8{0}
 	}
 }
+
 func (sd *SymbolDictionary) decodeHeightClassBitmap(bm *bitmap.Bitmap, hcFirstSymbol int64, hcHeight int, widths []int) error {
 	for i := hcFirstSymbol; i < int64(sd.numberOfDecodedSymbols); i++ {
 		var xOffset int
@@ -3301,9 +3394,11 @@ func (sd *SymbolDictionary) decodeHeightClassBitmap(bm *bitmap.Bitmap, hcFirstSy
 	}
 	return nil
 }
+
 func newGenericRefinementRegion(reader *bitwise.Reader, header *Header) *GenericRefinementRegion {
 	return &GenericRefinementRegion{reader: reader, RegionInfo: NewRegionSegment(reader), header: header, refTemplate0: &template0{}, refTemplate1: &template1{}}
 }
+
 func (sd *SymbolDictionary) getSbSymCodeLen() int8 {
 	codeLen := int8(math.Ceil(math.Log(float64(sd.numberOfImportedSymbols+sd.NumberOfNewSymbols)) / math.Log(2)))
 	if sd.IsHuffmanEncoded && codeLen < 1 {
@@ -3311,6 +3406,7 @@ func (sd *SymbolDictionary) getSbSymCodeLen() int8 {
 	}
 	return codeLen
 }
+
 func (sd *SymbolDictionary) readRegionFlags() error {
 	var (
 		bits uint64
@@ -3382,17 +3478,20 @@ func (sd *SymbolDictionary) readRegionFlags() error {
 	}
 	return nil
 }
+
 func (gr *GenericRegion) Init(h *Header, r *bitwise.Reader) error {
 	gr.RegionSegment = NewRegionSegment(r)
 	gr.reader = r
 	return gr.parseHeader()
 }
+
 func (hr *HalftoneRegion) computeSegmentDataStructure() error {
 	hr.DataOffset = hr.reader.AbsolutePosition()
 	hr.DataHeaderLength = hr.DataOffset - hr.DataHeaderOffset
 	hr.DataLength = int64(hr.reader.AbsoluteLength()) - hr.DataHeaderLength
 	return nil
 }
+
 func (pd *PatternDictionary) Init(h *Header, r *bitwise.Reader) error {
 	pd.reader = r
 	return pd.parseHeader()
@@ -3459,6 +3558,7 @@ func (sd *SymbolDictionary) addSymbol(r Regioner) error {
 	}
 	return nil
 }
+
 func (h *Header) readReferredToSegmentNumbers(r *bitwise.Reader, count int) ([]int, error) {
 	const processName = "readReferredToSegmentNumbers"
 	numbers := make([]int, count)
@@ -3478,6 +3578,7 @@ func (h *Header) readReferredToSegmentNumbers(r *bitwise.Reader, count int) ([]i
 	}
 	return numbers, nil
 }
+
 func (grr *GenericRefinementRegion) decodeTypicalPredictedLineTemplate0(lineNumber, width, rowStride, refRowStride, paddedWidth, deltaRefStride, byteIndex, referenceDY, refByteIndex int) error {
 	var (
 		context, overriddenContext, regionAbove, refAbove, refMid, refBelow int
@@ -3657,7 +3758,7 @@ func (grr *GenericRefinementRegion) decodeTemplate(lineNumber, width, rowStride,
 		}
 		refAboveByte = int(b)
 	}
-	if referenceDY >= 0 && (referenceDY) < grr.ReferenceBitmap.Height {
+	if referenceDY >= 0 && referenceDY < grr.ReferenceBitmap.Height {
 		b, err = grr.ReferenceBitmap.GetByte(refByteIndex)
 		if err != nil {
 			return err
@@ -3862,6 +3963,7 @@ func (grr *GenericRefinementRegion) decodeTemplate(lineNumber, width, rowStride,
 	}
 	return nil
 }
+
 func (tr *TextRegion) decodeRdy() (int64, error) {
 	const processName = "decodeRdy"
 	if tr.IsHuffmanEncoded {
@@ -3908,6 +4010,7 @@ func (tr *TextRegion) decodeRdy() (int64, error) {
 	}
 	return int64(v), nil
 }
+
 func (gr *GenericRegion) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	const processName = "GenericRegion.Encode"
 	if gr.Bitmap == nil {
@@ -3958,6 +4061,7 @@ func (gr *GenericRegion) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	n += int(written)
 	return n, nil
 }
+
 func (sd *SymbolDictionary) checkInput() error {
 	if sd.SdHuffDecodeHeightSelection == 2 {
 		common.Log.Debug("Symbol Dictionary Decode Height Selection: %d value not permitted", sd.SdHuffDecodeHeightSelection)
@@ -4008,6 +4112,7 @@ func (sd *SymbolDictionary) checkInput() error {
 	}
 	return nil
 }
+
 func (sd *SymbolDictionary) decodeDifferenceWidth() (int64, error) {
 	if sd.IsHuffmanEncoded {
 		switch sd.SdHuffDecodeWidthSelection {
@@ -4046,6 +4151,7 @@ func (sd *SymbolDictionary) decodeDifferenceWidth() (int64, error) {
 	}
 	return 0, nil
 }
+
 func (sd *SymbolDictionary) huffDecodeRefAggNInst() (int64, error) {
 	if !sd.SdHuffAggInstanceSelection {
 		standardTable, err := huffman.GetStandardTable(1)
@@ -4075,6 +4181,7 @@ func (sd *SymbolDictionary) huffDecodeRefAggNInst() (int64, error) {
 	}
 	return sd.huffAggInst.Decode(sd.reader)
 }
+
 func (sd *SymbolDictionary) decodeNewSymbols(width, height uint32, bm *bitmap.Bitmap, refDX, refDY int32) error {
 	if sd.refinementRegion == nil {
 		sd.refinementRegion = newGenericRefinementRegion(sd.reader, nil)
@@ -4092,6 +4199,7 @@ func (sd *SymbolDictionary) decodeNewSymbols(width, height uint32, bm *bitmap.Bi
 	sd.refinementRegion.setParameters(sd.cx, sd.arithDecoder, sd.SdrTemplate, width, height, bm, refDX, refDY, false, sd.SdrATX, sd.SdrATY)
 	return sd.addSymbol(sd.refinementRegion)
 }
+
 func (gr *GenericRegion) readGBAtPixels(count int) error {
 	const processName = "readGBAtPixels"
 	gr.GBAtX = make([]int8, count)
@@ -4110,6 +4218,7 @@ func (gr *GenericRegion) readGBAtPixels(count int) error {
 	}
 	return nil
 }
+
 func (h *Header) readSegmentDataLength(r *bitwise.Reader) (err error) {
 	h.SegmentDataLength, err = r.ReadBits(32)
 	if err != nil {
@@ -4118,6 +4227,7 @@ func (h *Header) readSegmentDataLength(r *bitwise.Reader) (err error) {
 	h.SegmentDataLength &= math.MaxInt32
 	return nil
 }
+
 func (gr *GenericRegion) decodeLine(lineNumber, width, paddedWidth int) error {
 	const processName = "decodeLine"
 	byteIndex := gr.Bitmap.GetByteIndex(0, lineNumber)
@@ -4137,6 +4247,7 @@ func (gr *GenericRegion) decodeLine(lineNumber, width, paddedWidth int) error {
 	}
 	return jbig2errors.Errorf(processName, "invalid GBTemplate provided: %d", gr.GBTemplate)
 }
+
 func (sd *SymbolDictionary) decodeAggregate(width, height uint32) error {
 	var (
 		numInstances int64
@@ -4161,6 +4272,7 @@ func (sd *SymbolDictionary) decodeAggregate(width, height uint32) error {
 	}
 	return nil
 }
+
 func (tr *TextRegion) getUserTable(index int) (huffman.Tabler, error) {
 	const processName = "getUserTable"
 	var tableIndex int
@@ -4269,6 +4381,7 @@ func (grr *GenericRefinementRegion) setParameters(cx *arithmeticdecoder.DecoderS
 		common.Log.Trace("[GENERIC-REF-REGION] setParameters finished. %s", grr)
 	}
 }
+
 func (hr *HalftoneRegion) grayScaleDecoding(bitsPerValue int) ([][]int, error) {
 	var (
 		atX []int8
@@ -4324,6 +4437,7 @@ func (tr *TextRegion) decodeID() (int64, error) {
 	}
 	return tr.arithDecoder.DecodeIAID(uint64(tr.symbolCodeLength), tr.cxIAID)
 }
+
 func (pis *PageInformationSegment) readCombinationOperatorOverrideAllowed() error {
 	bit, err := pis.reader.ReadBit()
 	if err != nil {
@@ -4334,6 +4448,7 @@ func (pis *PageInformationSegment) readCombinationOperatorOverrideAllowed() erro
 	}
 	return nil
 }
+
 func (pd *PatternDictionary) readIsMMREncoded() error {
 	bit, err := pd.reader.ReadBit()
 	if err != nil {
@@ -4344,6 +4459,7 @@ func (pd *PatternDictionary) readIsMMREncoded() error {
 	}
 	return nil
 }
+
 func (pis *PageInformationSegment) readRequiresAuxiliaryBuffer() error {
 	bit, err := pis.reader.ReadBit()
 	if err != nil {
@@ -4354,6 +4470,7 @@ func (pis *PageInformationSegment) readRequiresAuxiliaryBuffer() error {
 	}
 	return nil
 }
+
 func (sd *SymbolDictionary) getToExportFlags() ([]int, error) {
 	var (
 		flag                    int
@@ -4395,9 +4512,11 @@ func (sd *SymbolDictionary) getToExportFlags() ([]int, error) {
 	}
 	return flags, nil
 }
+
 func (t *template0) form(refAbove, refMid, refBelow, regionAbove, lastBit int16) int16 {
 	return (refAbove << 10) | (refMid << 7) | (refBelow << 4) | (regionAbove << 1) | lastBit
 }
+
 func (sd *SymbolDictionary) getSymbol(index int) (*bitmap.Bitmap, error) {
 	const processName = "getSymbol"
 	bitmap, err := sd.symbols.GetBitmap(sd.symbolList[index])
@@ -4406,6 +4525,7 @@ func (sd *SymbolDictionary) getSymbol(index int) (*bitmap.Bitmap, error) {
 	}
 	return bitmap, nil
 }
+
 func (grr *GenericRefinementRegion) parseHeader() (err error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("[GENERIC-REF-REGION] parsing Header...")
@@ -4450,6 +4570,7 @@ func (grr *GenericRefinementRegion) parseHeader() (err error) {
 	}
 	return nil
 }
+
 func (pd *PatternDictionary) readTemplate() error {
 	v, err := pd.reader.ReadBits(2)
 	if err != nil {
@@ -4458,6 +4579,7 @@ func (pd *PatternDictionary) readTemplate() error {
 	pd.HDTemplate = byte(v)
 	return nil
 }
+
 func (h *Header) readSegmentPageAssociation(d Documenter, r *bitwise.Reader, count uint64, referredNumbers ...int) (err error) {
 	const processName = "readSegmentPageAssociation"
 	if !h.PageAssociationFieldSize {
@@ -4503,9 +4625,11 @@ func (h *Header) readSegmentPageAssociation(d Documenter, r *bitwise.Reader, cou
 	}
 	return nil
 }
+
 func (pis *PageInformationSegment) CombinationOperator() bitmap.CombinationOperator {
 	return pis.combinationOperator
 }
+
 func (tr *TextRegion) readRegionFlags() error {
 	var (
 		bit  int
@@ -4567,12 +4691,14 @@ func (tr *TextRegion) readRegionFlags() error {
 	}
 	return nil
 }
+
 func (h *Header) pageSize() uint {
 	if h.PageAssociation <= 255 {
 		return 1
 	}
 	return 4
 }
+
 func (tr *TextRegion) parseHeader() error {
 	var err error
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
@@ -4620,6 +4746,7 @@ func (tr *TextRegion) parseHeader() error {
 	}
 	return nil
 }
+
 func (pis *PageInformationSegment) readCombinationOperator() error {
 	v, err := pis.reader.ReadBits(2)
 	if err != nil {
@@ -4628,6 +4755,7 @@ func (pis *PageInformationSegment) readCombinationOperator() error {
 	pis.combinationOperator = bitmap.CombinationOperator(int(v))
 	return nil
 }
+
 func (sd *SymbolDictionary) decodeDirectlyThroughGenericRegion(width, height uint32) error {
 	if sd.genericRegion == nil {
 		sd.genericRegion = NewGenericRegion(sd.reader)
@@ -4635,10 +4763,12 @@ func (sd *SymbolDictionary) decodeDirectlyThroughGenericRegion(width, height uin
 	sd.genericRegion.setParametersWithAt(false, byte(sd.SdTemplate), false, false, sd.SdATX, sd.SdATY, width, height, sd.cx, sd.arithDecoder)
 	return sd.addSymbol(sd.genericRegion)
 }
+
 func (gr *GenericRegion) setOverrideFlag(index int) {
 	gr.GBAtOverride[index] = true
 	gr.hasAtOverride = true
 }
+
 func (sd *SymbolDictionary) encodeFlags(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "encodeFlags"
 	if err = bw.SkipBits(3); err != nil {
@@ -4736,6 +4866,7 @@ func (sd *SymbolDictionary) encodeFlags(bw bitwise.BinaryWriter) (n int, err err
 	}
 	return 2, nil
 }
+
 func (rs *RegionSegment) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	const processName = "RegionSegment.Encode"
 	buf := make([]byte, 4)
@@ -4769,6 +4900,7 @@ func (rs *RegionSegment) Encode(w bitwise.BinaryWriter) (n int, err error) {
 	n++
 	return n, nil
 }
+
 func NewGenericRegion(r *bitwise.Reader) *GenericRegion {
 	return &GenericRegion{RegionSegment: NewRegionSegment(r), reader: r}
 }
@@ -4836,6 +4968,7 @@ func (tr *TextRegion) setCodingStatistics() error {
 	}
 	return nil
 }
+
 func (rs *RegionSegment) readCombinationOperator() error {
 	v, err := rs.reader.ReadBits(3)
 	if err != nil {
@@ -4884,6 +5017,7 @@ func (tr *TextRegion) decodeRdw() (int64, error) {
 	}
 	return int64(v), nil
 }
+
 func (sd *SymbolDictionary) InitEncode(symbols *bitmap.Bitmaps, symbolList []int, symbolMap map[int]int, unborderSymbols bool) error {
 	const processName = "SymbolDictionary.InitEncode"
 	sd.SdATX = []int8{3, -3, 2, -2}
@@ -4900,6 +5034,7 @@ func (sd *SymbolDictionary) InitEncode(symbols *bitmap.Bitmaps, symbolList []int
 	sd.unborderSymbols = unborderSymbols
 	return nil
 }
+
 func (tr *TextRegion) computeSymbolCodeLength() error {
 	if tr.IsHuffmanEncoded {
 		return tr.symbolIDCodeLengths()
@@ -4907,6 +5042,7 @@ func (tr *TextRegion) computeSymbolCodeLength() error {
 	tr.symbolCodeLength = int8(math.Ceil(math.Log(float64(tr.NumberOfSymbols)) / math.Log(2)))
 	return nil
 }
+
 func (pis *PageInformationSegment) readWidthAndHeight() error {
 	v, err := pis.reader.ReadBits(32)
 	if err != nil {
@@ -4921,11 +5057,13 @@ func (pis *PageInformationSegment) readWidthAndHeight() error {
 	return nil
 }
 
-type template0 struct{}
-type Pager interface {
-	GetSegment(int) (*Header, error)
-	GetBitmap() (*bitmap.Bitmap, error)
-}
+type (
+	template0 struct{}
+	Pager     interface {
+		GetSegment(int) (*Header, error)
+		GetBitmap() (*bitmap.Bitmap, error)
+	}
+)
 
 func (sd *SymbolDictionary) getUserTable(index int) (huffman.Tabler, error) {
 	var tableIndex int
@@ -4944,11 +5082,13 @@ func (sd *SymbolDictionary) getUserTable(index int) (huffman.Tabler, error) {
 	}
 	return nil, nil
 }
+
 func (h *Header) CleanSegmentData() {
 	if h.SegmentData != nil {
 		h.SegmentData = nil
 	}
 }
+
 func (hr *HalftoneRegion) combineGrayscalePlanes(bms []*bitmap.Bitmap, plane int) error {
 	byteIndex := 0
 	for i := 0; i < bms[plane].Height; i++ {
@@ -4970,9 +5110,11 @@ func (hr *HalftoneRegion) combineGrayscalePlanes(bms []*bitmap.Bitmap, plane int
 	}
 	return nil
 }
+
 func (hr *HalftoneRegion) computeY(m, n int) int {
 	return hr.shiftAndFill(int(hr.HGridY) + m*int(hr.HRegionX) - n*int(hr.HRegionY))
 }
+
 func (rs *RegionSegment) String() string {
 	builder := &strings.Builder{}
 	builder.WriteString("\t[REGION SEGMENT]\n")
@@ -4981,6 +5123,7 @@ func (rs *RegionSegment) String() string {
 	builder.WriteString(fmt.Sprintf("\t\t- CombinationOperator: %s", rs.CombinaionOperator))
 	return builder.String()
 }
+
 func (gr *GenericRegion) overrideAtTemplate1(context, x, y, result, bitIndex int) int {
 	context &= 0x1FF7
 	if gr.GBAtY[0] == 0 && gr.GBAtX[0] >= -int8(bitIndex) {
@@ -4990,6 +5133,7 @@ func (gr *GenericRegion) overrideAtTemplate1(context, x, y, result, bitIndex int
 	}
 	return context
 }
+
 func (h *Header) writeReferredToCount(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "writeReferredToCount"
 	h.RTSNumbers = make([]int, len(h.RTSegments))
@@ -5040,6 +5184,7 @@ func (tr *TextRegion) setContexts(cxRefinement *arithmeticdecoder.DecoderStats, 
 	tr.cxIARDY = cxIARDY
 	tr.cxRefinement = cxRefinement
 }
+
 func (pd *PatternDictionary) readPatternWidthAndHeight() error {
 	v, err := pd.reader.ReadByte()
 	if err != nil {
@@ -5053,6 +5198,7 @@ func (pd *PatternDictionary) readPatternWidthAndHeight() error {
 	pd.HdpHeight = v
 	return nil
 }
+
 func (grr *GenericRefinementRegion) readAtPixels() error {
 	grr.GrAtX = make([]int8, 2)
 	grr.GrAtY = make([]int8, 2)
@@ -5130,6 +5276,7 @@ func (pd *PatternDictionary) computeSegmentDataStructure() error {
 	pd.DataLength = int64(pd.reader.AbsoluteLength()) - pd.DataHeaderLength
 	return nil
 }
+
 func (pis *PageInformationSegment) readMaxStripeSize() error {
 	v, err := pis.reader.ReadBits(15)
 	if err != nil {
@@ -5138,6 +5285,7 @@ func (pis *PageInformationSegment) readMaxStripeSize() error {
 	pis.MaxStripeSize = uint16(v & math.MaxUint16)
 	return nil
 }
+
 func (tr *TextRegion) encodeFlags(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "encodeFlags"
 	if err = bw.WriteBit(int(tr.SbrTemplate)); err != nil {
@@ -5210,12 +5358,14 @@ func (ts *TableSegment) parseHeader() error {
 	ts.htHigh = int32(v & math.MaxInt32)
 	return nil
 }
+
 func (tr *TextRegion) Init(header *Header, r *bitwise.Reader) error {
 	tr.Header = header
 	tr.reader = r
 	tr.RegionInfo = NewRegionSegment(tr.reader)
 	return tr.parseHeader()
 }
+
 func (h *Header) parse(d Documenter, r *bitwise.Reader, offset int64, ot OrganizationType) (err error) {
 	const processName = "parse"
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
@@ -5317,6 +5467,7 @@ func (tr *TextRegion) decodeSymInRefSize() (int64, error) {
 	}
 	return v, nil
 }
+
 func (tr *TextRegion) decodeRdx() (int64, error) {
 	const processName = "decodeRdx"
 	if tr.IsHuffmanEncoded {
@@ -5360,6 +5511,7 @@ func (tr *TextRegion) decodeRdx() (int64, error) {
 	}
 	return int64(v), nil
 }
+
 func (gr *GenericRegion) decodeTemplate0a(lineNumber, width, paddedWidth int, byteIndex, prevByteIndex int) (err error) {
 	const processName = "decodeTemplate0a"
 	var (
@@ -5441,6 +5593,7 @@ func (gr *GenericRegion) decodeTemplate0a(lineNumber, width, paddedWidth int, by
 	}
 	return nil
 }
+
 func (pd *PatternDictionary) checkInput() error {
 	if pd.HdpHeight < 1 || pd.HdpWidth < 1 {
 		return errors.New("invalid Header Value: Width/Height must be greater than zero")
@@ -5452,6 +5605,7 @@ func (pd *PatternDictionary) checkInput() error {
 	}
 	return nil
 }
+
 func (sd *SymbolDictionary) readAtPixels(count int) error {
 	sd.SdATX = make([]int8, count)
 	sd.SdATY = make([]int8, count)
@@ -5473,6 +5627,7 @@ func (sd *SymbolDictionary) readAtPixels(count int) error {
 	}
 	return nil
 }
+
 func (t *template1) form(refAbove, refMid, refBelow, regionAbove, lastBit int16) int16 {
 	return ((refAbove & 0x02) << 8) | (refMid << 6) | ((refBelow & 0x03) << 4) | (regionAbove << 1) | lastBit
 }
@@ -5486,10 +5641,12 @@ func (sd *SymbolDictionary) setRefinementAtPixels() error {
 	}
 	return nil
 }
+
 func (eos *EndOfStripe) Init(h *Header, r *bitwise.Reader) error {
 	eos.reader = r
 	return eos.parseHeader()
 }
+
 func (sd *SymbolDictionary) encodeATFlags(bw bitwise.BinaryWriter) (n int, err error) {
 	const processName = "encodeATFlags"
 	if sd.IsHuffmanEncoded || sd.SdTemplate != 0 {
@@ -5511,6 +5668,7 @@ func (sd *SymbolDictionary) encodeATFlags(bw bitwise.BinaryWriter) (n int, err e
 	}
 	return n, nil
 }
+
 func (sd *SymbolDictionary) decodeHeightClassDeltaHeight() (int64, error) {
 	if sd.IsHuffmanEncoded {
 		return sd.decodeHeightClassDeltaHeightWithHuffman()
@@ -5521,6 +5679,7 @@ func (sd *SymbolDictionary) decodeHeightClassDeltaHeight() (int64, error) {
 	}
 	return int64(v), nil
 }
+
 func (grr *GenericRefinementRegion) overrideAtTemplate0(context, x, y, result, bitIndex int) int {
 	if grr.atOverride[0] {
 		context &= 0xfff7
@@ -5540,6 +5699,7 @@ func (grr *GenericRefinementRegion) overrideAtTemplate0(context, x, y, result, b
 	}
 	return context
 }
+
 func (eos *EndOfStripe) parseHeader() error {
 	v, err := eos.reader.ReadBits(32)
 	if err != nil {
@@ -5548,6 +5708,7 @@ func (eos *EndOfStripe) parseHeader() error {
 	eos.lineNumber = int(v & math.MaxInt32)
 	return nil
 }
+
 func (grr *GenericRefinementRegion) decodeTypicalPredictedLine(lineNumber, width, rowStride, refRowStride, paddedWidth, deltaRefStride int) error {
 	referenceDY := lineNumber - int(grr.ReferenceDY)
 	byteIndex := grr.ReferenceBitmap.GetByteIndex(0, referenceDY)
@@ -5561,6 +5722,7 @@ func (grr *GenericRefinementRegion) decodeTypicalPredictedLine(lineNumber, width
 	}
 	return err
 }
+
 func (pd *PatternDictionary) extractPatterns(bm *bitmap.Bitmap) error {
 	var i int
 	bms := make([]*bitmap.Bitmap, pd.GrayMax+1)
@@ -5577,6 +5739,7 @@ func (pd *PatternDictionary) extractPatterns(bm *bitmap.Bitmap) error {
 	pd.Patterns = bms
 	return nil
 }
+
 func (tr *TextRegion) decodeDT() (dt int64, err error) {
 	if tr.IsHuffmanEncoded {
 		if tr.SbHuffDT == 3 {
@@ -5703,6 +5866,7 @@ func (gr *GenericRegion) decodeTemplate0b(lineNumber, width, paddedWidth int, by
 	}
 	return nil
 }
+
 func (h *Header) writeFlags(bw bitwise.BinaryWriter) (err error) {
 	const processName = "Header.writeFlags"
 	typeByte := byte(h.Type)
@@ -5743,6 +5907,7 @@ func (pd *PatternDictionary) readGrayMax() error {
 	pd.GrayMax = uint32(v & math.MaxUint32)
 	return nil
 }
+
 func (pd *PatternDictionary) parseHeader() error {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("[PATTERN-DICTIONARY][parseHeader] begin")
@@ -5773,12 +5938,13 @@ func (pd *PatternDictionary) parseHeader() error {
 	}
 	return pd.checkInput()
 }
+
 func (pis *PageInformationSegment) parseHeader() (err error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("[PageInformationSegment] ParsingHeader...")
 	}
 	defer func() {
-		var msg = "[PageInformationSegment] ParsingHeader Finished"
+		msg := "[PageInformationSegment] ParsingHeader Finished"
 		if err != nil {
 			msg += " with error " + err.Error()
 		} else {

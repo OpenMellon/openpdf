@@ -19,6 +19,25 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
+	"image/jpeg"
+	"io"
+	"maps"
+	"math"
+	"os"
+	"path/filepath"
+	"reflect"
+	"regexp"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+	"unicode"
+
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core/security"
 	"github.com/OpenMellon/openpdf/core/security/crypt"
@@ -38,30 +57,13 @@ import (
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/text/unicode/bidi"
 	"golang.org/x/xerrors"
-	"image"
-	"image/color"
-	"image/jpeg"
-	"io"
-	"maps"
-	"math"
-	"os"
-	"path/filepath"
-	"reflect"
-	"regexp"
-	"slices"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
-	"unicode"
 )
 
 func (crypt *PdfCrypt) isPubSec() bool { return crypt.pubSec != nil }
 
 // HasOddLengthHexStrings checks if the document has odd length hexadecimal strings.
 func (meta ParserMetadata) HasOddLengthHexStrings() bool { return meta.oddLengthHexStrings }
+
 func parseCryptFilterDict(filterDict *crypt.FilterDict, dict *PdfObjectDictionary) error {
 	if typeName, ok := dict.Get("Type").(*PdfObjectName); ok {
 		if typeStr := string(*typeName); typeStr != "CryptFilter" {
@@ -110,6 +112,7 @@ func (cursor *readerAtCursor) Seek(offset int64, whence int) (int64, error) {
 // populated whenever a leading linearization dictionary is found, even if
 // IsLinearized() is false (e.g. it was superseded by a later revision).
 func (parser *PdfParser) LinearizationDictObjNum() int { return parser.linearizationObjNum }
+
 func parseReferenceText(text string) (PdfObjectReference, error) {
 	reference := PdfObjectReference{}
 	matches := referencePattern.FindStringSubmatch(text)
@@ -123,6 +126,7 @@ func parseReferenceText(text string) (PdfObjectReference, error) {
 	reference.GenerationNumber = int64(generationNumber)
 	return reference, nil
 }
+
 func (parser *PdfParser) parseString(cursor *readerAtCursor) (*PdfObjectString, error) {
 	cursor.ReadByte()
 	buffer := acquireBuffer()
@@ -226,6 +230,7 @@ func (flate *FlateEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 
 // GetXrefOffset returns the offset of the xref table.
 func (parser *PdfParser) GetXrefOffset() int64 { return parser.xrefOffset }
+
 func (crypt *PdfCrypt) decryptBytes(stream []byte, filterName string, objKey []byte) ([]byte, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Decrypt bytes")
@@ -236,6 +241,7 @@ func (crypt *PdfCrypt) decryptBytes(stream []byte, filterName string, objKey []b
 	}
 	return filter.DecryptBytes(stream, objKey)
 }
+
 func parsePubSecRecipients(dict *PdfObjectDictionary) ([][]byte, error) {
 	recipients, ok := GetArray(dict.Get("Recipients"))
 	if !ok || recipients.Len() == 0 {
@@ -251,6 +257,7 @@ func parsePubSecRecipients(dict *PdfObjectDictionary) ([][]byte, error) {
 	}
 	return datas, nil
 }
+
 func newDCTEncoderFromStream(streamObj *PdfObjectStream, multi *MultiEncoder) (*DCTEncoder, error) {
 	dctEncoder := NewDCTEncoder()
 	pdfObjectDictionary := streamObj.PdfObjectDictionary
@@ -313,6 +320,7 @@ func newDCTEncoderFromStream(streamObj *PdfObjectStream, multi *MultiEncoder) (*
 	}
 	return dctEncoder, nil
 }
+
 func (parser *PdfParser) afterAuthentication() error {
 	parser.clearObjCache()
 	var err error
@@ -325,6 +333,7 @@ func (parser *PdfParser) afterAuthentication() error {
 	}
 	return err
 }
+
 func (jbig2Img *JBIG2Image) toBitmap() (bm *bitmap.Bitmap, err error) {
 	const procJBIG2ImageToBitmap = "JBIG2Image.toBitmap"
 	if jbig2Img.Data == nil {
@@ -343,6 +352,7 @@ func (jbig2Img *JBIG2Image) toBitmap() (bm *bitmap.Bitmap, err error) {
 	}
 	return bm, nil
 }
+
 func acquireZlibReader(r io.Reader) (io.ReadCloser, error) {
 	rc := zlibReaderPool.Get().(io.ReadCloser)
 	if err := rc.(zlib.Resetter).Reset(r, nil); err != nil {
@@ -402,9 +412,7 @@ func (parser *PdfParser) IsEncrypted() (bool, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Is encrypted!")
 	}
-	var (
-		dict *PdfObjectDictionary
-	)
+	var dict *PdfObjectDictionary
 	switch v := encrypt.(type) {
 	case *PdfObjectDictionary:
 		dict = v
@@ -494,6 +502,7 @@ func (dict *PdfObjectDictionary) GetString(key PdfObjectName) (string, bool) {
 	}
 	return str.Str(), true
 }
+
 func (parser *PdfParser) traceStreamLength(obj PdfObject, visited map[int]struct{}) (PdfObject, error) {
 	internal, err := parser.resolveInternal(obj, visited)
 	if err != nil {
@@ -677,6 +686,7 @@ func defaultCryptFilters(length int) cryptFilters {
 
 // GetCrypter returns the PdfCrypt instance which has information about the PDFs encryption.
 func (parser *PdfParser) GetCrypter() *PdfCrypt { return parser.crypter }
+
 func applyDecodeLimits(encoder StreamEncoder, limits decodeLimits) {
 	if limited, ok := encoder.(limitedDecoder); ok {
 		limited.setDecodeLimits(limits)
@@ -750,7 +760,6 @@ func (ascii85 *ASCII85Encoder) DecodeBytes(encoded []byte) ([]byte, error) {
 // ParserOpts defines configuration options for Parser.
 // These options allow setting customization flags to control parsing behaviors.
 type ParserOpts struct {
-
 	// RelaxedMode enables tolerant parsing by ignoring certain non-critical PDF errors.
 	// When set to true, the parser will attempt to continue processing despite certain
 	// structural errors such as:
@@ -796,6 +805,7 @@ func MakeDict() *PdfObjectDictionary {
 	dict.keys = []PdfObjectName{}
 	return dict
 }
+
 func (parser *PdfParser) rebuildXrefTableTopDown() error {
 	xrefs, err := parser.repairRebuildXrefsTopDown()
 	if err != nil {
@@ -892,6 +902,7 @@ func (dict *PdfObjectDictionary) Get(key PdfObjectName) PdfObject {
 	}
 	return obj
 }
+
 func newCompliancePdfParser(r io.ReaderAt, fileSize int64, decodedTotal *atomic.Int64) (parser *PdfParser, err error) {
 	parser = &PdfParser{decodedTotal: decodedTotal, reader: r, fileSize: fileSize, compliance: true, revisionParsers: make(map[*PdfParser]*PdfParser)}
 	if err = parser.parseDetailedHeader(); err != nil {
@@ -991,6 +1002,7 @@ func (flate *FlateEncoder) DecodeStream(streamObj *PdfObjectStream) ([]byte, err
 	}
 	return bytes, nil
 }
+
 func (parser *PdfParser) validateFirstPageAndCount(linInfo *LinearizationInfo) []LinearizationViolation {
 	var violations []LinearizationViolation
 	leafCount, declaredCount, firstPageIndex, err := parser.walkPageTree()
@@ -1048,6 +1060,7 @@ type MultiEncoder struct{ encoders []StreamEncoder }
 func (parser *PdfParser) ParseDictAt(offset int64) (*PdfObjectDictionary, error) {
 	return parser.parseDict(parser.newCursor(offset), 0)
 }
+
 func (crypt *PdfCrypt) makeKey(filterName string, objNum, genNum uint32, fileKey []byte) ([]byte, error) {
 	filter, ok := crypt.cryptFilters[filterName]
 	if !ok {
@@ -1238,6 +1251,7 @@ func NewParserWithOpts(r io.ReaderAt, opts ParserOpts) (*PdfParser, error) {
 	}
 	return NewParserWithOptsAt(r, size, opts)
 }
+
 func newCCITTFaxEncoderFromStream(streamObj *PdfObjectStream, decodeParams *PdfObjectDictionary) (*CCITTFaxEncoder, error) {
 	ccittFaxEncoder := NewCCITTFaxEncoder()
 	pdfObjectDictionary := streamObj.PdfObjectDictionary
@@ -1348,6 +1362,7 @@ func (dct *DCTEncoder) MakeStreamDict() *PdfObjectDictionary {
 
 // Direct traces the indirect object to the direct object it contains.
 func (_cfbfbgd *PdfIndirectObject) Direct() PdfObject { return TraceToDirectObject(_cfbfbgd) }
+
 func (crypt *PdfCrypt) cryptFilterDict(encryptDict *PdfObjectDictionary, filterName string) *PdfObjectDictionary {
 	if filterName == "" {
 		return nil
@@ -1400,6 +1415,7 @@ func (multi *MultiEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 	}
 	return data, nil
 }
+
 func init() {
 	lazystream.Take = func(owner, target any) ([]byte, bool) {
 		crypt, ok := owner.(*PdfCrypt)
@@ -1420,6 +1436,7 @@ func init() {
 func (jbig22 *JBIG2Encoder) DecodeGlobals(encoded []byte) (jbig2.Globals, error) {
 	return jbig2.DecodeGlobals(encoded)
 }
+
 func (limits decodeLimits) streamLimit() int64 {
 	if limits.maxStream <= 0 {
 		return DefaultMaxDecodedStreamSize()
@@ -1458,6 +1475,7 @@ func init() { maxDecodedStreamSize.Store(defaultMaxDecodedStreamSize) }
 
 // Bytes returns the PdfObjectString content as a []byte array.
 func (str *PdfObjectString) Bytes() []byte { return []byte(str.val) }
+
 func (parser *PdfParser) checkAndRepairXrefTable(trailer *PdfObjectDictionary) error {
 	err := parser.xrefTableHealthCheck(trailer)
 	if err == nil {
@@ -1597,6 +1615,7 @@ func (enc *LZWEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 	enc.limits.charge(int64(len(all)))
 	return all, nil
 }
+
 func (parser *PdfParser) checkFirstXrefPrevChain(linInfo *LinearizationInfo) *LinearizationViolation {
 	dict, err := parser.FirstXrefTrailer()
 	if err != nil || dict == nil {
@@ -1632,12 +1651,14 @@ type HintTables struct {
 	Rendition        *GenericHintTable
 	EmbeddedFile     *GenericHintTable
 }
-type indirectPair struct{ first, second *PdfIndirectObject }
-type objectStream struct {
-	N       int
-	data    []byte
-	offsets map[int]int64
-}
+type (
+	indirectPair struct{ first, second *PdfIndirectObject }
+	objectStream struct {
+		N       int
+		data    []byte
+		offsets map[int]int64
+	}
+)
 
 const maxLinearizationParamDictEnd = 1024
 
@@ -1654,6 +1675,7 @@ func (arr *PdfObjectArray) Clear() { arr.elements = []PdfObject{} }
 // MakeDecodeParams makes a new instance of an encoding dictionary based on
 // the current encoder settings.
 func (jpxEncoder *JPXEncoder) MakeDecodeParams() PdfObject { return nil }
+
 func (parser *PdfParser) parseHintStreamIfPresent() error {
 	if parser.linearization == nil || len(parser.linearization.HintOffsets) == 0 {
 		return nil
@@ -1746,6 +1768,7 @@ func (name *PdfObjectName) Write() []byte {
 		}
 	})
 }
+
 func (parser *PdfParser) loadXrefs() (trailer *PdfObjectDictionary, err error) {
 	parser.setXrefs(XrefTable{ObjectMap: map[int]XrefObject{}})
 	parser.objStreams = make(objectStreams)
@@ -1862,6 +1885,7 @@ func (parser *PdfParser) loadXrefs() (trailer *PdfObjectDictionary, err error) {
 	}
 	return xref, nil
 }
+
 func newJBIG2EncoderFromStream(streamObj *PdfObjectStream, decodeParams *PdfObjectDictionary) (*JBIG2Encoder, error) {
 	const procNewJBIG2DecoderFromStream = "newJBIG2DecoderFromStream"
 	jbiG2Encoder := NewJBIG2Encoder()
@@ -1918,6 +1942,7 @@ const minPoolBufSize = poolSize16K / 4
 
 // GetEncryptObj returns the PdfIndirectObject which has information about the PDFs encryption details.
 func (parser *PdfParser) GetEncryptObj() *PdfIndirectObject { return parser.encryptObj }
+
 func (parser *PdfParser) parseName(cursor *readerAtCursor) (PdfObjectName, error) {
 	buffer := acquireBuffer()
 	defer releaseBuffer(buffer)
@@ -2158,6 +2183,7 @@ func (runLength *RunLengthEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 	runLength.limits.charge(int64(len(data)))
 	return data, nil
 }
+
 func releaseBuffer(buffer *bytes.Buffer) {
 	if buffer.Cap() > poolSize16M {
 		return
@@ -2165,6 +2191,7 @@ func releaseBuffer(buffer *bytes.Buffer) {
 	buffer.Reset()
 	bufferPool.Put(buffer)
 }
+
 func (runLength *RunLengthEncoder) setDecodeLimits(limits decodeLimits) { runLength.limits = limits }
 
 // MakeDecodeParams makes a new instance of an encoding dictionary based on
@@ -2205,6 +2232,7 @@ func (r *limitedDecodeReader) Close() error {
 
 // GetFilterName returns the name of the encoding filter.
 func (jpxEncoder *JPXEncoder) GetFilterName() string { return StreamEncodingFilterNameJPX }
+
 func (br *bitReader) seek(pos int) error {
 	if pos < 0 || pos > len(br.data) {
 		return fmt.Errorf("hint stream: seek out of range (%d, len=%d)", pos, len(br.data))
@@ -2214,6 +2242,7 @@ func (br *bitReader) seek(pos int) error {
 	br.nbits = 0
 	return nil
 }
+
 func readSharedObjectHintTable(br *bitReader) (*SharedObjectHintTable, error) {
 	shared := &SharedObjectHintTable{}
 	sts := []struct {
@@ -2307,6 +2336,7 @@ func (flate *FlateEncoder) MakeDecodeParams() PdfObject {
 	}
 	return nil
 }
+
 func sortedXrefObjects(objectMap map[int]XrefObject) []XrefObject {
 	count := 0
 	for _, xrefObj := range objectMap {
@@ -2326,6 +2356,7 @@ func sortedXrefObjects(objectMap map[int]XrefObject) []XrefObject {
 	sort.Slice(xrefObjs, func(i, j int) bool { return xrefObjs[i].Offset < xrefObjs[j].Offset })
 	return xrefObjs
 }
+
 func (parser *PdfParser) parseXref(cursor *readerAtCursor, xrefOffset *int64) (*PdfObjectDictionary, error) {
 	parser.skipSpaces(cursor)
 	const xrefProbeLen = 20
@@ -2366,6 +2397,7 @@ func (parser *PdfParser) parseXref(cursor *readerAtCursor, xrefOffset *int64) (*
 	xrefTable, err := parser.parseXrefTable(cursor)
 	return parser.recordXrefSectionEnd(cursor, xrefTable, err)
 }
+
 func (parser *PdfParser) lookupObjectViaOS(osObjNumber int, index int, visited map[int]struct{}) (PdfObject, error) {
 	var objStm objectStream
 	var ok bool
@@ -2473,6 +2505,7 @@ func (parser *PdfParser) lookupObjectViaOS(osObjNumber int, index int, visited m
 	indirect.parser = parser
 	return &indirect, nil
 }
+
 func decodePredictor(data []byte, predictor, columns, bitsPerComponent, colors int) ([]byte, error) {
 	rowBytes, bytesPerPixel, bitsPerComp, err := normalizePredictorParams(columns, bitsPerComponent, colors)
 	if err != nil {
@@ -2492,6 +2525,7 @@ func (jpxEncoder *JPXEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 	common.Log.Debug("Error: Attempting to use unsupported encoding %s", jpxEncoder.GetFilterName())
 	return encoded, ErrNoJPXDecode
 }
+
 func (parser *PdfParser) recordXrefSectionEnd(cursor *readerAtCursor, trailer *PdfObjectDictionary, err error) (*PdfObjectDictionary, error) {
 	if err == nil {
 		parser.xrefSectionEnds = append(parser.xrefSectionEnds, cursor.GetFileOffset())
@@ -2575,6 +2609,7 @@ func (dct *DCTEncoder) EncodeBytes(data []byte) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+
 func (br *bitReader) readBits(bits uint) (uint32, error) {
 	if bits == 0 {
 		return 0, nil
@@ -2724,6 +2759,7 @@ func (parser *PdfParser) lookupByNumber(objNum int, retry bool, visited map[int]
 	}
 	return nil, false, errors.New("unknown xref type")
 }
+
 func (parser *PdfParser) validateLinearization() ([]LinearizationViolation, error) {
 	if !parser.IsLinearized() {
 		return []LinearizationViolation{{Code: LinErrNotLinearized, Severity: SeverityError, Message: "PDF is not linearized"}}, nil
@@ -2775,6 +2811,7 @@ func (parser *PdfParser) validateLinearization() ([]LinearizationViolation, erro
 	}
 	return violations, nil
 }
+
 func (parser *PdfParser) objectFileOffset(objNum int) (int64, bool) {
 	xrefObj, ok := parser.currentXrefs().ObjectMap[objNum]
 	if !ok || xrefObj.XType != XrefTypeTableEntry {
@@ -2826,6 +2863,7 @@ func EncodeSharedObjectHintTable(bw *BitWriter, t *SharedObjectHintTable) error 
 	bw.AlignByte()
 	return nil
 }
+
 func (parser *PdfParser) computeRevisionEndOffsets() ([]int64, bool, error) {
 	eofMarkers, err := parser.scanEOFMarkers()
 	if err != nil {
@@ -3020,6 +3058,7 @@ func (multi *MultiEncoder) UpdateParams(params *PdfObjectDictionary) {
 		encoder.UpdateParams(params)
 	}
 }
+
 func parseObjSignature(line string) (int, int, error) {
 	stringSubmatch := objHeaderRegexp.FindStringSubmatch(line)
 	if len(stringSubmatch) < 3 {
@@ -3065,6 +3104,7 @@ func (parser *PdfParser) seekToEOFMarker(cursor *readerAtCursor, size int64) err
 	common.Log.Debug("Error: EOF marker was not found.")
 	return errEOFNotFound
 }
+
 func (parser *PdfParser) xrefNextObjectOffset(offset int64) int64 {
 	xrefs := parser.currentXrefs()
 	if len(xrefs.sorted) == 0 {
@@ -3132,7 +3172,6 @@ type PageOffsetHintTable struct {
 // JBIG2EncoderSettings contains the parameters and settings used by the JBIG2Encoder.
 // Current version works only on JB2Generic compression.
 type JBIG2EncoderSettings struct {
-
 	// FileMode defines if the jbig2 encoder should return full jbig2 file instead of
 	// shortened pdf mode. This adds the file header to the jbig2 definition.
 	FileMode bool
@@ -3185,6 +3224,7 @@ func (parser *PdfParser) ValidateLinearizationTrailerID() *LinearizationViolatio
 	}
 	return parser.checkLinearizedTrailerID()
 }
+
 func getNonNegativeInt(dict *PdfObjectDictionary, key PdfObjectName) (int, bool) {
 	obj := dict.Get(key)
 	if obj == nil {
@@ -3268,7 +3308,6 @@ func PdfCryptNewEncrypt(cf crypt.Filter, userPass, ownerPass []byte, perm securi
 // The similarity is defined by the 'Threshold' variable (default: 0.95). The less the value is, the more components
 // matches to single class, thus the compression is better, but the result might become lossy.
 type JBIG2Encoder struct {
-
 	// These values are required to be set for the 'EncodeBytes' method.
 	// ColorComponents defines the number of color components for provided image.
 	ColorComponents int
@@ -3299,6 +3338,7 @@ type JBIG2Encoder struct {
 
 // HasInvalidSubsectionHeader implements core.ParserMetadata interface.
 func (meta ParserMetadata) HasInvalidSubsectionHeader() bool { return meta.invalidSubsectionHeader }
+
 func (r *runLengthReader) fillRun() error {
 	b, err := r.src.ReadByte()
 	if err != nil {
@@ -3356,6 +3396,7 @@ func (br *bitReader) skipBits(nbits uint) error {
 	_, err := br.readBits(nbits)
 	return err
 }
+
 func (crypt *PdfCrypt) encodeEncryptPubSec() (*PdfObjectDictionary, error) {
 	pubSec := crypt.pubSec
 	encryptDict := crypt.newEncryptDict()
@@ -3444,6 +3485,7 @@ func (bw *BitWriter) Bytes() []byte {
 	}
 	return data
 }
+
 func parseStdEncryptDict(stdEncrypt *security.StdEncryptDict, ed *PdfObjectDictionary) error {
 	R, ok := ed.Get("R").(*PdfObjectInteger)
 	if !ok {
@@ -3537,6 +3579,7 @@ func (arr *PdfObjectArray) ToInt64Slice() ([]int64, error) {
 	}
 	return nums, nil
 }
+
 func (parser *PdfParser) xrefTableHealthCheck(trailer *PdfObjectDictionary) error {
 	if size, ok := trailer.Get("Size").(*PdfObjectInteger); ok {
 		half := int64(*size) / 2
@@ -3591,6 +3634,7 @@ func (parser *PdfParser) repairLocateXref(cursor *readerAtCursor) (int64, error)
 	pos := fileOffset + idx
 	return pos, nil
 }
+
 func (limits decodeLimits) readAll(filterName string, r io.Reader) ([]byte, error) {
 	remaining := limits.remaining()
 	data := AcquireBytes(poolSize16K)[:0]
@@ -3688,6 +3732,7 @@ func (enc *LZWEncoder) EncodeBytes(data []byte) ([]byte, error) {
 	writer.Close()
 	return buf.Bytes(), nil
 }
+
 func (parser *PdfParser) parseXrefTable(cursor *readerAtCursor) (*PdfObjectDictionary, error) {
 	defer parser.repairedXrefs.Store(nil)
 	var dict *PdfObjectDictionary
@@ -3894,6 +3939,7 @@ func (ref *PdfObjectReference) Resolve() PdfObject {
 
 // UpdateParams updates the parameter values of the encoder.
 func (rawEncoder *RawEncoder) UpdateParams(params *PdfObjectDictionary) {}
+
 func (limits decodeLimits) check(filterName string, n int64) error {
 	if remaining := limits.remaining(); n > remaining {
 		return limits.exceeded(filterName, remaining)
@@ -3907,6 +3953,7 @@ func NewMultiEncoder() *MultiEncoder {
 	multi.encoders = []StreamEncoder{}
 	return &multi
 }
+
 func (parser *PdfParser) seekPdfVersionTopDown(cursor *readerAtCursor) (int, int, error) {
 	cursor.SetFileOffset(0)
 	probeLen := 20
@@ -4031,6 +4078,7 @@ func GetNumberAsInt64(obj PdfObject) (int64, error) {
 
 // MakeStreamDict makes a new instance of an encoding dictionary for a stream object.
 func (jpxEncoder *JPXEncoder) MakeStreamDict() *PdfObjectDictionary { return MakeDict() }
+
 func resolveReferencesRecursive(pdfObject PdfObject, depth int) PdfObject {
 	if depth > maxTraceDepth {
 		common.Log.Error("Trace depth level beyond %d - error!", maxTraceDepth)
@@ -4062,6 +4110,7 @@ func resolveReferencesRecursive(pdfObject PdfObject, depth int) PdfObject {
 	}
 	return pdfObject
 }
+
 func (r *asciiHexReader) nextDigit() (byte, bool) {
 	for {
 		b, err := r.src.ReadByte()
@@ -4105,6 +4154,7 @@ func EncodeMandatoryHintStream(po *PageOffsetHintTable, so *SharedObjectHintTabl
 	bitWriter.AlignByte()
 	return bitWriter.Bytes(), bitLen, nil
 }
+
 func (r *runLengthReader) Read(p []byte) (int, error) {
 	total := 0
 	for total < len(p) {
@@ -4275,15 +4325,18 @@ func (jbig2 *JBIG2Encoder) EncodeBytes(data []byte) ([]byte, error) {
 	}
 	return jbig2.Encode()
 }
+
 func (limits decodeLimits) reader(filterName string, r io.Reader) io.Reader {
 	return &limitedDecodeReader{src: r, limits: limits, streamLimit: limits.streamLimit(), filterName: filterName}
 }
+
 func checkMainXrefOffset(mainXrefOffset, endOfFirstPage, fileSize int64) *LinearizationViolation {
 	if mainXrefOffset <= 0 || mainXrefOffset >= fileSize || mainXrefOffset <= endOfFirstPage {
 		return &LinearizationViolation{Code: LinErrXRefOffsetMismatch, Severity: SeverityError, Message: fmt.Sprintf("/T (%d) does not point past the first-page section (/E %d) within the file (%d)", mainXrefOffset, endOfFirstPage, fileSize)}
 	}
 	return nil
 }
+
 func equalObjects(pdfObjectDictionary, other PdfObject, depth int, seen map[indirectPair]bool) bool {
 	if depth > maxTraceDepth {
 		common.Log.Error("Trace depth level beyond %d - error!", maxTraceDepth)
@@ -4304,15 +4357,15 @@ func equalObjects(pdfObjectDictionary, other PdfObject, depth int, seen map[indi
 		ref := other.(*PdfObjectReference)
 		return v.ObjectNumber == ref.ObjectNumber && v.GenerationNumber == ref.GenerationNumber
 	case *PdfObjectName:
-		return *v == *(other.(*PdfObjectName))
+		return *v == *other.(*PdfObjectName)
 	case *PdfObjectString:
-		return *v == *(other.(*PdfObjectString))
+		return *v == *other.(*PdfObjectString)
 	case *PdfObjectInteger:
-		return *v == *(other.(*PdfObjectInteger))
+		return *v == *other.(*PdfObjectInteger)
 	case *PdfObjectBool:
-		return *v == *(other.(*PdfObjectBool))
+		return *v == *other.(*PdfObjectBool)
 	case *PdfObjectFloat:
-		return *v == *(other.(*PdfObjectFloat))
+		return *v == *other.(*PdfObjectFloat)
 	case *PdfIndirectObject:
 		if seen == nil {
 			seen = map[indirectPair]bool{}
@@ -4423,6 +4476,7 @@ func (bw *BitWriter) Len() int {
 	}
 	return len(bw.data) + 1
 }
+
 func checkHintStreams(linInfo *LinearizationInfo, fileSize int64) []LinearizationViolation {
 	var violations []LinearizationViolation
 	if len(linInfo.HintOffsets) == 0 {
@@ -4451,6 +4505,7 @@ func checkHintStreams(linInfo *LinearizationInfo, fileSize int64) []Linearizatio
 	}
 	return violations
 }
+
 func poolIndexFor(size int) int {
 	if size < minPoolBufSize {
 		return -1
@@ -4465,6 +4520,7 @@ func poolIndexFor(size int) int {
 
 // UpdateParams updates the parameter values of the encoder.
 func (jpxEncoder *JPXEncoder) UpdateParams(params *PdfObjectDictionary) {}
+
 func (parser *PdfParser) lookupByNumberWrapperInternal(objNumber int, retry bool, visited map[int]struct{}) (PdfObject, bool, error) {
 	if cachedObject, ok := parser.LoadCachedObject(objNumber); ok {
 		return cachedObject, false, nil
@@ -4496,6 +4552,7 @@ func (parser *PdfParser) lookupByNumberWrapperInternal(objNumber int, retry bool
 	result := res.(lookupResult)
 	return result.obj, result.decrypted, nil
 }
+
 func (parser *PdfParser) parseXrefStream(cursor *readerAtCursor, xrefStm *PdfObjectInteger) (*PdfObjectDictionary, error) {
 	defer parser.repairedXrefs.Store(nil)
 	if xrefStm != nil {
@@ -4719,6 +4776,7 @@ type objectStreams map[int]objectStream
 
 // IsOctalDigit checks if a character can be part of an octal digit string.
 func IsOctalDigit(c byte) bool { return '0' <= c && c <= '7' }
+
 func (parser *PdfParser) checkPostEOFData() error {
 	const eofMarkerText = "%%EOF"
 	data := make([]byte, len([]byte(eofMarkerText))+1)
@@ -4934,6 +4992,7 @@ func (arr *PdfObjectArray) Append(objects ...PdfObject) {
 	}
 	arr.elements = append(arr.elements, objects...)
 }
+
 func newMultiEncoderFromStream(streamObj *PdfObjectStream) (*MultiEncoder, error) {
 	multiEncoder := NewMultiEncoder()
 	limitsFromStream := decodeLimitsFromStream(streamObj)
@@ -5105,15 +5164,15 @@ func ShallowEqualObjects(obj1, obj2 PdfObject) bool {
 		ref := obj2.(*PdfObjectReference)
 		return v.ObjectNumber == ref.ObjectNumber && v.GenerationNumber == ref.GenerationNumber
 	case *PdfObjectName:
-		return *v == *(obj2.(*PdfObjectName))
+		return *v == *obj2.(*PdfObjectName)
 	case *PdfObjectString:
-		return *v == *(obj2.(*PdfObjectString))
+		return *v == *obj2.(*PdfObjectString)
 	case *PdfObjectInteger:
-		return *v == *(obj2.(*PdfObjectInteger))
+		return *v == *obj2.(*PdfObjectInteger)
 	case *PdfObjectBool:
-		return *v == *(obj2.(*PdfObjectBool))
+		return *v == *obj2.(*PdfObjectBool)
 	case *PdfObjectFloat:
-		return *v == *(obj2.(*PdfObjectFloat))
+		return *v == *obj2.(*PdfObjectFloat)
 	case *PdfIndirectObject:
 		indirect := obj2.(*PdfIndirectObject)
 		return v.ObjectNumber == indirect.ObjectNumber && v.GenerationNumber == indirect.GenerationNumber
@@ -5174,6 +5233,7 @@ func (flate *FlateEncoder) UpdateParams(params *PdfObjectDictionary) {
 		flate.Colors = int(colorComponents)
 	}
 }
+
 func (parser *PdfParser) parseNumber(cursor *readerAtCursor) (PdfObject, error) {
 	return ParseNumber(cursor.Underlying())
 }
@@ -5192,6 +5252,7 @@ func (enc *LZWEncoder) DecodeReader(r io.Reader) io.Reader {
 // IsLinearized reports whether the PDF is a linearized ("fast web view") file
 // as defined in ISO 32000-2 Annex F.
 func (parser *PdfParser) IsLinearized() bool { return parser.linearized }
+
 func (crypt *PdfCrypt) pubSecKeyBits() int {
 	if crypt.encrypt.V >= 4 {
 		for _, name := range []string{crypt.recipientFilter, crypt.streamFilter, crypt.stringFilter} {
@@ -5272,6 +5333,7 @@ var objHeaderRegexp = regexp.MustCompile("(\\d+)\\s+(\\d+)\\s+obj")
 
 // NewRunLengthEncoder makes a new run length encoder
 func NewRunLengthEncoder() *RunLengthEncoder { return &RunLengthEncoder{} }
+
 func (r *asciiHexReader) Read(p []byte) (int, error) {
 	total := 0
 	for total < len(p) {
@@ -5298,6 +5360,7 @@ func (r *asciiHexReader) Read(p []byte) (int, error) {
 	}
 	return total, nil
 }
+
 func withPooledBuffer(fn func(*bytes.Buffer)) []byte {
 	buffer := acquireBuffer()
 	defer releaseBuffer(buffer)
@@ -5307,6 +5370,7 @@ func withPooledBuffer(fn func(*bytes.Buffer)) []byte {
 	copy(out, data)
 	return out
 }
+
 func parsePubSecEncryptDict(crypt *PdfCrypt, ed *PdfObjectDictionary) (*security.PubSecEncryptDict, error) {
 	pubSecDict := &security.PubSecEncryptDict{SubFilter: crypt.encrypt.SubFilter}
 	switch pubSecDict.SubFilter {
@@ -5385,6 +5449,7 @@ func parsePubSecEncryptDict(crypt *PdfCrypt, ed *PdfObjectDictionary) (*security
 	}
 	return pubSecDict, nil
 }
+
 func (parser *PdfParser) clearObjCache() {
 	parser.objCache.Clear()
 	parser.objStreamMu.Lock()
@@ -5487,6 +5552,7 @@ func (bw *BitWriter) WriteBits(v uint32, n uint) {
 		bw.acc &= (1 << bw.nbits) - 1
 	}
 }
+
 func readThumbnailHintTable(br *bitReader) (*ThumbnailHintTable, error) {
 	thumb := &ThumbnailHintTable{}
 	sts := []struct {
@@ -5553,6 +5619,7 @@ func (parser *PdfParser) buildLinearizationInfo(dict *PdfObjectDictionary) *Line
 	}
 	return linInfo
 }
+
 func (parser *PdfParser) getNumbersOfUpdatedObjects(prevParser *PdfParser) ([]int, error) {
 	if prevParser == nil {
 		return nil, errors.New("previous parser can't be null")
@@ -5585,6 +5652,7 @@ func (parser *PdfParser) getNumbersOfUpdatedObjects(prevParser *PdfParser) ([]in
 	}
 	return nums, nil
 }
+
 func (parser *PdfParser) skipSpaces(cursor *readerAtCursor) (int, error) {
 	count := 0
 	for {
@@ -5601,6 +5669,7 @@ func (parser *PdfParser) skipSpaces(cursor *readerAtCursor) (int, error) {
 	}
 	return count, nil
 }
+
 func (r *multiFallbackReader) Read(p []byte) (int, error) {
 	if !r.started {
 		r.started = true
@@ -5643,6 +5712,7 @@ const intBits = 32 << (^uint(0) >> 63)
 
 // GetFilterName returns the name of the encoding filter.
 func (runLength *RunLengthEncoder) GetFilterName() string { return StreamEncodingFilterNameRunLength }
+
 func (reader *offsetReaderAt) ReadAt(p []byte, off int64) (int, error) {
 	if off < 0 {
 		return 0, errors.New("offsetReaderAt.ReadAt: negative offset")
@@ -5662,7 +5732,6 @@ func (b *PdfObjectBool) String() string {
 
 // PdfObject is an interface which all primitive PDF objects must implement.
 type PdfObject interface {
-
 	// String outputs a string representation of the primitive (for debugging).
 	String() string
 
@@ -5772,6 +5841,7 @@ func (parser *PdfParser) parseHintStreamObject(offset int64) (*PdfObjectStream, 
 
 // MakeArray creates an PdfObjectArray from a list of PdfObjects.
 func MakeArray(objects ...PdfObject) *PdfObjectArray { return &PdfObjectArray{elements: objects} }
+
 func (parser *PdfParser) parseDict(cursor *readerAtCursor, depth int) (*PdfObjectDictionary, error) {
 	if depth >= maxObjectNestingDepth {
 		return nil, errObjectNestingTooDeep
@@ -5872,6 +5942,7 @@ func (parser *PdfParser) parseDict(cursor *readerAtCursor, depth int) (*PdfObjec
 	}
 	return dictionary, nil
 }
+
 func checkPageCount(count, treeCount int64) *LinearizationViolation {
 	if count > 0 && count != treeCount {
 		return &LinearizationViolation{Code: LinErrPageCountTreeMismatch, Severity: SeverityWarning, Message: fmt.Sprintf("/Pages /Count (%d) does not match the walked leaf page count (%d)", count, treeCount)}
@@ -5966,6 +6037,7 @@ func (arr *PdfObjectArray) Write() []byte {
 		buf.WriteString("]")
 	})
 }
+
 func (ascii85 *ASCII85Encoder) base256Tobase85(val uint32) [5]byte {
 	data := [5]byte{0, 0, 0, 0, 0}
 	rem := val
@@ -5980,6 +6052,7 @@ func (ascii85 *ASCII85Encoder) base256Tobase85(val uint32) [5]byte {
 	}
 	return data
 }
+
 func checkLinearizedVersion(linearizationDict *PdfObjectDictionary) *LinearizationViolation {
 	linearized := linearizationDict.Get("Linearized")
 	if linearized == nil {
@@ -6128,6 +6201,7 @@ func (multi *MultiEncoder) GetFilterArray() *PdfObjectArray {
 	}
 	return MakeArray(objs...)
 }
+
 func readerHasData(r io.Reader) (bool, error) {
 	var data [1]byte
 	for {
@@ -6183,6 +6257,7 @@ func (null *PdfObjectNull) Equals(other PdfObject) bool {
 	}
 	return equalObjects(null, other, 0, nil)
 }
+
 func (parser *PdfParser) newCursor(offset int64) *readerAtCursor {
 	return newReaderAtCursor(parser.reader, parser.fileSize, offset)
 }
@@ -6194,6 +6269,7 @@ func (dict *PdfObjectDictionary) Equals(other PdfObject) bool {
 	}
 	return equalObjects(dict, other, 0, nil)
 }
+
 func (parser *PdfParser) newRevisionParser(section *io.SectionReader) (*PdfParser, error) {
 	if parser.compliance {
 		compliancePdfParser, err := newCompliancePdfParser(section, section.Size(), parser.decodedTotal)
@@ -6210,6 +6286,7 @@ func (parser *PdfParser) newRevisionParser(section *io.SectionReader) (*PdfParse
 	}
 	return newPdfParserAt(section, section.Size(), opts, parser.decodedTotal)
 }
+
 func (parser *PdfParser) initParser() error {
 	pdfVersion, minor, err := parser.parsePdfVersion()
 	if err != nil {
@@ -6300,6 +6377,7 @@ func (limits decodeLimits) charge(n int64) {
 
 // Discard skips the next n bytes.
 func (cursor *readerAtCursor) Discard(n int) (int, error) { return cursor.buffered.Discard(n) }
+
 func encodePNGPredictor(data []byte, colors, bitsPerComponent, columns int) ([]byte, error) {
 	rowBytes, bpp, _, err := normalizePredictorParams(colors, bitsPerComponent, columns)
 	if err != nil {
@@ -6322,6 +6400,7 @@ func encodePNGPredictor(data []byte, colors, bitsPerComponent, columns int) ([]b
 	}
 	return out, nil
 }
+
 func newJBIG2ImageFromImage(img imageutil.Image) *JBIG2Image {
 	base := img.Base()
 	return &JBIG2Image{Data: base.Data, Width: base.Width, Height: base.Height, HasPadding: true}
@@ -6484,6 +6563,7 @@ func (dct *DCTEncoder) DecodeBytes(encoded []byte) (decoded []byte, err error) {
 	dct.limits.charge(int64(len(bytes)))
 	return bytes, nil
 }
+
 func (parser *PdfParser) walkPageTree() (pageCount int, declaredCount int64, firstPageIndex int64, err error) {
 	firstPageIndex = -1
 	trailer := parser.GetTrailer()
@@ -6577,6 +6657,7 @@ type emptyReader struct{}
 // NOTE: It is a good idea to flatten obj1 and obj2 with FlattenObject before calling this function
 // so that contents, rather than references, can be compared.
 func EqualObjects(obj1, obj2 PdfObject) bool { return equalObjects(obj1, obj2, 0, nil) }
+
 func (parser *PdfParser) scanEOFMarkers() ([]eofMarker, error) {
 	data := []byte("%%EOF")
 	const eofScanChunkSize = int64(64 * 1024)
@@ -6614,6 +6695,7 @@ func (parser *PdfParser) scanEOFMarkers() ([]eofMarker, error) {
 	}
 	return markers, nil
 }
+
 func newByteReader(r io.Reader) byteReader {
 	if br, ok := r.(byteReader); ok {
 		return br
@@ -6663,6 +6745,7 @@ func (crypt *PdfCrypt) authenticate(password []byte) (bool, error) {
 	crypt.encryptionKey = data
 	return true, nil
 }
+
 func (crypt *PdfCrypt) newEncryptDict() *PdfObjectDictionary {
 	dict := MakeDict()
 	dict.Set("Filter", MakeName("Standard"))
@@ -7049,6 +7132,7 @@ func ValidateLinearization(r io.ReaderAt, size int64) ([]LinearizationViolation,
 	}
 	return parserAt.validateLinearization()
 }
+
 func indirectObjectIDs(obj PdfObject) (int64, int64, error) {
 	if indirect, ok := obj.(*PdfIndirectObject); ok {
 		return indirect.ObjectNumber, indirect.GenerationNumber, nil
@@ -7066,6 +7150,7 @@ type ASCII85Encoder struct{ limits decodeLimits }
 func RegisterCustomStreamEncoder(filterName string, customStreamEncoder StreamEncoder) {
 	customStreamEncoders.Store(filterName, customStreamEncoder)
 }
+
 func readPageOffsetHintTable(br *bitReader, numPages int) (*PageOffsetHintTable, error) {
 	pageHints := &PageOffsetHintTable{}
 	sts := []struct {
@@ -7159,12 +7244,14 @@ func NewCCITTFaxEncoder() *CCITTFaxEncoder { return &CCITTFaxEncoder{Columns: 17
 func (multi *MultiEncoder) AddEncoder(encoder StreamEncoder) {
 	multi.encoders = append(multi.encoders, encoder)
 }
+
 func (crypt *PdfCrypt) unwrapRecipient(cert *x509.Certificate, privKey crypto.PrivateKey) ([]byte, [4]byte, int, error) {
 	if !crypt.isPubSec() {
 		return nil, [4]byte{}, -1, ErrPasswordRequired
 	}
 	return security.PubSecUnwrap(crypt.pubSec.Recipients, cert, privKey)
 }
+
 func (parser *PdfParser) parseArray(cursor *readerAtCursor, depth int) (*PdfObjectArray, error) {
 	if depth >= maxObjectNestingDepth {
 		return nil, errObjectNestingTooDeep
@@ -7282,6 +7369,7 @@ func MakeHexStringFromHexNumber(val uint32, byteWidth int) *PdfObjectString {
 	str := PdfObjectString{val: hex, isHex: true, hexEncoded: true}
 	return &str
 }
+
 func (crypt *PdfCrypt) takeLazyStreamData(stream *PdfObjectStream) ([]byte, bool) {
 	data, ok := crypt.lazyStreamData[stream]
 	if ok {
@@ -7289,12 +7377,14 @@ func (crypt *PdfCrypt) takeLazyStreamData(stream *PdfObjectStream) ([]byte, bool
 	}
 	return data, ok
 }
+
 func checkFirstPageEndOffset(endOfFirstPage, firstXrefOffset, mainXrefOffset, fileSize int64) *LinearizationViolation {
 	if endOfFirstPage <= firstXrefOffset || endOfFirstPage >= fileSize || (mainXrefOffset > 0 && endOfFirstPage >= mainXrefOffset) {
 		return &LinearizationViolation{Code: LinErrFirstPageEndOffset, Severity: SeverityError, Message: fmt.Sprintf("/E (%d) is inconsistent with the file layout (lin dict ends %d, /T %d, size %d)", endOfFirstPage, firstXrefOffset, mainXrefOffset, fileSize)}
 	}
 	return nil
 }
+
 func hexDigitValue(c byte) byte {
 	switch {
 	case c <= '9':
@@ -7322,6 +7412,7 @@ type ascii85Reader struct {
 func (parser *PdfParser) ValidateLinearization() ([]LinearizationViolation, error) {
 	return parser.validateLinearization()
 }
+
 func collectReferencedObjNums(dict *PdfObjectDictionary, keys ...string) []int {
 	m := map[string]struct{}{}
 	for _, key := range keys {
@@ -7390,6 +7481,7 @@ func (bw *BitWriter) AlignByte() {
 	}
 	bw.WriteBits(0, 8-bw.nbits)
 }
+
 func (crypt *PdfCrypt) authenticateCertificate(cert *x509.Certificate, key crypto.PrivateKey) (bool, error) {
 	data, perms, _, err := crypt.unwrapRecipient(cert, key)
 	if err != nil {
@@ -7440,6 +7532,7 @@ func (dict *PdfObjectDictionary) setWithLock(key PdfObjectName, val PdfObject, l
 // This implementation uses integer arithmetic for better performance by using
 // scaled coefficients: 299, 587, 114 (scaled by 1000).
 func RGBToGrayscale(r, g, b int) int { gray := 299*r + 587*g + 114*b; return gray / 1000 }
+
 func (parser *PdfParser) parseLinearizedDictionary() (*PdfObjectDictionary, error) {
 	fileSize := parser.fileSize
 	cursor := parser.newCursor(0)
@@ -7544,6 +7637,7 @@ type RawEncoder struct{}
 func (parser *PdfParser) Resolve(obj PdfObject) (PdfObject, error) {
 	return parser.resolveInternal(obj, map[int]struct{}{})
 }
+
 func (parser *PdfParser) checkLinearizedInformation(dict *PdfObjectDictionary) (bool, error) {
 	var err error
 	parser.linearizedFileLength, err = GetNumberAsInt64(dict.Get("L"))
@@ -7561,6 +7655,7 @@ func (parser *PdfParser) checkLinearizedInformation(dict *PdfObjectDictionary) (
 		return false, err
 	}
 }
+
 func (r *ascii85Reader) Read(p []byte) (int, error) {
 	total := 0
 	for total < len(p) {
@@ -7613,6 +7708,7 @@ func (parser *PdfParser) Decrypt(password []byte) (bool, error) {
 	}
 	return ok, err
 }
+
 func (parser *PdfParser) repairSeekXrefMarker(cursor *readerAtCursor) error {
 	fileSize := parser.fileSize
 	re := regexp.MustCompile("\\sxref\\s*")
@@ -7715,6 +7811,7 @@ func SizeOfReaderAt(r io.ReaderAt) (int64, error) {
 	}
 	return 0, errors.New("core.SizeOfReaderAt: source does not support Size(), Stat(), or Seek(); use the explicit-size constructor")
 }
+
 func (limits decodeLimits) clampToTotal(n int64) int64 {
 	if limits.maxTotal > 0 && limits.total != nil {
 		if remaining := limits.maxTotal - limits.total.Load(); remaining < n {
@@ -7848,6 +7945,7 @@ func (num *PdfObjectFloat) Equals(other PdfObject) bool {
 func (dict *PdfObjectDictionary) Set(key PdfObjectName, val PdfObject) {
 	dict.setWithLock(key, val, true)
 }
+
 func decodeTIFFPredictor(data []byte, columns, bitsPerComp, colors, rowBytes int) ([]byte, error) {
 	if rowBytes < 1 {
 		return data[:0], nil
@@ -7955,6 +8053,7 @@ func (streams *PdfObjectStreams) Len() int {
 	}
 	return len(streams.vec)
 }
+
 func (parser *PdfParser) sectioningRevisionEnds() ([]int64, error) {
 	if parser.numRevisions == 0 {
 		return nil, errors.New("this is first revision")
@@ -8020,6 +8119,7 @@ func (cursor *readerAtCursor) GetFileOffset() int64 {
 	sectionPosition, _ := cursor.section.Seek(0, io.SeekCurrent)
 	return cursor.sectionOffset + sectionPosition - int64(cursor.buffered.Buffered())
 }
+
 func isJBIG2Stream(stream *PdfObjectStream) bool {
 	switch v := TraceToDirectObject(stream.Get("Filter")).(type) {
 	case *PdfObjectName:
@@ -8033,6 +8133,7 @@ func isJBIG2Stream(stream *PdfObjectStream) bool {
 	}
 	return false
 }
+
 func parseHintTables(data []byte, dict *PdfObjectDictionary, numPages int) (*HintTables, error) {
 	if dict == nil {
 		return nil, errors.New("hint stream missing dictionary")
@@ -8130,6 +8231,7 @@ func (crypt *PdfCrypt) isEncrypted(obj PdfObject) bool {
 	}
 	return false
 }
+
 func equalIDObjects(a, b PdfObject) bool {
 	a = TraceToDirectObject(a)
 	b = TraceToDirectObject(b)
@@ -8155,6 +8257,7 @@ func equalIDObjects(a, b PdfObject) bool {
 		return string(a.Write()) == string(b.Write())
 	}
 }
+
 func (parser *PdfParser) parsePdfVersion() (int, int, error) {
 	cursor := parser.newCursor(0)
 	var probeLen int64 = 20
@@ -8208,12 +8311,14 @@ func (ref *PdfObjectReference) Equals(other PdfObject) bool {
 	}
 	return equalObjects(ref, other, 0, nil)
 }
+
 func checkTrailingStartxref(startxref, endOfFirstPage, fileSize int64) *LinearizationViolation {
 	if startxref <= endOfFirstPage || (fileSize > 0 && startxref >= fileSize) {
 		return &LinearizationViolation{Code: LinErrTrailingStartxrefMismatch, Severity: SeverityError, Message: fmt.Sprintf("trailing startxref (%d) does not point to the first-page xref (after lin dict %d, before /E %d)", startxref, endOfFirstPage, fileSize)}
 	}
 	return nil
 }
+
 func (crypt *PdfCrypt) saveCryptFilters(dict *PdfObjectDictionary) error {
 	if crypt.encrypt.V < 4 {
 		return errors.New("can only be used with V>=4")
@@ -8231,6 +8336,7 @@ func (crypt *PdfCrypt) saveCryptFilters(dict *PdfObjectDictionary) error {
 	dict.Set("StmF", MakeName(crypt.streamFilter))
 	return nil
 }
+
 func jbig2FirstPageBitmapSize(encoded []byte, globals jbig2.Globals) (int64, bool) {
 	doc, err := document.DecodeDocument(bitwise.NewReader(encoded), globals.ToDocumentGlobals())
 	if err != nil || len(doc.Pages) == 0 {
@@ -8280,6 +8386,7 @@ func (streams *PdfObjectStreams) Append(objects ...PdfObject) {
 
 // IsHexadecimal checks if the PdfObjectString contains Hexadecimal data.
 func (str *PdfObjectString) IsHexadecimal() bool { return str.isHex }
+
 func (crypt *PdfCrypt) securityHandler() security.StdHandler {
 	if crypt.stdEncrypt.R >= 5 {
 		return security.NewHandlerR6()
@@ -8496,6 +8603,7 @@ func MakeEncodedString(s string, utf16BE bool) *PdfObjectString {
 	}
 	return &PdfObjectString{val: string(strutils.StringToPDFDocEncoding(s)), isHex: false}
 }
+
 func (crypt *PdfCrypt) isDecrypted(obj PdfObject) bool {
 	_, ok := crypt.decryptedObjects[obj]
 	if ok {
@@ -8654,7 +8762,6 @@ var hexDigits = []byte("0123456789abcdefABCDEF")
 // 1 bit per component and 1 component per pixel (1bpp). In order to create binary image
 // use GoImageToJBIG2 function. If the image data contains the row bytes padding set the HasPadding to true.
 type JBIG2Image struct {
-
 	// Width and Height defines the image boundaries.
 	Width, Height int
 
@@ -8779,7 +8886,6 @@ func (parser *PdfParser) readComment(cursor *readerAtCursor) (string, error) {
 // A "shared object" is an object referenced from more than one page, plus all
 // objects from the first page that are not first-page-only.
 type SharedObjectHintTable struct {
-
 	// Header fields (Table F.4).
 	FirstSharedObjNum             uint32
 	FirstSharedOffset             uint32
@@ -8852,6 +8958,7 @@ func (jbig2 *JBIG2Encoder) DecodeImages(encoded []byte) ([]image.Image, error) {
 	}
 	return imgs, nil
 }
+
 func (parser *PdfParser) doRepairRebuildXrefsTopDown() (*XrefTable, error) {
 	cursor := parser.newCursor(0)
 	winLen := 20
@@ -8935,6 +9042,7 @@ func (num *PdfObjectInteger) Equals(other PdfObject) bool {
 func (parser *PdfParser) StoreCachedObject(objNumber int, obj PdfObject) {
 	parser.objCache.Store(objNumber, obj)
 }
+
 func (parser *PdfParser) parseObject(cursor *readerAtCursor, depth int) (PdfObject, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Read direct object")
@@ -9239,6 +9347,7 @@ func (b *PdfObjectBool) Equals(other PdfObject) bool {
 	}
 	return equalObjects(b, other, 0, nil)
 }
+
 func (crypt *PdfCrypt) generateParams(userPass, ownerPass []byte) error {
 	stdHandler := crypt.securityHandler()
 	data, err := stdHandler.GenerateParams(&crypt.stdEncrypt, ownerPass, userPass)
@@ -9248,6 +9357,7 @@ func (crypt *PdfCrypt) generateParams(userPass, ownerPass []byte) error {
 	crypt.encryptionKey = data
 	return nil
 }
+
 func (crypt *PdfCrypt) checkAccessRightsCertificate(cert *x509.Certificate, key crypto.PrivateKey) (bool, security.Permissions, error) {
 	_, data, _, err := crypt.unwrapRecipient(cert, key)
 	if err != nil {
@@ -9259,6 +9369,7 @@ func (str *PdfObjectString) Direct() PdfObject { return str }
 
 // UpdateParams updates the parameter values of the encoder.
 func (asciiHex *ASCIIHexEncoder) UpdateParams(params *PdfObjectDictionary) {}
+
 func writeStdEncryptDict(stdDict *security.StdEncryptDict, dict *PdfObjectDictionary) {
 	dict.Set("R", MakeInteger(int64(stdDict.R)))
 	dict.Set("P", MakeInteger(int64(int32(stdDict.P))))
@@ -9303,6 +9414,7 @@ func (dict *PdfObjectDictionary) Write() []byte {
 	buf.WriteString(">>")
 	return buf.Bytes()
 }
+
 func makeCryptFilterDict(filter crypt.Filter, event security.AuthEvent) *PdfObjectDictionary {
 	if event == "" {
 		event = security.EventDocOpen
@@ -9397,6 +9509,7 @@ func MakeArrayFromIntegers(vals []int) *PdfObjectArray {
 	}
 	return array
 }
+
 func decodeLimitsFromStream(streamObj *PdfObjectStream) decodeLimits {
 	if streamObj == nil {
 		return decodeLimits{}
@@ -9412,6 +9525,7 @@ func decodeLimitsFromStream(streamObj *PdfObjectStream) decodeLimits {
 	}
 	return limits
 }
+
 func (parser *PdfParser) parseDetailedHeader() (err error) {
 	cursor := parser.newCursor(0)
 	winLen := 20
@@ -9479,6 +9593,7 @@ func (parser *PdfParser) ParseIndirectObject() (PdfObject, error) {
 
 // MakeInteger creates a PdfObjectInteger from an int64.
 func MakeInteger(val int64) *PdfObjectInteger { num := PdfObjectInteger(val); return &num }
+
 func (flate *FlateEncoder) postDecodePredict(data []byte) ([]byte, error) {
 	if flate.Predictor <= 1 {
 		return data, nil
@@ -9606,6 +9721,7 @@ func (dict *PdfObjectDictionary) Remove(key PdfObjectName) {
 		delete(dict.dict, key)
 	}
 }
+
 func (parser *PdfParser) parseIndirectObject(cursor *readerAtCursor, visited map[int]struct{}) (PdfObject, error) {
 	indirect := PdfIndirectObject{}
 	indirect.parser = parser
@@ -9826,6 +9942,7 @@ func (parser *PdfParser) currentXrefs() *XrefTable {
 func (parser *PdfParser) RangeCachedObjects(fn func(objNum int, obj PdfObject) bool) {
 	parser.objCache.Range(func(k, v any) bool { return fn(k.(int), v.(PdfObject)) })
 }
+
 func parseHintRanges(arr *PdfObjectArray) []HintRange {
 	objs := arr.Elements()
 	if len(objs) != 2 && len(objs) != 4 {
@@ -9845,6 +9962,7 @@ func parseHintRanges(arr *PdfObjectArray) []HintRange {
 	}
 	return hintRanges
 }
+
 func (parser *PdfParser) parseNull(cursor *readerAtCursor) (PdfObjectNull, error) {
 	_, err := cursor.Discard(4)
 	return PdfObjectNull{}, err
@@ -9909,6 +10027,7 @@ func GetIndirect(obj PdfObject) (indirect *PdfIndirectObject, ok bool) {
 	indirect, ok = obj.(*PdfIndirectObject)
 	return indirect, ok
 }
+
 func resolveReferencesIterative(obj PdfObject, visited map[PdfObject]struct{}) error {
 	objs := []PdfObject{obj}
 	for len(objs) > 0 {
@@ -9979,6 +10098,7 @@ func UnpooledBytes(buf []byte) []byte {
 	copy(data, buf)
 	return data
 }
+
 func newReaderAtCursor(source io.ReaderAt, size, offset int64) *readerAtCursor {
 	if offset < 0 {
 		offset = 0
@@ -10015,6 +10135,7 @@ func NewFlateEncoder() *FlateEncoder {
 	flate.Columns = 1
 	return flate
 }
+
 func (parser *PdfParser) repairRebuildXrefsTopDown() (*XrefTable, error) {
 	parser.repairOnce.Do(func() { parser.repair.xrefs, parser.repair.err = parser.doRepairRebuildXrefsTopDown() })
 	return parser.repair.xrefs, parser.repair.err
@@ -10073,6 +10194,7 @@ func (parser *PdfParser) GetPreviousRevisionParser() (*PdfParser, error) {
 	parser.revisionParsers[parser] = revisionParser
 	return revisionParser, nil
 }
+
 func (parser *PdfParser) setXrefs(table XrefTable) {
 	table.sorted = sortedXrefObjects(table.ObjectMap)
 	parser.xrefs.Store(&table)
@@ -10166,6 +10288,7 @@ func (parser *PdfParser) CheckAccessRights(password []byte) (bool, security.Perm
 	}
 	return parser.crypter.checkAccessRights(password)
 }
+
 func (jbig2 *JBIG2Encoder) encodeImage(img image.Image) ([]byte, error) {
 	const procEncodeImage = "encodeImage"
 	jbig2Img, err := GoImageToJBIG2(img, JB2ImageAutoThreshold)
@@ -10230,6 +10353,7 @@ func (flate *FlateEncoder) EncodeBytes(data []byte) ([]byte, error) {
 	writer.Close()
 	return buf.Bytes(), nil
 }
+
 func (parser *PdfParser) inspect() (map[string]int, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("--------INSPECT ----------")
@@ -10370,6 +10494,7 @@ func (parser *PdfParser) inspect() (map[string]int, error) {
 	}
 	return m, nil
 }
+
 func (r *limitedDecodeReader) Read(p []byte) (int, error) {
 	if r.err != nil {
 		return 0, r.err
@@ -10395,6 +10520,7 @@ func (ascii85 *ASCII85Encoder) MakeStreamDict() *PdfObjectDictionary {
 	dict.Set("Filter", MakeName(ascii85.GetFilterName()))
 	return dict
 }
+
 func newPdfParserAt(r io.ReaderAt, size int64, opts *ParserOpts, decodedTotal *atomic.Int64) (*PdfParser, error) {
 	parser := &PdfParser{decodedTotal: decodedTotal, reader: r, fileSize: size, xrefOffsets: make([]int64, 0), revisionParsers: make(map[*PdfParser]*PdfParser), Opts: opts}
 	if err := parser.initParser(); err != nil {
@@ -10402,6 +10528,7 @@ func newPdfParserAt(r io.ReaderAt, size int64, opts *ParserOpts, decodedTotal *a
 	}
 	return parser, nil
 }
+
 func (parser *PdfParser) checkLinearizedTrailerID() *LinearizationViolation {
 	dict, err := parser.FirstXrefTrailer()
 	if err != nil || dict == nil {
@@ -10432,6 +10559,7 @@ func (stream *PdfObjectStream) Write() []byte {
 
 // DecodeReader returns r unchanged.
 func (rawEncoder *RawEncoder) DecodeReader(r io.Reader) io.Reader { return r }
+
 func newFlateEncoderFromStream(streamObj *PdfObjectStream, decodeParams *PdfObjectDictionary) (*FlateEncoder, error) {
 	flateEncoder := NewFlateEncoder()
 	pdfObjectDictionary := streamObj.PdfObjectDictionary
@@ -10519,6 +10647,7 @@ func (enc *LZWEncoder) MakeStreamDict() *PdfObjectDictionary {
 	dict.Set("EarlyChange", MakeInteger(int64(enc.EarlyChange)))
 	return dict
 }
+
 func newRunLengthEncoderFromStream(_ *PdfObjectStream, _ *PdfObjectDictionary) (*RunLengthEncoder, error) {
 	return NewRunLengthEncoder(), nil
 }
@@ -10614,6 +10743,7 @@ func (ind *PdfIndirectObject) String() string {
 
 // GetFilterName returns the name of the encoding filter.
 func (ascii85 *ASCII85Encoder) GetFilterName() string { return StreamEncodingFilterNameASCII85 }
+
 func newOffsetReaderAt(source io.ReaderAt, offset int64) *offsetReaderAt {
 	return &offsetReaderAt{source: source, offset: offset}
 }
@@ -10626,6 +10756,7 @@ func DefaultMaxDecodedStreamSize() int64 { return maxDecodedStreamSize.Load() }
 // NOTE: PDF does not use utf-8 string encoding like Go so `s` will often not be a utf-8 encoded
 // string.
 func MakeString(s string) *PdfObjectString { str := PdfObjectString{val: s}; return &str }
+
 func (cursor *readerAtCursor) reset(offset int64) {
 	cursor.sectionOffset = offset
 	cursor.section = io.NewSectionReader(cursor.source, offset, cursor.size-offset)
@@ -10804,6 +10935,7 @@ func NewEncoderFromStream(streamObj *PdfObjectStream) (StreamEncoder, error) {
 	applyDecodeLimits(encoder, decodeLimitsFromStream(streamObj))
 	return encoder, nil
 }
+
 func (crypt *PdfCrypt) encryptBytes(data []byte, filterName string, key []byte) ([]byte, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Encrypt bytes")

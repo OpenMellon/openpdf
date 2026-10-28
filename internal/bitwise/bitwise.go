@@ -7,9 +7,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/OpenMellon/openpdf/common"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
-	"io"
 )
 
 func (r *Reader) Read(p []byte) (n int, err error) {
@@ -23,6 +24,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 	}
 	return n, nil
 }
+
 func (w *BufferedWriter) Reset() {
 	w.buffer = w.buffer[:0]
 	w.byteOffset = 0
@@ -42,6 +44,7 @@ func (r *Reader) Reset() {
 	r.bufferedBits = r.markedBufferedBits
 	r.lastByte = r.markedLastByte
 }
+
 func (w *BufferedWriter) Write(d []byte) (int, error) {
 	w.expandIfNeeded(len(d))
 	if w.bitOffset == 0 {
@@ -49,6 +52,7 @@ func (w *BufferedWriter) Write(d []byte) (int, error) {
 	}
 	return w.writeShiftedBytes(d), nil
 }
+
 func (r *Reader) ReadBit() (bit int, err error) {
 	set, err := r.readBool()
 	if err != nil {
@@ -129,6 +133,7 @@ func (w *BufferedWriter) tryGrowByReslice(extra int) bool {
 	}
 	return false
 }
+
 func (w *BufferedWriter) WriteBit(bit int) error {
 	if bit != 1 && bit != 0 {
 		return jbig2errors.Errorf("BufferedWriter.WriteBit", "bit value must be in range {0,1} but is: %d", bit)
@@ -148,6 +153,7 @@ func (w *BufferedWriter) WriteBit(bit int) error {
 	}
 	return nil
 }
+
 func (w *BufferedWriter) FinishByte() {
 	if w.bitOffset == 0 {
 		return
@@ -167,6 +173,7 @@ func (w *Writer) Write(p []byte) (int, error) {
 	}
 	return len(p), nil
 }
+
 func (w *BufferedWriter) writeShiftedBytes(data []byte) int {
 	for _, value := range data {
 		w.writeByte(value)
@@ -188,12 +195,14 @@ func (w *BufferedWriter) expandIfNeeded(extra int) {
 		w.grow(extra)
 	}
 }
+
 func (r *Reader) ReadByte() (byte, error) {
 	if r.remainingBits == 0 {
 		return r.readBufferByte()
 	}
 	return r.readUnalignedByte()
 }
+
 func (r *Reader) NewPartialReader(offset, length int, relative bool) (*Reader, error) {
 	if offset < 0 {
 		return nil, errors.New("partial reader offset cannot be negative")
@@ -230,11 +239,13 @@ func (r *Reader) readBufferByte() (byte, error) {
 	r.lastByte = int(value)
 	return value, nil
 }
+
 func (r *Reader) Align() (skipped byte) {
 	skipped = r.remainingBits
 	r.remainingBits = 0
 	return skipped
 }
+
 func (w *Writer) WriteBit(bit int) error {
 	switch bit {
 	case 0, 1:
@@ -270,7 +281,7 @@ func (w *Writer) SkipBits(skip int) error {
 		common.Log.Trace("SkipBits")
 	}
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("BitIndex: '%d' ByteIndex: '%d', FullBits: '%d', Len: '%d', Cap: '%d'", w.bitOffset, w.byteOffset, int(w.bitOffset)+(w.byteOffset)*8, len(w.buffer), cap(w.buffer))
+		common.Log.Trace("BitIndex: '%d' ByteIndex: '%d', FullBits: '%d', Len: '%d', Cap: '%d'", w.bitOffset, w.byteOffset, int(w.bitOffset)+w.byteOffset*8, len(w.buffer), cap(w.buffer))
 	}
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("Skip: '%d', d: '%d', bitIndex: '%d'", skip, position, bitIndex)
@@ -324,6 +335,7 @@ func (r *Reader) ConsumeRemainingBits() (uint64, error) {
 	}
 	return 0, nil
 }
+
 func (w *BufferedWriter) WriteByte(bt byte) error {
 	if w.byteOffset > len(w.buffer)-1 || (w.byteOffset == len(w.buffer)-1 && w.bitOffset != 0) {
 		w.expandIfNeeded(1)
@@ -331,6 +343,7 @@ func (w *BufferedWriter) WriteByte(bt byte) error {
 	w.writeByte(bt)
 	return nil
 }
+
 func (r *Reader) readBool() (bit bool, err error) {
 	if r.remainingBits == 0 {
 		r.bufferedBits, err = r.readBufferByte()
@@ -397,6 +410,7 @@ func (w *Writer) writeByte(value byte) error {
 	}
 	return nil
 }
+
 func (w *BufferedWriter) WriteBits(bits uint64, number int) (written int, err error) {
 	const operation = "BufferedWriter.WriterBits"
 	if number < 0 || number > 64 {
@@ -486,6 +500,7 @@ func (w *BufferedWriter) SkipBits(skip int) error {
 	w.byteOffset = byteIndex
 	return nil
 }
+
 func (r *Reader) read(p []byte) (int, error) {
 	if r.bytePosition >= int64(r.source.length) {
 		return 0, io.EOF
@@ -495,6 +510,7 @@ func (r *Reader) read(p []byte) (int, error) {
 	r.bytePosition += int64(n)
 	return n, nil
 }
+
 func (w *BufferedWriter) grow(extra int) {
 	if w.buffer == nil && extra < initialBufferCapacity {
 		w.buffer = make([]byte, extra, initialBufferCapacity)
@@ -524,6 +540,7 @@ func (w *BufferedWriter) grow(extra int) {
 	}
 	w.buffer = w.buffer[:length+extra]
 }
+
 func (r *Reader) ReadBits(n byte) (value uint64, err error) {
 	if n < r.remainingBits {
 		remaining := r.remainingBits - n
@@ -569,6 +586,7 @@ func (w *Writer) byteCapacity() int {
 	}
 	return capacity
 }
+
 func (r *Reader) ReadUint32() (uint32, error) {
 	buffer := make([]byte, 4)
 	_, err := r.Read(buffer)
@@ -577,6 +595,7 @@ func (r *Reader) ReadUint32() (uint32, error) {
 	}
 	return binary.BigEndian.Uint32(buffer), nil
 }
+
 func (w *Writer) WriteBits(bits uint64, number int) (written int, err error) {
 	const operation = "Writer.WriterBits"
 	if number < 0 || number > 64 {
@@ -613,6 +632,7 @@ func (w *Writer) WriteBits(bits uint64, number int) (written int, err error) {
 	}
 	return fullBytes, nil
 }
+
 func (w *BufferedWriter) writeFullBytes(data []byte) int {
 	written := copy(w.buffer[w.fullOffset():], data)
 	w.byteOffset += written
@@ -626,6 +646,7 @@ func (w *BufferedWriter) fullOffset() int {
 	}
 	return offset
 }
+
 func (r *Reader) Mark() {
 	r.markedBytePosition = r.bytePosition
 	r.markedRemainingBits = r.remainingBits
