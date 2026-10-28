@@ -1,17 +1,6 @@
-// Copyright 2020 FoxyUtils ehf. Licensed under the MIT License.
-// See the LICENSE file in the repository root.
-
-// Package creator is used for quickly generating pages and content with a simple interface.
-// It is built on top of the model package to provide access to the most common
-// operations such as creating text and image reports and manipulating existing pages.
 package creator
 
 import (
-	"encoding/xml"
-	"errors"
-
-	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/model"
 )
 
@@ -48,275 +37,423 @@ type Invoice struct {
 	positioning         Positioning
 }
 
-// SetStructPageNumber sets the page object where the structure element for this drawable is located.
-func (td *taggedDrawable) SetStructPageNumber(pageNumber *int64) {
-	if td.tagInfo == nil {
-		td.tagInfo = model.NewStructureTagInfo()
-		td.tagInfo.StructureType = td.structType
+// SetBuyerAddress sets the buyer address of the invoice.
+func (i *Invoice) SetBuyerAddress(address *InvoiceAddress) { i.buyerAddress = address }
+
+func (i *Invoice) drawAddress(invoiceAddress *InvoiceAddress) []*StyledParagraph {
+	var paras []*StyledParagraph
+	if invoiceAddress.Heading != "" {
+		styledParagraph := newStyledParagraph(i.addressHeadingStyle)
+		styledParagraph.SetMargins(0, 0, 0, 7)
+		styledParagraph.Append(invoiceAddress.Heading)
+		paras = append(paras, styledParagraph)
 	}
-	td.tagInfo.StructPageNumber = pageNumber
+	styledParagraph := newStyledParagraph(i.addressStyle)
+	styledParagraph.SetLineHeight(1.2)
+	separator := invoiceAddress.Separator
+	if separator == "" {
+		separator = i.addressSeparator
+	}
+	city := invoiceAddress.City
+	if invoiceAddress.State != "" {
+		if city != "" {
+			city += separator
+		}
+		city += invoiceAddress.State
+	}
+	if invoiceAddress.Zip != "" {
+		if city != "" {
+			city += separator
+		}
+		city += invoiceAddress.Zip
+	}
+	if invoiceAddress.Name != "" {
+		styledParagraph.Append(invoiceAddress.Name + "\n")
+	}
+	if invoiceAddress.Street != "" {
+		styledParagraph.Append(invoiceAddress.Street + "\n")
+	}
+	if invoiceAddress.Street2 != "" {
+		styledParagraph.Append(invoiceAddress.Street2 + "\n")
+	}
+	if city != "" {
+		styledParagraph.Append(city + "\n")
+	}
+	if invoiceAddress.Country != "" {
+		styledParagraph.Append(invoiceAddress.Country + "\n")
+	}
+	styledParagraph2 := newStyledParagraph(i.addressStyle)
+	styledParagraph2.SetLineHeight(1.2)
+	styledParagraph2.SetMargins(0, 0, 7, 0)
+	if invoiceAddress.Phone != "" {
+		styledParagraph2.Append(invoiceAddress.fmtLine(invoiceAddress.Phone, "Phone: ", invoiceAddress.HidePhoneLabel))
+	}
+	if invoiceAddress.Email != "" {
+		styledParagraph2.Append(invoiceAddress.fmtLine(invoiceAddress.Email, "Email: ", invoiceAddress.HideEmailLabel))
+	}
+	paras = append(paras, styledParagraph, styledParagraph2)
+	return paras
 }
 
-func (t *Table) splitSubtables(i2 int, ctx2 DrawContext, totalWidth, height float64) map[int][2]*Table {
-	row := t.cells[i2].row
-	var subtableSplits []subtableSplit
-	ok2 := false
-	for i := i2; i < len(t.cells) && t.cells[i].row == row; i++ {
-		cell := t.cells[i]
-		table, ok := cell.content.(*Table)
-		if !ok {
+// SetDueDate sets the due date of the invoice.
+func (i *Invoice) SetDueDate(dueDate string) (*InvoiceCell, *InvoiceCell) {
+	i.dueDate[1].Value = dueDate
+	return i.dueDate[0], i.dueDate[1]
+}
+
+// Title returns the title of the invoice.
+func (i *Invoice) Title() string { return i.title }
+
+func (i *Invoice) drawInformation() *Table {
+	table := newTable(2)
+	rows := append([][2]*InvoiceCell{i.number, i.date, i.dueDate}, i.infoLines...)
+	for _, row := range rows {
+		invoiceCell, invoiceCell2 := row[0], row[1]
+		if invoiceCell2.Value == "" {
 			continue
 		}
-		width := cell.width(t.colWidths, totalWidth)
-		height2 := cell.height(width)
-		if !table.enablePageWrap && height2 <= height {
-			continue
-		}
-		if height2 > ctx2.Height {
-			ok2 = true
-		}
-		ctx := ctx2
-		ctx.Width = width - cell.indent
-		subtableSplits = append(subtableSplits, subtableSplit{index: i, table: table, ctx: ctx, height: height})
+		cell := table.NewCell()
+		cell.SetBackgroundColor(invoiceCell.BackgroundColor)
+		i.setCellBorder(cell, invoiceCell)
+		styledParagraph := newStyledParagraph(invoiceCell.TextStyle)
+		styledParagraph.Append(invoiceCell.Value)
+		styledParagraph.SetMargins(0, 0, 2, 1)
+		cell.SetContent(styledParagraph)
+		cell = table.NewCell()
+		cell.SetBackgroundColor(invoiceCell2.BackgroundColor)
+		i.setCellBorder(cell, invoiceCell2)
+		styledParagraph = newStyledParagraph(invoiceCell2.TextStyle)
+		styledParagraph.Append(invoiceCell2.Value)
+		styledParagraph.SetMargins(0, 0, 2, 1)
+		cell.SetContent(styledParagraph)
 	}
-	if !ok2 {
-		return nil
-	}
-	rows, ok := mergeSubtableSplits(subtableSplits)
-	if !ok {
-		return nil
-	}
-	if allFirstPartsEmpty(rows) {
-		return nil
-	}
-	m := make(map[int][2]*Table, len(subtableSplits))
-	for i, subtableSplit := range subtableSplits {
-		m[subtableSplit.index] = rows[i]
-	}
-	return m
+	return table
 }
 
-// ToRGB implements interface Color.
-// Note: It's not directly used since shading color works differently than regular color.
-func (fbs *FunctionBasedShading) ToRGB() (float64, float64, float64) { return 0, 0, 0 }
-
-// AddTextItem appends a new item with the specified text to the list.
-// The method creates a styled paragraph with the specified text and returns
-// it so that the item style can be customized.
-// The method also returns the marker used for the newly added item.
-// The marker object can be used to change the text and style of the marker
-// for the current item.
-func (li *List) AddTextItem(text string) (*StyledParagraph, *TextChunk, error) {
-	styledParagraph := newStyledParagraph(li.textStyle)
-	styledParagraph.Append(text)
-	chunk, err := li.Add(styledParagraph)
-	return styledParagraph, chunk, err
+// AddInfo is used to append a piece of invoice information in the template
+// information table.
+func (i *Invoice) AddInfo(description, value string) (*InvoiceCell, *InvoiceCell) {
+	invoiceCells := [2]*InvoiceCell{i.newCell(description, i.defaultCellProps), i.newCell(value, i.defaultCellProps)}
+	i.infoLines = append(i.infoLines, invoiceCells)
+	return invoiceCells[0], invoiceCells[1]
 }
 
-func (tp *templateProcessor) walk(activeParent2 *templateNode, attrs map[string]string, ok2 bool) error {
-	if activeParent2.start.Name.Local == styleElementName {
-		return nil
+// AddLine appends a new line to the invoice line items table.
+func (i *Invoice) AddLine(values ...string) []*InvoiceCell {
+	columnsLen := len(i.columns)
+	var invoiceCells []*InvoiceCell
+	for j, value := range values {
+		cell := i.newCell(value, i.lineProps)
+		if j < columnsLen {
+			cell.Alignment = i.columns[j].Alignment
+		}
+		invoiceCells = append(invoiceCells, cell)
 	}
-	activeParent2.attrs = attrs
-	templateTag, ok := templateTags[activeParent2.start.Name.Local]
-	if !ok {
-		if tp.options.Strict {
-			return tp.nodeError(activeParent2, "unknown tag <%s>", activeParent2.start.Name.Local)
-		}
-		tp.nodeLogDebug(activeParent2, "Unsupported template tag <%s>. Skipping. Output may be incorrect.", activeParent2.start.Name.Local)
-	} else {
-		effectiveParentName := tp.effectiveParentName(activeParent2)
-		s, ok3 := effectiveParentName, false
-		if _, ok := templateTag.allowedParents[effectiveParentName]; ok {
-			ok3 = true
-			if activeParent2.start.Name.Local == "page-break" {
-				if pageBreakInvalidContext := tp.pageBreakInvalidContext(activeParent2); pageBreakInvalidContext != "" {
-					ok3, s = false, pageBreakInvalidContext
-				}
-			}
-		}
-		if !ok3 {
-			if tp.options.Strict {
-				return tp.nodeError(activeParent2, "tag <%s> is not valid inside <%s>", activeParent2.start.Name.Local, s)
-			}
-			tp.nodeLogDebug(activeParent2, "Tag <%s> is not valid inside <%s>. Skipping.", activeParent2.start.Name.Local, s)
-		} else {
-			if templateTag2 := templateTags[effectiveParentName]; templateTag2 != nil && templateTag2.singleChild && !templateTag.allowMultipleChildren {
-				if activeParent := activeParent2.activeParent(); !activeParent.hasChild {
-					activeParent.hasChild = true
-				} else {
-					if tp.options.Strict {
-						return tp.nodeError(activeParent2, "tag <%s> takes a single child; wrap multiple components in <division>", effectiveParentName)
-					}
-					tp.nodeLogError(activeParent2, "tag <%s> takes a single child; wrap multiple components in <division>. Skipping <%s>.", effectiveParentName, activeParent2.start.Name.Local)
-					ok2 = true
-				}
-			}
-			if ok2 {
-				activeParent2.hasHandler = templateTag.parse != nil
-				if err := tp.applyAttrs(activeParent2, nil, templateTag.attrs); err != nil {
-					return err
-				}
-				if err := tp.validateLink(activeParent2); err != nil {
-					return err
-				}
-				if activeParent2.start.Name.Local == "table" {
-					if err := tp.validateTable(activeParent2); err != nil {
-						return err
-					}
-				}
-			} else if parse := templateTag.parse; parse != nil {
-				value, err := parse(tp, activeParent2)
-				if err != nil {
-					return err
-				}
-				activeParent2.value = value
-				activeParent2.hasHandler = value != nil
-			}
-		}
-	}
-	childStyle := tp.childStyle(activeParent2)
-	activeParent2.textAttrs = childStyle
-	n, n2 := -1, -1
-	if activeParent2.hasHandler && activeParent2.start.Name.Local == "paragraph" {
-		n, n2 = firstLastTextChild(activeParent2.childValues)
-	}
-	for i, childValue := range activeParent2.childValues {
-		switch childValue2 := childValue.(type) {
-		case *templateNode:
-			if err := tp.walk(childValue2, childStyle, ok2); err != nil {
-				return err
-			}
-		case *templateText:
-			activeParent := activeParent2
-			if !activeParent.hasHandler {
-				activeParent = activeParent.activeParent()
-			}
-			if activeParent == nil {
-				if !isBlank(childValue2.text) {
-					tp.nodeLogDebug(childValue2.pos(), "Text content inside <%s> has no enclosing tag that takes it. Skipping.", activeParent2.start.Name.Local)
-				}
-				continue
-			}
-			text := childValue2.text
-			if activeParent.start.Name.Local == "paragraph" {
-				ok := activeParent == activeParent2
-				text = collapseWhitespace(text, ok && (n < 0 || i <= n), ok && (n2 < 0 || i >= n2))
-			}
-			ok, err := tp.checkNodeText(activeParent, text, childValue2)
-			if err != nil {
-				return err
-			}
-			if ok && !ok2 {
-				if err := tp.addNodeText(activeParent, text, childValue2); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	if !ok2 && activeParent2.value != nil {
-		if table, ok := activeParent2.value.(*Table); ok {
-			tp.clampTableHeaderRows(activeParent2, table)
-		}
-		if err := tp.renderNode(activeParent2); err != nil {
-			return err
-		}
-	}
-	return nil
+	i.lines = append(i.lines, invoiceCells)
+	return invoiceCells
 }
+
+func (i *Invoice) drawSection(text, text2 string) []*StyledParagraph {
+	var paras []*StyledParagraph
+	if text != "" {
+		styledParagraph := newStyledParagraph(i.noteHeadingStyle)
+		styledParagraph.SetMargins(0, 0, 0, 5)
+		styledParagraph.Append(text)
+		paras = append(paras, styledParagraph)
+	}
+	if text2 != "" {
+		styledParagraph := newStyledParagraph(i.noteStyle)
+		styledParagraph.Append(text2)
+		paras = append(paras, styledParagraph)
+	}
+	return paras
+}
+
+func (i *Invoice) newColumn(value string, alignment CellHorizontalAlignment) *InvoiceCell {
+	invoiceCell := &InvoiceCell{i.headingCellProps, value}
+	invoiceCell.Alignment = alignment
+	return invoiceCell
+}
+
+// Logo returns the logo of the invoice.
+func (i *Invoice) Logo() *Image { return i.logo }
+
+// AddressHeadingStyle returns the style properties used to render the
+// heading of the invoice address sections.
+func (i *Invoice) AddressHeadingStyle() TextStyle { return i.headingStyle }
+
+// Date returns the invoice date description and value cells.
+// The returned values can be used to customize the styles of the cells.
+func (i *Invoice) Date() (*InvoiceCell, *InvoiceCell) { return i.date[0], i.date[1] }
+
+func (i *Invoice) setCellBorder(cell *TableCell, invoiceCell *InvoiceCell) {
+	for _, borderSide := range invoiceCell.BorderSides {
+		cell.SetBorder(borderSide, CellBorderStyleSingle, invoiceCell.BorderWidth)
+	}
+	cell.SetBorderColor(invoiceCell.BorderColor)
+}
+
+// DueDate returns the invoice due date description and value cells.
+// The returned values can be used to customize the styles of the cells.
+func (i *Invoice) DueDate() (*InvoiceCell, *InvoiceCell) {
+	return i.dueDate[0], i.dueDate[1]
+}
+
+func (i *Invoice) SetStructPageNumber(pageNumber *int64) {}
+
+func newInvoice(defaultStyle, textStyle TextStyle) *Invoice {
+	invoice := &Invoice{title: "INVOICE", addressSeparator: ", ", defaultStyle: defaultStyle, headingStyle: textStyle}
+	invoice.sellerAddress = &InvoiceAddress{Separator: invoice.addressSeparator}
+	invoice.buyerAddress = &InvoiceAddress{Heading: "Bill to", Separator: invoice.addressSeparator}
+	colorRGBFrom8bit := ColorRGBFrom8bit(245, 245, 245)
+	color := ColorRGBFrom8bit(155, 155, 155)
+	invoice.titleStyle = textStyle
+	invoice.titleStyle.Color = color
+	invoice.titleStyle.FontSize = 20
+	invoice.addressStyle = defaultStyle
+	invoice.addressHeadingStyle = textStyle
+	invoice.noteStyle = defaultStyle
+	invoice.noteHeadingStyle = textStyle
+	invoice.defaultCellProps = invoice.NewCellProps()
+	invoice.defaultCellProps.BackgroundColor = colorRGBFrom8bit
+	invoice.defaultCellProps.TextStyle = textStyle
+	invoice.headingCellProps = invoice.NewCellProps()
+	invoice.headingCellProps.TextStyle = textStyle
+	invoice.headingCellProps.BackgroundColor = colorRGBFrom8bit
+	invoice.headingCellProps.BorderColor = colorRGBFrom8bit
+	invoice.lineProps = invoice.NewCellProps()
+	invoice.lineProps.BorderColor = colorRGBFrom8bit
+	invoice.lineProps.BorderSides = []CellBorderSide{CellBorderSideBottom}
+	invoice.lineProps.Alignment = CellHorizontalAlignmentRight
+	invoice.totalCellProps = invoice.NewCellProps()
+	invoice.totalCellProps.Alignment = CellHorizontalAlignmentRight
+	invoice.number = [2]*InvoiceCell{invoice.newCell("Invoice number", invoice.defaultCellProps), invoice.newCell("", invoice.defaultCellProps)}
+	invoice.date = [2]*InvoiceCell{invoice.newCell("Date", invoice.defaultCellProps), invoice.newCell("", invoice.defaultCellProps)}
+	invoice.dueDate = [2]*InvoiceCell{invoice.newCell("Due Date", invoice.defaultCellProps), invoice.newCell("", invoice.defaultCellProps)}
+	invoice.subtotal = [2]*InvoiceCell{invoice.newCell("Subtotal", invoice.totalCellProps), invoice.newCell("", invoice.totalCellProps)}
+	totalCellProps := invoice.totalCellProps
+	totalCellProps.TextStyle = textStyle
+	totalCellProps.BackgroundColor = colorRGBFrom8bit
+	totalCellProps.BorderColor = colorRGBFrom8bit
+	invoice.total = [2]*InvoiceCell{invoice.newCell("Total", totalCellProps), invoice.newCell("", totalCellProps)}
+	invoice.notes = [2]string{"Notes", ""}
+	invoice.terms = [2]string{"Terms and conditions", ""}
+	invoice.columns = []*InvoiceCell{invoice.newColumn("Description", CellHorizontalAlignmentLeft), invoice.newColumn("Quantity", CellHorizontalAlignmentRight), invoice.newColumn("Unit price", CellHorizontalAlignmentRight), invoice.newColumn("Amount", CellHorizontalAlignmentRight)}
+	return invoice
+}
+
+// SetNotes sets the notes section of the invoice.
+func (i *Invoice) SetNotes(title, content string) { i.notes = [2]string{title, content} }
+
+// NoteHeadingStyle returns the style properties used to render the heading of
+// the invoice note sections.
+func (i *Invoice) NoteHeadingStyle() TextStyle { return i.noteHeadingStyle }
+
+// SetColumns overwrites any columns in the line items table. This should be
+// called before AddLine.
+func (i *Invoice) SetColumns(cols []*InvoiceCell) { i.columns = cols }
+
+// AddressStyle returns the style properties used to render the content of
+// the invoice address sections.
+func (i *Invoice) AddressStyle() TextStyle { return i.addressStyle }
+
+// GeneratePageBlocks generate the Page blocks. Multiple blocks are generated
+// if the contents wrap over multiple pages.
+func (i *Invoice) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, error) {
+	ctx2 := ctx
+	fns := []func(ctx DrawContext) ([]*Block, DrawContext, error){i.generateHeaderBlocks, i.generateInformationBlocks, i.generateLineBlocks, i.generateTotalBlocks, i.generateNoteBlocks}
+	var blocks []*Block
+	for _, fn := range fns {
+		fn2, ctx2, err := fn(ctx)
+		if err != nil {
+			return blocks, ctx, err
+		}
+		if len(blocks) == 0 {
+			blocks = fn2
+		} else if len(fn2) > 0 {
+			blocks[len(blocks)-1].mergeBlocks(fn2[0])
+			blocks = append(blocks, fn2[1:]...)
+		}
+		ctx = ctx2
+	}
+	if i.positioning.IsRelative() {
+		ctx.X = ctx2.X
+	}
+	if i.positioning.IsAbsolute() {
+		return blocks, ctx2, nil
+	}
+	return blocks, ctx, nil
+}
+
+// SetNoteHeadingStyle sets the style properties used to render the heading
+// of the invoice note sections.
+func (i *Invoice) SetNoteHeadingStyle(style TextStyle) { i.noteHeadingStyle = style }
+
+// SetTitleStyle sets the style properties of the invoice title.
+func (i *Invoice) SetTitleStyle(style TextStyle) { i.titleStyle = style }
+
+// SetNoteStyle sets the style properties used to render the content of the
+// invoice note sections.
+func (i *Invoice) SetNoteStyle(style TextStyle) { i.noteStyle = style }
+
+// AppendColumn appends a column to the line items table.
+func (i *Invoice) AppendColumn(description string) *InvoiceCell {
+	column := i.NewColumn(description)
+	i.columns = append(i.columns, column)
+	return column
+}
+
+// AddTotalLine adds a new line in the invoice totals table.
+func (i *Invoice) AddTotalLine(desc, value string) (*InvoiceCell, *InvoiceCell) {
+	invoiceCell := &InvoiceCell{i.totalCellProps, desc}
+	invoiceCell2 := &InvoiceCell{i.totalCellProps, value}
+	i.totalLines = append(i.totalLines, [2]*InvoiceCell{invoiceCell, invoiceCell2})
+	return invoiceCell, invoiceCell2
+}
+
+func (i *Invoice) GenerateKDict() (*model.KDict, error) { return nil, nil }
+
+// SetLogo sets the logo of the invoice.
+func (i *Invoice) SetLogo(logo *Image) { i.logo = logo }
+
+// Sections returns the custom content sections of the invoice as
+// title-content pairs.
+func (i *Invoice) Sections() [][2]string { return i.sections }
+
+// TitleStyle returns the style properties used to render the invoice title.
+func (i *Invoice) TitleStyle() TextStyle { return i.titleStyle }
+
+// TotalLines returns all the rows in the invoice totals table as
+// description-value cell pairs.
+func (i *Invoice) TotalLines() [][2]*InvoiceCell {
+	rows := [][2]*InvoiceCell{i.subtotal}
+	rows = append(rows, i.totalLines...)
+	return append(rows, i.total)
+}
+
+// InfoLines returns all the rows in the invoice information table as
+// description-value cell pairs.
+func (i *Invoice) InfoLines() [][2]*InvoiceCell {
+	rows := [][2]*InvoiceCell{i.number, i.date, i.dueDate}
+	return append(rows, i.infoLines...)
+}
+
+// Notes returns the notes section of the invoice as a title-content pair.
+func (i *Invoice) Notes() (string, string) { return i.notes[0], i.notes[1] }
 
 // SetSellerAddress sets the seller address of the invoice.
 func (i *Invoice) SetSellerAddress(address *InvoiceAddress) { i.sellerAddress = address }
 
-func (grc grayColor) ToRGB() (float64, float64, float64) {
-	return grc.gray, grc.gray, grc.gray
-}
+func (i *Invoice) SetStructureType(structureType model.StructureType) {}
 
-// Add adds a new Drawable to the chapter.
-// Currently supported Drawables:
-// - *StyledParagraph
-// - *Image
-// - *Chart
-// - *Table
-// - *Division
-// - *List
-// - *Rectangle
-// - *Ellipse
-// - *Line
-// - *Block,
-// - *PageBreak
-// - *Chapter
-func (ch *Chapter) Add(d Drawable) error {
-	if Drawable(ch) == d {
-		common.Log.Debug("ERROR: Cannot add itself")
-		return errors.New("range check error")
+// Terms returns the terms and conditions section of the invoice as a
+// title-content pair.
+func (i *Invoice) Terms() (string, string) { return i.terms[0], i.terms[1] }
+
+// BuyerAddress returns the buyer address used in the invoice template.
+func (i *Invoice) BuyerAddress() *InvoiceAddress { return i.buyerAddress }
+
+func (i *Invoice) generateLineBlocks(ctx DrawContext) ([]*Block, DrawContext, error) {
+	table := newTable(len(i.columns))
+	table.SetMargins(0, 0, 25, 0)
+	for _, column := range i.columns {
+		styledParagraph := newStyledParagraph(column.TextStyle)
+		styledParagraph.SetMargins(0, 0, 1, 0)
+		styledParagraph.Append(column.Value)
+		cell := table.NewCell()
+		cell.SetHorizontalAlignment(column.Alignment)
+		cell.SetBackgroundColor(column.BackgroundColor)
+		i.setCellBorder(cell, column)
+		cell.SetContent(styledParagraph)
 	}
-	switch d2 := d.(type) {
-	case *StyledParagraph, *Image, *Chart, *Table, *Division, *List, *Rectangle, *Ellipse, *Line, *Block, *PageBreak, *Chapter:
-		ch.contents = append(ch.contents, d)
-	case containerDrawable:
-		containerComponent, err := d2.ContainerComponent(ch)
-		if err != nil {
-			return err
+	for _, line := range i.lines {
+		for _, invoiceCell := range line {
+			styledParagraph := newStyledParagraph(invoiceCell.TextStyle)
+			styledParagraph.SetMargins(0, 0, 3, 2)
+			styledParagraph.Append(invoiceCell.Value)
+			cell := table.NewCell()
+			cell.SetHorizontalAlignment(invoiceCell.Alignment)
+			cell.SetBackgroundColor(invoiceCell.BackgroundColor)
+			i.setCellBorder(cell, invoiceCell)
+			cell.SetContent(styledParagraph)
 		}
-		ch.contents = append(ch.contents, containerComponent)
-	default:
-		common.Log.Debug("Unsupported: %T", d)
-		return errors.New("type check error")
 	}
-	return nil
+	return table.GeneratePageBlocks(ctx)
 }
 
-func (tp *templateProcessor) clampTableHeaderRows(node *templateNode, table *Table) {
-	if !table.hasHeaderRows || table.headerEndRow <= table.rows {
-		return
-	}
-	tp.nodeLogDebug(node, "Table header rows %d-%d exceed the table's %d rows.", table.headerStartRow, table.headerEndRow, table.rows)
-	if table.headerStartRow > table.rows {
-		table.hasHeaderRows = false
-		table.headerStartRow, table.headerEndRow = 0, 0
-	} else {
-		table.headerEndRow = table.rows
-	}
+// SetTerms sets the terms and conditions section of the invoice.
+func (i *Invoice) SetTerms(title, content string) { i.terms = [2]string{title, content} }
+
+// NewCell returns a new invoice table cell.
+func (i *Invoice) NewCell(value string) *InvoiceCell {
+	return i.newCell(value, i.NewCellProps())
 }
 
-func (tp *templateProcessor) effectiveAttrs(node *templateNode, m map[string]attrApplyFunc) []xml.Attr {
-	var attrs []xml.Attr
-	if _, ok := styledTextTags[node.start.Name.Local]; ok {
-		for attrKey, attr := range node.attrs {
-			if _, ok := m[attrKey]; ok {
-				attrs = append(attrs, xml.Attr{Name: xml.Name{Local: attrKey}, Value: attr})
+// Lines returns all the rows of the invoice line items table.
+func (i *Invoice) Lines() [][]*InvoiceCell { return i.lines }
+
+func (i *Invoice) newCell(value string, invoiceCellProps InvoiceCellProps) *InvoiceCell {
+	return &InvoiceCell{invoiceCellProps, value}
+}
+
+// SetAddressHeadingStyle sets the style properties used to render the
+// heading of the invoice address sections.
+func (i *Invoice) SetAddressHeadingStyle(style TextStyle) { i.addressHeadingStyle = style }
+
+// Columns returns all the columns in the invoice line items table.
+func (i *Invoice) Columns() []*InvoiceCell { return i.columns }
+
+// SetTotal sets the total of the invoice.
+func (i *Invoice) SetTotal(value string) { i.total[1].Value = value }
+
+// SetMarkedContentID sets marked content ID.
+func (i *Invoice) SetMarkedContentID(id int64) {}
+
+func (i *Invoice) generateNoteBlocks(ctx DrawContext) ([]*Block, DrawContext, error) {
+	division := newDivision()
+	rows := append([][2]string{i.notes, i.terms}, i.sections...)
+	for _, row := range rows {
+		if row[1] != "" {
+			section := i.drawSection(row[0], row[1])
+			for _, d := range section {
+				division.Add(d)
 			}
+			styledParagraph := newStyledParagraph(i.defaultStyle)
+			styledParagraph.SetMargins(0, 0, 10, 0)
+			division.Add(styledParagraph)
 		}
 	}
-	for _, s := range node.classNames() {
-		attrs = append(attrs, tp.classStyles[s]...)
-	}
-	for _, attr := range node.start.Attr {
-		if attr.Name.Space == "" && attr.Name.Local == classAttrName {
+	return division.GeneratePageBlocks(ctx)
+}
+
+func (i *Invoice) generateTotalBlocks(ctx DrawContext) ([]*Block, DrawContext, error) {
+	table := newTable(4)
+	table.SetMargins(0, 0, 10, 10)
+	rows := [][2]*InvoiceCell{i.subtotal}
+	rows = append(rows, i.totalLines...)
+	rows = append(rows, i.total)
+	for _, row := range rows {
+		invoiceCell, invoiceCell2 := row[0], row[1]
+		if invoiceCell2.Value == "" {
 			continue
 		}
-		attrs = append(attrs, attr)
+		table.SkipCells(2)
+		cell := table.NewCell()
+		cell.SetBackgroundColor(invoiceCell.BackgroundColor)
+		cell.SetHorizontalAlignment(invoiceCell2.Alignment)
+		i.setCellBorder(cell, invoiceCell)
+		styledParagraph := newStyledParagraph(invoiceCell.TextStyle)
+		styledParagraph.SetMargins(0, 0, 2, 1)
+		styledParagraph.Append(invoiceCell.Value)
+		cell.SetContent(styledParagraph)
+		cell = table.NewCell()
+		cell.SetBackgroundColor(invoiceCell2.BackgroundColor)
+		cell.SetHorizontalAlignment(invoiceCell2.Alignment)
+		i.setCellBorder(cell, invoiceCell)
+		styledParagraph = newStyledParagraph(invoiceCell2.TextStyle)
+		styledParagraph.SetMargins(0, 0, 2, 1)
+		styledParagraph.Append(invoiceCell2.Value)
+		cell.SetContent(styledParagraph)
 	}
-	return attrs
-}
-
-// ToContentCreator convert SVG and add elements contentstream then returns `contentstream.ContentCreator`.
-func (gse *GraphicSVGElement) ToContentCreator(cc *contentstream.ContentCreator, res *model.PdfPageResources, scaleX, scaleY, translateX, translateY float64) *contentstream.ContentCreator {
-	if gse.Name == "svg" {
-		gse.SetScaling(scaleX, scaleY)
-		cc.Add_cm(1, 0, 0, 1, translateX, translateY)
-		gse.setDefaultScaling(gse.scale)
-		cc.Add_W()
-		cc.Add_n()
-		gse.processDefs()
-		for _, graphicSVGElement := range gse.Children {
-			graphicSVGElement.ViewBox = gse.ViewBox
-			graphicSVGElement.linearShadings = gse.linearShadings
-			graphicSVGElement.radialShadings = gse.radialShadings
-			graphicSVGElement.toContentStream(cc, res)
-		}
-		return cc
-	}
-	return nil
+	return table.GeneratePageBlocks(ctx)
 }
