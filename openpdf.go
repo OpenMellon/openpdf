@@ -18,8 +18,7 @@
 //
 // The API is composed of a few major packages:
 //
-//   - common: Provides common shared types such as Logger and utilities to check
-//     license validity.
+//   - common: Provides common shared types such as Logger.
 //
 //   - core: The core package defines the primitive PDF object types and handles
 //     the file reading I/O and parsing the primitive objects.

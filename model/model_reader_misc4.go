@@ -10,8 +10,8 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 )
 
-func newPdfReaderTracked(r io.ReaderAt, size int64, opts *ReaderOpts, ok, found bool, s string) (*PdfReader, error) {
-	readerCore, err := newPdfReaderCore(r, opts, ok, found, s)
+func newPdfReaderTracked(r io.ReaderAt, size int64, opts *ReaderOpts, ok, found bool) (*PdfReader, error) {
+	readerCore, err := newPdfReaderCore(r, opts, ok, found)
 	if err != nil {
 		return nil, err
 	}

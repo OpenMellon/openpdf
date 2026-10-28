@@ -3,7 +3,6 @@ package model
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -16,7 +15,6 @@ import (
 	"github.com/OpenMellon/freetype/truetype"
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/license"
 	imagefont "golang.org/x/image/font"
 )
 
@@ -161,30 +159,6 @@ func (p *PdfPage) AddImageResource(name core.PdfObjectName, ximg *XObjectImage) 
 
 // RemveTabOrder removes the tab order for the page.
 func (p *PdfPage) RemoveTabOrder() { p.Tabs = nil }
-
-func pageToPdfObjectLicensed(page *PdfPage) core.PdfObject {
-	licenseKey := license.GetLicenseKey()
-	if licenseKey != nil && licenseKey.IsLicensed() {
-		return page.ToPdfObject()
-	}
-	name := core.PdfObjectName("UF1")
-	if !page.Resources.HasFontByName(name) {
-		page.Resources.SetFontByName(name, DefaultFont().ToPdfObject())
-	}
-	var strs []string
-	strs = append(strs, "q")
-	strs = append(strs, "BT")
-	strs = append(strs, fmt.Sprintf("/%s 14 Tf", name.String()))
-	strs = append(strs, "1 0 0 rg")
-	strs = append(strs, "10 10 Td")
-	s := "Unlicensed OpenPDF"
-	strs = append(strs, fmt.Sprintf("(%s) Tj", s))
-	strs = append(strs, "ET")
-	strs = append(strs, "Q")
-	join := strings.Join(strs, "\n")
-	page.AddContentStreamByString(join)
-	return page.ToPdfObject()
-}
 
 // AddFont adds a font dictionary to the Font resources.
 func (p *PdfPage) AddFont(name core.PdfObjectName, font core.PdfObject) error {

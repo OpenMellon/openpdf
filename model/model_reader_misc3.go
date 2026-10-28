@@ -9,7 +9,6 @@ import (
 	"io"
 
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/license"
 )
 
 func (r *PdfReader) loadFromParser(parser *core.PdfParser) (*PdfReader, error) {
@@ -158,8 +157,7 @@ func (r *PdfReader) GetNameDictionary() (core.PdfObject, error) {
 
 // NewPdfReaderWithOptsAt is the explicit-size form of NewPdfReaderWithOpts.
 func NewPdfReaderWithOptsAt(r io.ReaderAt, size int64, opts *ReaderOpts) (*PdfReader, error) {
-	const trackNameNewPdfReaderWithOpts = "model:NewPdfReaderWithOpts"
-	return newPdfReaderTracked(r, size, opts, true, false, trackNameNewPdfReaderWithOpts)
+	return newPdfReaderTracked(r, size, opts, true, false)
 }
 
 // ReaderOpts defines options for creating PdfReader instances.
@@ -246,15 +244,7 @@ func (r *PdfReader) GetPdfInfo() (*PdfInfo, error) {
 // NewPdfReader for that). Reading existing signatures is supported, since the
 // parser reads raw bytes via ReadBytesAt. Encrypted PDFs are not supported.
 func NewPdfReaderFromParser(parser *core.PdfParser) (*PdfReader, error) {
-	const trackNameNewPdfReaderFromParser = "model:NewPdfReaderFromParser"
-	randomID, err := randomIDWithPrefix("r")
-	if err != nil {
-		return nil, err
-	}
-	if err := license.Track(randomID, trackNameNewPdfReaderFromParser, ""); err != nil {
-		return nil, err
-	}
-	reader := &PdfReader{parser: parser, traversed: map[core.PdfObject]struct{}{}, modelManager: newModelManager(), lazy: false, opts: NewReaderOpts(), trackID: randomID}
+	reader := &PdfReader{parser: parser, traversed: map[core.PdfObject]struct{}{}, modelManager: newModelManager(), lazy: false, opts: NewReaderOpts()}
 	ok, err := reader.IsEncrypted()
 	if err != nil {
 		return nil, err
@@ -354,7 +344,7 @@ func (r *PdfReader) GetPreviousRevision() (*PdfReader, error) {
 	if err != nil {
 		return nil, err
 	}
-	readerCore, err := newPdfReaderCore(previousRevisionParser.GetReaderAt(), r.opts, r.autoDecrypt, r.skipOutlines && r.skipPerms, "model:GetPreviousRevision")
+	readerCore, err := newPdfReaderCore(previousRevisionParser.GetReaderAt(), r.opts, r.autoDecrypt, r.skipOutlines && r.skipPerms)
 	if err != nil {
 		return nil, err
 	}
@@ -375,8 +365,7 @@ func NewReaderOpts() *ReaderOpts { return &ReaderOpts{Password: "", LazyLoad: tr
 
 // NewPdfReaderLazyAt is the explicit-size form of NewPdfReaderLazy.
 func NewPdfReaderLazyAt(r io.ReaderAt, size int64) (*PdfReader, error) {
-	const trackNameNewPdfReaderLazy = "model:NewPdfReaderLazy"
-	return newPdfReaderTracked(r, size, &ReaderOpts{LazyLoad: true}, false, false, trackNameNewPdfReaderLazy)
+	return newPdfReaderTracked(r, size, &ReaderOpts{LazyLoad: true}, false, false)
 }
 
 // Inspect inspects the object types, subtypes and content in the PDF file returning a map of

@@ -353,8 +353,7 @@ func NewPdfColorspaceFromPdfObject(obj core.PdfObject) (PdfColorspace, error) {
 
 // NewCompliancePdfReaderAt is the explicit-size form of NewCompliancePdfReader.
 func NewCompliancePdfReaderAt(r io.ReaderAt, size int64) (*CompliancePdfReader, error) {
-	const trackNameNewCompliancePdfReader = "model:NewCompliancePdfReader"
-	readerTracked, err := newPdfReaderTracked(r, size, &ReaderOpts{ComplianceMode: true}, false, false, trackNameNewCompliancePdfReader)
+	readerTracked, err := newPdfReaderTracked(r, size, &ReaderOpts{ComplianceMode: true}, false, false)
 	if err != nil {
 		return nil, err
 	}

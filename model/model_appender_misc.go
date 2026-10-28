@@ -52,8 +52,7 @@ func newAppenderSnapshotReader(r io.ReaderAt, n int64, opts *ReaderOpts, ok bool
 		*readerOpts = *opts
 	}
 	readerOpts.LazyLoad = true
-	const trackNameAppenderSnapshot = "model:appenderSnapshot"
-	return newPdfReaderTracked(r, n, readerOpts, ok, true, trackNameAppenderSnapshot)
+	return newPdfReaderTracked(r, n, readerOpts, ok, true)
 }
 
 // PdfAppender appends new PDF content to an existing PDF document via incremental updates.
@@ -236,7 +235,7 @@ func (a *PdfAppender) SignWithAppearance(pageNum int, field *PdfFieldSignature, 
 func (a *PdfAppender) AddPages(pages ...*PdfPage) {
 	for _, page := range pages {
 		page = page.Duplicate()
-		pageToPdfObjectLicensed(page)
+		page.ToPdfObject()
 		a.pages = append(a.pages, page)
 	}
 }
@@ -289,7 +288,7 @@ func (a *PdfAppender) MergePageWith(pageNum int, page *PdfPage) error {
 		a.pages[n] = page2
 	}
 	page = page.Duplicate()
-	pageToPdfObjectLicensed(page)
+	page.ToPdfObject()
 	pageResourceObjects := collectPageResourceObjects(page2)
 	objByName := collectPageResourceObjects(page)
 	nameByName := make(map[core.PdfObjectName]core.PdfObjectName)
@@ -373,7 +372,7 @@ func (a *PdfAppender) ReplacePage(pageNum int, page *PdfPage) {
 	for i := range a.pages {
 		if i == n {
 			duplicate := page.Duplicate()
-			pageToPdfObjectLicensed(duplicate)
+			duplicate.ToPdfObject()
 			a.pages[i] = duplicate
 		}
 	}

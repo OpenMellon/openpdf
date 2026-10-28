@@ -7,7 +7,6 @@ import (
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/license"
 	"github.com/OpenMellon/openpdf/model"
 )
 
@@ -63,16 +62,6 @@ type Box struct{ BBox model.PdfRectangle }
 
 // ExtractionMode defines different types of extraction mode.
 type ExtractionMode int
-
-func checkLicense(pageText *PageText) error {
-	key := license.GetLicenseKey()
-	if key != nil && key.IsLicensed() || licenseBypass {
-		return nil
-	}
-	fmt.Printf("Unlicensed copy of UniPDF\n")
-	fmt.Println("")
-	return errors.New("unipdf license code required")
-}
 
 // New returns an Extractor instance for extracting content from the input PDF page.
 func New(page *model.PdfPage) (*Extractor, error) { return NewWithOptions(page, nil) }
@@ -176,13 +165,9 @@ const (
 	rulingVert
 )
 
-var licenseBypass = false
-
 // NewFromContents creates a new extractor from contents and page resources.
 func NewFromContents(contents string, resources *model.PdfPageResources) (*Extractor, error) {
-	const funcName = "extractor.NewFromContents"
 	ex := &Extractor{contents: contents, resources: resources, fonts: map[string]fontEntry{}, parsedForms: map[*core.PdfObjectStream]parsedForm{}, formResults: map[formCacheKey]textResult{}}
-	license.TrackUse(funcName)
 	return ex, nil
 }
 
@@ -270,7 +255,6 @@ const maxCachedFonts = 10
 
 // NewWithOptions an Extractor instance for extracting content from the input PDF page with options.
 func NewWithOptions(page *model.PdfPage, options *Options) (*Extractor, error) {
-	const funcName = "extractor.NewWithOptions"
 	contents, err := page.GetAllContentStreams()
 	if err != nil {
 		return nil, err
@@ -307,7 +291,6 @@ func NewWithOptions(page *model.PdfPage, options *Options) (*Extractor, error) {
 			}
 		}
 	}
-	license.TrackUse(funcName)
 	return ex, nil
 }
 

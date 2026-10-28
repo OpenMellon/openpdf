@@ -7,13 +7,9 @@ import (
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/license"
 )
 
 func (w *PdfWriter) prepareLinearizedDocument() error {
-	if err := w.checkLicense(); err != nil {
-		return err
-	}
 	if err := w.writeOutlines(); err != nil {
 		return err
 	}
@@ -41,8 +37,7 @@ func (w *PdfWriter) prepareLinearizedDocument() error {
 
 // AddPage adds a page to the PDF file. The new page should be an indirect object.
 func (w *PdfWriter) AddPage(page *PdfPage) error {
-	const trackNameAddPage = "model:PdfWriter.AddPage"
-	obj := pageToPdfObjectLicensed(page)
+	obj := page.ToPdfObject()
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("==========")
 		common.Log.Trace("Appending to page list %T", obj)
@@ -122,17 +117,6 @@ func (w *PdfWriter) AddPage(page *PdfPage) error {
 		return errors.New("invalid Pages Count object (not an integer)")
 	}
 	*count = *count + 1
-	if page.reader == nil {
-		err := license.Track(w.trackID, trackNameAddPage, w.fileName)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := license.Track(page.reader.trackID, trackNameAddPage, page.reader.fileName)
-		if err != nil {
-			return err
-		}
-	}
 	w.addObject(indirect)
 	err := w.addObjects(dict)
 	if err != nil {

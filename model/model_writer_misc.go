@@ -8,7 +8,6 @@ import (
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/license"
 )
 
 func (w *PdfWriter) setCatalogVersion() {
@@ -54,16 +53,6 @@ func (w *PdfWriter) SetCatalogMarkInfo(info core.PdfObject) error {
 		w.addObject(info)
 	}
 	w.catalog.Set("MarkInfo", info)
-	return nil
-}
-
-func (w *PdfWriter) checkLicense() error {
-	licenseKey := license.GetLicenseKey()
-	if (licenseKey == nil || !licenseKey.IsLicensed()) && !licenseCheckDisabled {
-		fmt.Printf("Unlicensed copy of UniPDF\n")
-		fmt.Println("")
-		return errors.New("unipdf license code required")
-	}
 	return nil
 }
 
@@ -238,7 +227,6 @@ type PdfWriter struct {
 	originalSize         int64
 	objNumMap            map[core.PdfObject]int64
 	traversed            map[core.PdfObject]struct{}
-	trackID              string
 	fileName             string
 	outputIntents        []*PdfOutputIntent
 	useHashBasedID       bool
@@ -413,11 +401,6 @@ func NewPdfWriter() PdfWriter {
 	indirect2.PdfObject = dict2
 	writer.root = &indirect2
 	writer.addObject(writer.root)
-	randomID, err := randomIDWithPrefix("w")
-	if err != nil {
-		common.Log.Debug("ERROR: %v", err)
-	}
-	writer.trackID = randomID
 	indirect3 := core.PdfIndirectObject{}
 	dict3 := core.MakeDict()
 	dict3.Set("Type", core.MakeName("Pages"))

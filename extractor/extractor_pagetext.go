@@ -176,10 +176,6 @@ func (e *Extractor) ExtractPageText() (*PageText, int, int, error) {
 		pageText.options.disableDehyphenation = e.options.DisableDehyphenation
 	}
 	pageText.computeViews()
-	err = checkLicense(pageText)
-	if err != nil {
-		return nil, 0, 0, err
-	}
 	if e.options != nil {
 		if e.options.ApplyCropBox && e.cropBox != nil {
 			pageText.ApplyArea(*e.cropBox)

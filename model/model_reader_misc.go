@@ -13,7 +13,6 @@ import (
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/core/security"
-	"github.com/OpenMellon/openpdf/internal/license"
 )
 
 // GetCatalogMetadata gets the catalog defined XMP Metadata.
@@ -86,8 +85,7 @@ func (r *PdfReader) loadAnnotations(annots core.PdfObject) ([]*PdfAnnotation, er
 // the source's byte length cannot be auto-detected — e.g. a custom io.ReaderAt
 // that doesn't implement Size/Seek/Stat.
 func NewPdfReaderAt(r io.ReaderAt, size int64) (*PdfReader, error) {
-	const trackNameNewPdfReader = "model:NewPdfReader"
-	return newPdfReaderTracked(r, size, &ReaderOpts{}, false, false, trackNameNewPdfReader)
+	return newPdfReaderTracked(r, size, &ReaderOpts{}, false, false)
 }
 
 // NewPdfReader returns a new PdfReader for the given io.ReaderAt source.
@@ -142,7 +140,6 @@ type PdfReader struct {
 	traversed      map[core.PdfObject]struct{}
 	mu             sync.Mutex
 	readSeeker     io.ReadSeeker
-	trackID        string
 	complianceMode bool
 	fileName       string
 	opts           *ReaderOpts
@@ -170,7 +167,7 @@ func (r *PdfReader) GetCatalogVersion() (core.PdfObject, bool) {
 	return version, version != nil
 }
 
-func newPdfReaderCore(r io.ReaderAt, opts *ReaderOpts, autoDecrypt, ok bool, s string) (*PdfReader, error) {
+func newPdfReaderCore(r io.ReaderAt, opts *ReaderOpts, autoDecrypt, ok bool) (*PdfReader, error) {
 	if opts == nil {
 		opts = NewReaderOpts()
 	}
@@ -184,15 +181,6 @@ func newPdfReaderCore(r io.ReaderAt, opts *ReaderOpts, autoDecrypt, ok bool, s s
 	}
 	opts2 := *opts
 	reader := &PdfReader{readSeeker: rs, traversed: map[core.PdfObject]struct{}{}, modelManager: newModelManager(), lazy: opts.LazyLoad, complianceMode: opts.ComplianceMode, skipOutlines: ok, skipPerms: ok, autoDecrypt: autoDecrypt, opts: &opts2, fileName: s2}
-	randomID, err := randomIDWithPrefix("r")
-	if err != nil {
-		return nil, err
-	}
-	err = license.Track(randomID, s, reader.fileName)
-	if err != nil {
-		return nil, err
-	}
-	reader.trackID = randomID
 	return reader, nil
 }
 

@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/OpenMellon/openpdf/internal/license"
 	"github.com/OpenMellon/openpdf/internal/transform"
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/openpdf/render/internal/context/imagerender"
@@ -81,8 +80,6 @@ func (d *ImageDevice) Render(page *model.PdfPage) (image.Image, error) {
 
 // NewImageDevice returns a new image device.
 func NewImageDevice() *ImageDevice {
-	const funcName = "render.NewImageDevice"
-	license.TrackUse(funcName)
 	d := &ImageDevice{renderer: &renderer{}, interpolator: xdraw.BiLinear, glyphCache: imagerender.NewGlyphCache()}
 	return d
 }

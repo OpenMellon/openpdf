@@ -12,7 +12,6 @@ import (
 	"github.com/OpenMellon/openpdf/common"
 	contentdraw "github.com/OpenMellon/openpdf/contentstream/draw"
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/license"
 	"github.com/OpenMellon/openpdf/model"
 )
 
@@ -95,7 +94,6 @@ func (tec *TextChunk) SetActualText(text string) { tec.actualText = &text }
 
 // New creates a new instance of the PDF Creator.
 func New() *Creator {
-	const trackName = "creator.New"
 	c := &Creator{}
 	c.pages = []*model.PdfPage{}
 	c.blocks = map[*model.PdfPage]*Block{}
@@ -120,7 +118,6 @@ func New() *Creator {
 	c.AddOutlines = true
 	c.outline = model.NewOutline()
 	c.AutofixPageContentStream = true
-	license.TrackUse(trackName)
 	return c
 }
 

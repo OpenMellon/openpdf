@@ -194,7 +194,6 @@ func (r *PdfReader) FirstXrefTrailer() (*core.PdfObjectDictionary, error) {
 // NewPdfReaderFromFile creates a new PdfReader from the specified PDF file.
 // If ReaderOpts is nil it will be set to default value from NewReaderOpts.
 func NewPdfReaderFromFile(pdfFile string, opts *ReaderOpts) (*PdfReader, *os.File, error) {
-	const trackNameNewPdfReaderFromFile = "model:NewPdfReaderFromFile"
 	open, err := os.Open(pdfFile)
 	if err != nil {
 		return nil, nil, err
@@ -204,7 +203,7 @@ func NewPdfReaderFromFile(pdfFile string, opts *ReaderOpts) (*PdfReader, *os.Fil
 		open.Close()
 		return nil, nil, err
 	}
-	readerTracked, err := newPdfReaderTracked(open, stat.Size(), opts, true, false, trackNameNewPdfReaderFromFile)
+	readerTracked, err := newPdfReaderTracked(open, stat.Size(), opts, true, false)
 	if err != nil {
 		open.Close()
 		return nil, nil, err

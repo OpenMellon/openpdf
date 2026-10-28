@@ -277,10 +277,6 @@ func (w *PdfWriter) Write(writer io.Writer) (err error) {
 	if w.linearized {
 		return w.writeLinearized(writer)
 	}
-	err = w.checkLicense()
-	if err != nil {
-		return err
-	}
 	if err = w.writeOutlines(); err != nil {
 		return err
 	}

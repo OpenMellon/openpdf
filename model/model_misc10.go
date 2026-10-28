@@ -1,38 +1,18 @@
 package model
 
 import (
-	"bytes"
-	"crypto/rand"
-	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	_ "image/gif"
 	"math"
 	"strings"
-	"time"
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/license"
 	"github.com/OpenMellon/openpdf/internal/transform"
 )
 
 var predefinedEncodingNames = map[string]struct{}{"WinAnsiEncoding": {}, "MacRomanEncoding": {}, "MacExpertEncoding": {}, "StandardEncoding": {}}
-
-func randomIDWithPrefix(s string) (string, error) {
-	var buf bytes.Buffer
-	buf.WriteString(s)
-	data := make([]byte, 8+16)
-	unixNano := time.Now().UTC().UnixNano()
-	binary.BigEndian.PutUint64(data, uint64(unixNano))
-	_, err := rand.Read(data[8:])
-	if err != nil {
-		return "", err
-	}
-	buf.WriteString(hex.EncodeToString(data))
-	return buf.String(), nil
-}
 
 // Height returns the height of `rect`.
 func (r *PdfRectangle) Height() float64 { return math.Abs(r.Ury - r.Lly) }
@@ -305,11 +285,10 @@ func (p *PdfPattern) SetContext(ctx PdfModel) { p.context = ctx }
 func getPdfProducer() string {
 	metadataMu.Lock()
 	defer metadataMu.Unlock()
-	licenseKey := license.GetLicenseKey()
-	if len(pdfProducer) > 0 && (licenseKey.IsLicensed() || licenseCheckDisabled) {
+	if len(pdfProducer) > 0 {
 		return pdfProducer
 	}
-	return fmt.Sprintf("OpenPDF v%s (%s) - https://github.com/OpenMellon/openpdf", libraryVersion(), licenseKey.TypeToString())
+	return fmt.Sprintf("OpenPDF v%s () - https://github.com/OpenMellon/openpdf", libraryVersion())
 }
 
 // ToWriter creates a new writer from the current reader, based on the specified options.

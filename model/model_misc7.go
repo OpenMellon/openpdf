@@ -196,8 +196,6 @@ func iccProfileNumComponents(data []byte) int {
 	}
 }
 
-var licenseCheckDisabled = false
-
 func newICCBasedColorspaceFromProfile(iccProfile []byte, cs PdfColorspace) *PdfColorspaceICCBased {
 	if cs == nil {
 		return nil
