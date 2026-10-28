@@ -8,6 +8,21 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 )
 
+// PdfTilingPattern is a Tiling pattern that consists of repetitions of a pattern cell with defined intervals.
+// It is a type 1 pattern. (PatternType = 1).
+// A tiling pattern is represented by a stream object, where the stream content is
+// a content stream that describes the pattern cell.
+type PdfTilingPattern struct {
+	*PdfPattern
+	PaintType  *core.PdfObjectInteger
+	TilingType *core.PdfObjectInteger
+	BBox       *PdfRectangle
+	XStep      *core.PdfObjectFloat
+	YStep      *core.PdfObjectFloat
+	Resources  *PdfPageResources
+	Matrix     *core.PdfObjectArray
+}
+
 // GetContentStream returns the pattern cell's content stream
 func (p *PdfTilingPattern) GetContentStream() ([]byte, error) {
 	contentStream, _, err := p.GetContentStreamWithEncoder()
@@ -184,19 +199,4 @@ func (p *PdfTilingPattern) ToPdfObject() core.PdfObject {
 		dict.Set("Matrix", p.Matrix)
 	}
 	return p.primitive
-}
-
-// PdfTilingPattern is a Tiling pattern that consists of repetitions of a pattern cell with defined intervals.
-// It is a type 1 pattern. (PatternType = 1).
-// A tiling pattern is represented by a stream object, where the stream content is
-// a content stream that describes the pattern cell.
-type PdfTilingPattern struct {
-	*PdfPattern
-	PaintType  *core.PdfObjectInteger
-	TilingType *core.PdfObjectInteger
-	BBox       *PdfRectangle
-	XStep      *core.PdfObjectFloat
-	YStep      *core.PdfObjectFloat
-	Resources  *PdfPageResources
-	Matrix     *core.PdfObjectArray
 }

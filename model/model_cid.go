@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"fmt"
 	_ "image/gif"
 
 	"github.com/OpenMellon/openpdf/common"
@@ -11,6 +10,30 @@ import (
 	"github.com/OpenMellon/openpdf/internal/textencoding"
 	"github.com/OpenMellon/openpdf/model/internal/fonts"
 )
+
+type pdfCIDFontType0 struct {
+	fontCommon
+	primitive *core.PdfIndirectObject
+	encoder   textencoding.TextEncoder
+
+	// Table 117 – Entries in a CIDFont dictionary (page 269)
+	// (Required) Dictionary that defines the character collection of the CIDFont.
+	// See Table 116.
+	CIDSystemInfo *core.PdfObjectDictionary
+
+	// Glyph metrics fields (optional).
+	DW  core.PdfObject
+	W   core.PdfObject
+	DW2 core.PdfObject
+	W2  core.PdfObject
+
+	// CIDs to glyph indices mapping (optional).
+	CIDToGIDMap  core.PdfObject
+	charWidths   map[textencoding.CharCode]float64
+	defaultWidth float64
+	runeToGID    map[rune]int
+	otfType      *fonts.OtfType
+}
 
 func newPdfCIDFontType0FromDict(dict *core.PdfObjectDictionary, fc *fontCommon) (*pdfCIDFontType0, error) {
 	if fc.subtype != "CIDFontType0" {
@@ -41,6 +64,101 @@ func newPdfCIDFontType0FromDict(dict *core.PdfObjectDictionary, fc *fontCommon) 
 	}
 	cidFontType0.charWidths = cidWidths
 	return cidFontType0, nil
+}
+
+// Encoder returns the font's text encoder.
+func (f pdfCIDFontType0) Encoder() textencoding.TextEncoder { return f.encoder }
+
+func (f *pdfCIDFontType0) getFontDescriptor() *PdfFontDescriptor { return f.fontDescriptor }
+
+// GetCharMetrics returns the char metrics for character code `code`.
+func (f pdfCIDFontType0) GetCharMetrics(code textencoding.CharCode) (fonts.CharMetrics, bool) {
+	defaultWidth := f.defaultWidth
+	if charWidth, ok := f.charWidths[code]; ok {
+		defaultWidth = charWidth
+	}
+	return fonts.CharMetrics{Wx: defaultWidth}, true
+}
+
+// ToPdfObject converts the pdfCIDFontType0 to a PDF representation.
+func (f *pdfCIDFontType0) ToPdfObject() core.PdfObject {
+	if f.primitive == nil {
+		f.primitive = &core.PdfIndirectObject{}
+	}
+	dict := f.baseFields().asPdfObjectDictionary("CIDFontType0")
+	f.primitive.PdfObject = dict
+	if f.CIDSystemInfo != nil {
+		dict.Set("CIDSystemInfo", f.CIDSystemInfo)
+	}
+	if f.DW != nil {
+		dict.Set("DW", f.DW)
+	}
+	if f.DW2 != nil {
+		dict.Set("DW2", f.DW2)
+	}
+	if f.W != nil {
+		dict.Set("W", f.W)
+	}
+	if f.W2 != nil {
+		dict.Set("W2", f.W2)
+	}
+	if f.fontDescriptor != nil {
+		dict.Set("FontDescriptor", f.fontDescriptor.ToPdfObject())
+	}
+	if f.CIDToGIDMap != nil {
+		dict.Set("CIDToGIDMap", f.CIDToGIDMap)
+	}
+	return f.primitive
+}
+
+func newPdfCIDFontType0FromCommon(fc *fontCommon) *pdfCIDFontType0 {
+	return &pdfCIDFontType0{fontCommon: *fc}
+}
+
+// GetOtfType returns the OTF type information if available
+func (f *pdfCIDFontType0) GetOtfType() *fonts.OtfType { return f.otfType }
+
+// GetRuneMetrics returns the character metrics for the specified rune.
+// A bool flag is returned to indicate whether or not the entry was found.
+func (f pdfCIDFontType0) GetRuneMetrics(r rune) (fonts.CharMetrics, bool) {
+	runeToGID, ok := f.runeToGID[r]
+	if !ok {
+		num, ok := core.GetInt(f.DW)
+		if !ok {
+			return fonts.CharMetrics{}, false
+		}
+		runeToGID = int(*num)
+	}
+	return fonts.CharMetrics{Wx: float64(runeToGID)}, true
+}
+
+func (f *pdfCIDFontType0) baseFields() *fontCommon { return &f.fontCommon }
+
+// SetOtfType sets the OTF type information
+func (f *pdfCIDFontType0) SetOtfType(otfType *fonts.OtfType) { f.otfType = otfType }
+
+type pdfCIDFontType2 struct {
+	fontCommon
+	primitive *core.PdfIndirectObject
+	encoder   textencoding.TextEncoder
+
+	// Table 117 – Entries in a CIDFont dictionary (page 269)
+	// Dictionary that defines the character collection of the CIDFont (required).
+	// See Table 116.
+	CIDSystemInfo *core.PdfObjectDictionary
+
+	// Glyph metrics fields (optional).
+	DW  core.PdfObject
+	W   core.PdfObject
+	DW2 core.PdfObject
+	W2  core.PdfObject
+
+	// CIDs to glyph indices mapping (optional).
+	CIDToGIDMap  core.PdfObject
+	charWidths   map[textencoding.CharCode]float64
+	defaultWidth float64
+	runeToGID    map[rune]int
+	otfType      *fonts.OtfType
 }
 
 func (f *pdfCIDFontType2) getFontDescriptor() *PdfFontDescriptor { return f.fontDescriptor }
@@ -96,138 +214,10 @@ func newPdfCIDFontType2FromTtf(ttf fonts.TtfType, data []byte, otf *fonts.OtfTyp
 	return font3, nil
 }
 
-type pdfCIDFontType2 struct {
-	fontCommon
-	primitive *core.PdfIndirectObject
-	encoder   textencoding.TextEncoder
-
-	// Table 117 – Entries in a CIDFont dictionary (page 269)
-	// Dictionary that defines the character collection of the CIDFont (required).
-	// See Table 116.
-	CIDSystemInfo *core.PdfObjectDictionary
-
-	// Glyph metrics fields (optional).
-	DW  core.PdfObject
-	W   core.PdfObject
-	DW2 core.PdfObject
-	W2  core.PdfObject
-
-	// CIDs to glyph indices mapping (optional).
-	CIDToGIDMap  core.PdfObject
-	charWidths   map[textencoding.CharCode]float64
-	defaultWidth float64
-	runeToGID    map[rune]int
-	otfType      *fonts.OtfType
-}
-
 func (f *pdfCIDFontType2) baseFields() *fontCommon { return &f.fontCommon }
 
 // Encoder returns the font's text encoder.
-func (f pdfCIDFontType0) Encoder() textencoding.TextEncoder { return f.encoder }
-
-func (f *pdfCIDFontType0) getFontDescriptor() *PdfFontDescriptor { return f.fontDescriptor }
-
-// GetCharMetrics returns the char metrics for character code `code`.
-func (f pdfCIDFontType0) GetCharMetrics(code textencoding.CharCode) (fonts.CharMetrics, bool) {
-	defaultWidth := f.defaultWidth
-	if charWidth, ok := f.charWidths[code]; ok {
-		defaultWidth = charWidth
-	}
-	return fonts.CharMetrics{Wx: defaultWidth}, true
-}
-
-// ToPdfObject converts the pdfCIDFontType0 to a PDF representation.
-func (f *pdfCIDFontType0) ToPdfObject() core.PdfObject {
-	if f.primitive == nil {
-		f.primitive = &core.PdfIndirectObject{}
-	}
-	dict := f.baseFields().asPdfObjectDictionary("CIDFontType0")
-	f.primitive.PdfObject = dict
-	if f.CIDSystemInfo != nil {
-		dict.Set("CIDSystemInfo", f.CIDSystemInfo)
-	}
-	if f.DW != nil {
-		dict.Set("DW", f.DW)
-	}
-	if f.DW2 != nil {
-		dict.Set("DW2", f.DW2)
-	}
-	if f.W != nil {
-		dict.Set("W", f.W)
-	}
-	if f.W2 != nil {
-		dict.Set("W2", f.W2)
-	}
-	if f.fontDescriptor != nil {
-		dict.Set("FontDescriptor", f.fontDescriptor.ToPdfObject())
-	}
-	if f.CIDToGIDMap != nil {
-		dict.Set("CIDToGIDMap", f.CIDToGIDMap)
-	}
-	return f.primitive
-}
-
-func newPdfCIDFontType0FromCommon(fc *fontCommon) *pdfCIDFontType0 {
-	return &pdfCIDFontType0{fontCommon: *fc}
-}
-
-// Encoder returns the font's text encoder.
 func (f pdfCIDFontType2) Encoder() textencoding.TextEncoder { return f.encoder }
-
-func parseCIDWidths(obj core.PdfObject) (map[textencoding.CharCode]float64, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	arr, ok := core.GetArray(obj)
-	if !ok {
-		return nil, nil
-	}
-	valByCode := map[textencoding.CharCode]float64{}
-	arrLen := arr.Len()
-	for i := 0; i < arrLen-1; i++ {
-		obj := core.TraceToDirectObject(arr.Get(i))
-		n, ok := core.GetIntVal(obj)
-		if !ok {
-			return nil, fmt.Errorf("bad font W obj0: i=%d %#v", i, obj)
-		}
-		i++
-		if i > arrLen-1 {
-			return nil, fmt.Errorf("bad font W array: arr2=%+v", arr)
-		}
-		obj2 := core.TraceToDirectObject(arr.Get(i))
-		switch obj2.(type) {
-		case *core.PdfObjectArray:
-			arr, _ := core.GetArray(obj2)
-			if floats, err := arr.ToFloat64Array(); err == nil {
-				for i := 0; i < len(floats); i++ {
-					valByCode[textencoding.CharCode(n+i)] = floats[i]
-				}
-			} else {
-				return nil, fmt.Errorf("bad font W array obj1: i=%d %#v", i, obj2)
-			}
-		case *core.PdfObjectInteger:
-			count, ok := core.GetIntVal(obj2)
-			if !ok {
-				return nil, fmt.Errorf("bad font W int obj1: i=%d %#v", i, obj2)
-			}
-			i++
-			if i > arrLen-1 {
-				return nil, fmt.Errorf("bad font W array: arr2=%+v", arr)
-			}
-			obj := arr.Get(i)
-			f, err := core.GetNumberAsFloat(obj)
-			if err != nil {
-				return nil, fmt.Errorf("bad font W int obj2: i=%d %#v", i, obj)
-			}
-			for i := n; i <= count; i++ {
-				valByCode[textencoding.CharCode(i)] = f
-			}
-		default:
-			return nil, fmt.Errorf("bad font W obj1 type: i=%d %#v", i, obj2)
-		}
-	}
-	return valByCode, nil
-}
 
 // GetRuneMetrics returns the character metrics for the specified rune.
 // A bool flag is returned to indicate whether or not the entry was found.
@@ -290,45 +280,6 @@ func (f pdfCIDFontType2) GetCharMetrics(code textencoding.CharCode) (fonts.CharM
 // SetOtfType sets the OTF type information.
 func (f *pdfCIDFontType2) SetOtfType(otfType *fonts.OtfType) { f.otfType = otfType }
 
-// GetOtfType returns the OTF type information if available
-func (f *pdfCIDFontType0) GetOtfType() *fonts.OtfType { return f.otfType }
-
-// GetRuneMetrics returns the character metrics for the specified rune.
-// A bool flag is returned to indicate whether or not the entry was found.
-func (f pdfCIDFontType0) GetRuneMetrics(r rune) (fonts.CharMetrics, bool) {
-	runeToGID, ok := f.runeToGID[r]
-	if !ok {
-		num, ok := core.GetInt(f.DW)
-		if !ok {
-			return fonts.CharMetrics{}, false
-		}
-		runeToGID = int(*num)
-	}
-	return fonts.CharMetrics{Wx: float64(runeToGID)}, true
-}
-
-func cidToGIDMapFromObject(obj core.PdfObject) []uint16 {
-	stream, ok := core.GetStream(obj)
-	if !ok {
-		return nil
-	}
-	data, err := core.DecodeStream(stream)
-	if err != nil {
-		common.Log.Debug("WARN: could not decode CIDToGIDMap stream: %v", err)
-		return nil
-	}
-	if len(data) == 0 || len(data)%2 != 0 {
-		common.Log.Debug("WARN: invalid CIDToGIDMap stream length %d; using Identity", len(data))
-		return nil
-	}
-	n := min(len(data)/2, 65536)
-	vals := make([]uint16, n)
-	for i := 0; i < n; i++ {
-		vals[i] = uint16(data[2*i])<<8 | uint16(data[2*i+1])
-	}
-	return vals
-}
-
 func newPdfCIDFontType2FromDict(dict *core.PdfObjectDictionary, fc *fontCommon) (*pdfCIDFontType2, error) {
 	if fc.subtype != "CIDFontType2" {
 		common.Log.Debug("ERROR: Font SubType != CIDFontType2. font=%s", fc)
@@ -361,35 +312,28 @@ func newPdfCIDFontType2FromDict(dict *core.PdfObjectDictionary, fc *fontCommon) 
 	return cidFontType2, nil
 }
 
-type pdfCIDFontType0 struct {
-	fontCommon
-	primitive *core.PdfIndirectObject
-	encoder   textencoding.TextEncoder
-
-	// Table 117 – Entries in a CIDFont dictionary (page 269)
-	// (Required) Dictionary that defines the character collection of the CIDFont.
-	// See Table 116.
-	CIDSystemInfo *core.PdfObjectDictionary
-
-	// Glyph metrics fields (optional).
-	DW  core.PdfObject
-	W   core.PdfObject
-	DW2 core.PdfObject
-	W2  core.PdfObject
-
-	// CIDs to glyph indices mapping (optional).
-	CIDToGIDMap  core.PdfObject
-	charWidths   map[textencoding.CharCode]float64
-	defaultWidth float64
-	runeToGID    map[rune]int
-	otfType      *fonts.OtfType
-}
-
-func (f *pdfCIDFontType0) baseFields() *fontCommon { return &f.fontCommon }
-
 func newPdfCIDFontType2FromCommon(fc *fontCommon) *pdfCIDFontType2 {
 	return &pdfCIDFontType2{fontCommon: *fc}
 }
 
-// SetOtfType sets the OTF type information
-func (f *pdfCIDFontType0) SetOtfType(otfType *fonts.OtfType) { f.otfType = otfType }
+func cidToGIDMapFromObject(obj core.PdfObject) []uint16 {
+	stream, ok := core.GetStream(obj)
+	if !ok {
+		return nil
+	}
+	data, err := core.DecodeStream(stream)
+	if err != nil {
+		common.Log.Debug("WARN: could not decode CIDToGIDMap stream: %v", err)
+		return nil
+	}
+	if len(data) == 0 || len(data)%2 != 0 {
+		common.Log.Debug("WARN: invalid CIDToGIDMap stream length %d; using Identity", len(data))
+		return nil
+	}
+	n := min(len(data)/2, 65536)
+	vals := make([]uint16, n)
+	for i := 0; i < n; i++ {
+		vals[i] = uint16(data[2*i])<<8 | uint16(data[2*i+1])
+	}
+	return vals
+}

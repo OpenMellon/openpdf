@@ -10,6 +10,23 @@ import (
 	"github.com/OpenMellon/openpdf/internal/uuid"
 )
 
+// StructTreeRoot represents the structure tree root dictionary.
+// Reference: PDF documentation chapter 14.7 Logical Structure, table 322.
+type StructTreeRoot struct {
+	K                 []*KDict
+	IDTree            *IDTree
+	ParentTree        *core.PdfObjectDictionary
+	ParentTreeNextKey int64
+	RoleMap           core.PdfObject
+	ClassMap          *core.PdfObjectDictionary
+
+	// Namespaces are the namespace dictionaries used within the document
+	// (ISO 32000-2, PDF 2.0). Nil for PDF 1.x structure trees.
+	Namespaces []*PdfStructureNamespace
+	container  *core.PdfIndirectObject
+	ids        []uuid.UUID
+}
+
 // ToPdfObject converts the structure tree root to a PDF object.
 func (r *StructTreeRoot) ToPdfObject() core.PdfObject {
 	indirect := r.container
@@ -237,21 +254,4 @@ func (r *StructTreeRoot) AddKDict(k *KDict) { r.K = append(r.K, k) }
 // AddNamespace adds a namespace dictionary to the structure tree root.
 func (r *StructTreeRoot) AddNamespace(ns *PdfStructureNamespace) {
 	r.Namespaces = append(r.Namespaces, ns)
-}
-
-// StructTreeRoot represents the structure tree root dictionary.
-// Reference: PDF documentation chapter 14.7 Logical Structure, table 322.
-type StructTreeRoot struct {
-	K                 []*KDict
-	IDTree            *IDTree
-	ParentTree        *core.PdfObjectDictionary
-	ParentTreeNextKey int64
-	RoleMap           core.PdfObject
-	ClassMap          *core.PdfObjectDictionary
-
-	// Namespaces are the namespace dictionaries used within the document
-	// (ISO 32000-2, PDF 2.0). Nil for PDF 1.x structure trees.
-	Namespaces []*PdfStructureNamespace
-	container  *core.PdfIndirectObject
-	ids        []uuid.UUID
 }

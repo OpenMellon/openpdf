@@ -7,6 +7,62 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 )
 
+// PrintScaling represents the page scaling option that shall be selected
+// when a print dialog is displayed for this document.
+type PrintScaling string
+
+// Duplex represents the paper handling option that shall be used when printing
+// the file from the print dialog.
+type Duplex string
+
+// Direction represents the predominant reading order for text.
+type Direction string
+
+// NonFullScreenPageMode represents the document’s page mode when exiting
+// full-screen mode.
+type NonFullScreenPageMode string
+
+const (
+	NonFullScreenPageModeUseNone     NonFullScreenPageMode = "UseNone"
+	NonFullScreenPageModeUseOutlines NonFullScreenPageMode = "UseOutlines"
+	NonFullScreenPageModeUseThumbs   NonFullScreenPageMode = "UseThumbs"
+	NonFullScreenPageModeUseOC       NonFullScreenPageMode = "UseOC"
+	DirectionL2R                     Direction             = "L2R"
+	DirectionR2L                     Direction             = "R2L"
+	PageBoundaryMediaBox             PageBoundary          = "MediaBox"
+	PageBoundaryCropBox              PageBoundary          = "CropBox"
+	PageBoundaryBleedBox             PageBoundary          = "BleedBox"
+	PageBoundaryTrimBox              PageBoundary          = "TrimBox"
+	PageBoundaryArtBox               PageBoundary          = "ArtBox"
+	PrintScalingNone                 PrintScaling          = "None"
+	PrintScalingAppDefault           PrintScaling          = "AppDefault"
+	DuplexNone                       Duplex                = "none"
+	DuplexSimplex                    Duplex                = "Simplex"
+	DuplexFlipShortEdge              Duplex                = "DuplexFlipShortEdge"
+	DuplexFlipLongEdge               Duplex                = "DuplexFlipLongEdge"
+)
+
+// ViewerPreferences represents the viewer preferences of a PDF document.
+type ViewerPreferences struct {
+	hideToolbar           *bool
+	hideMenubar           *bool
+	hideWindowUI          *bool
+	fitWindow             *bool
+	centerWindow          *bool
+	displayDocTitle       *bool
+	nonFullScreenPageMode NonFullScreenPageMode
+	direction             Direction
+	viewArea              PageBoundary
+	viewClip              PageBoundary
+	printArea             PageBoundary
+	printClip             PageBoundary
+	printScaling          PrintScaling
+	duplex                Duplex
+	pickTrayByPDFSize     *bool
+	printPageRange        []int
+	numCopies             int
+}
+
 // ViewClip returns the value of the viewClip.
 func (vp *ViewerPreferences) ViewClip() PageBoundary { return vp.viewClip }
 
@@ -292,27 +348,6 @@ func (vp *ViewerPreferences) SetPrintClip(printClip PageBoundary) { vp.printClip
 // SetPrintPageRange sets the value of the printPageRange.
 func (vp *ViewerPreferences) SetPrintPageRange(printPageRange []int) {
 	vp.printPageRange = printPageRange
-}
-
-// ViewerPreferences represents the viewer preferences of a PDF document.
-type ViewerPreferences struct {
-	hideToolbar           *bool
-	hideMenubar           *bool
-	hideWindowUI          *bool
-	fitWindow             *bool
-	centerWindow          *bool
-	displayDocTitle       *bool
-	nonFullScreenPageMode NonFullScreenPageMode
-	direction             Direction
-	viewArea              PageBoundary
-	viewClip              PageBoundary
-	printArea             PageBoundary
-	printClip             PageBoundary
-	printScaling          PrintScaling
-	duplex                Duplex
-	pickTrayByPDFSize     *bool
-	printPageRange        []int
-	numCopies             int
 }
 
 // Duplex returns the value of the duplex.

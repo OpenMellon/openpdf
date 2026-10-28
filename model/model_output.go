@@ -8,13 +8,40 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 )
 
-// SetSubtype sets the Subtype S for given PdfOutputIntent.
-func (o *PdfOutputIntent) SetSubtype(subtype PdfOutputIntentType) error {
-	if !subtype.IsValid() {
-		return errors.New("provided invalid OutputIntent SubType")
+// PdfOutputIntentType is the subtype of the given PdfOutputIntent.
+type PdfOutputIntentType int
+
+const (
+	_ PdfOutputIntentType = iota
+	PdfOutputIntentTypeA1
+	PdfOutputIntentTypeA2
+	PdfOutputIntentTypeA3
+	PdfOutputIntentTypeA4
+	PdfOutputIntentTypeX
+)
+
+// IsValid checks if the given pdf output intent type is valid.
+func (t PdfOutputIntentType) IsValid() bool {
+	return t >= PdfOutputIntentTypeA1 && t <= PdfOutputIntentTypeX
+}
+
+// String returns string value of output intent for given type
+// ISO_19005-2 6.2.3: GTS_PDFA1 value should be used for PDF/A-1, A-2 and A-3 at least
+func (t PdfOutputIntentType) String() string {
+	switch t {
+	case PdfOutputIntentTypeA1:
+		return "GTS_PDFA1"
+	case PdfOutputIntentTypeA2:
+		return "GTS_PDFA1"
+	case PdfOutputIntentTypeA3:
+		return "GTS_PDFA1"
+	case PdfOutputIntentTypeA4:
+		return "GTS_PDFA1"
+	case PdfOutputIntentTypeX:
+		return "GTS_PDFX"
+	default:
+		return "UNDEFINED"
 	}
-	o.S = subtype
-	return nil
 }
 
 // PdfOutputIntent provides a means for matching the color characteristics of a PDF document with
@@ -62,9 +89,13 @@ type PdfOutputIntent struct {
 	primitive       *core.PdfObjectDictionary
 }
 
-// IsValid checks if the given pdf output intent type is valid.
-func (t PdfOutputIntentType) IsValid() bool {
-	return t >= PdfOutputIntentTypeA1 && t <= PdfOutputIntentTypeX
+// SetSubtype sets the Subtype S for given PdfOutputIntent.
+func (o *PdfOutputIntent) SetSubtype(subtype PdfOutputIntentType) error {
+	if !subtype.IsValid() {
+		return errors.New("provided invalid OutputIntent SubType")
+	}
+	o.S = subtype
+	return nil
 }
 
 // NewPdfOutputIntentFromPdfObject creates a new PdfOutputIntent from the input core.PdfObject.
@@ -114,25 +145,6 @@ func (o *PdfOutputIntent) ToPdfObject() core.PdfObject {
 	return dict
 }
 
-// String returns string value of output intent for given type
-// ISO_19005-2 6.2.3: GTS_PDFA1 value should be used for PDF/A-1, A-2 and A-3 at least
-func (t PdfOutputIntentType) String() string {
-	switch t {
-	case PdfOutputIntentTypeA1:
-		return "GTS_PDFA1"
-	case PdfOutputIntentTypeA2:
-		return "GTS_PDFA1"
-	case PdfOutputIntentTypeA3:
-		return "GTS_PDFA1"
-	case PdfOutputIntentTypeA4:
-		return "GTS_PDFA1"
-	case PdfOutputIntentTypeX:
-		return "GTS_PDFX"
-	default:
-		return "UNDEFINED"
-	}
-}
-
 // ParsePdfObject parses input pdf object into given output intent.
 func (o *PdfOutputIntent) ParsePdfObject(object core.PdfObject) error {
 	dict, ok := core.GetDict(object)
@@ -171,9 +183,6 @@ func (o *PdfOutputIntent) ParsePdfObject(object core.PdfObject) error {
 	}
 	return nil
 }
-
-// PdfOutputIntentType is the subtype of the given PdfOutputIntent.
-type PdfOutputIntentType int
 
 // GetContainingPdfObject implements model.PdfModel interface.
 func (o *PdfOutputIntent) GetContainingPdfObject() core.PdfObject { return o.primitive }
