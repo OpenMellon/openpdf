@@ -2213,14 +2213,14 @@ const (
 	CellHorizontalAlignmentRight
 )
 
-func beginTaggedContent(_bedefcd *Block, structureTagInfo *model.StructureTagInfo) {
+func beginTaggedContent(block *Block, structureTagInfo *model.StructureTagInfo) {
 	contentCreator := contentstream.NewContentCreator()
 	m := map[string]core.PdfObject{}
 	if structureTagInfo != nil {
 		m["MCID"] = core.MakeInteger(structureTagInfo.Mcid)
 	}
 	contentCreator.Add_BDC(*core.MakeName(string(structureTagInfo.StructureType)), m)
-	_bedefcd.addContents(contentCreator.Operations())
+	block.addContents(contentCreator.Operations())
 }
 
 func parseListItemTag(proc *templateProcessor, node *templateNode) (any, error) {
@@ -4740,7 +4740,7 @@ func (g *Grid) cloneRow(n int) *GridRow {
 }
 
 // Level returns the indentation level of the TOC line.
-func (_acgfaed *TOCLine) Level() uint { return _acgfaed.level }
+func (line *TOCLine) Level() uint { return line.level }
 
 const (
 	GridRowSectionBody GridRowSection = iota
@@ -5255,8 +5255,8 @@ func floatArrayAttr(i any) attrApplyFunc {
 	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		floatArray, err := parseFloatArray(value)
 		if err != nil {
-			if _aaagcce := proc.strictErr(node, attrName, value, err); _aaagcce != nil {
-				return _aaagcce
+			if strictError := proc.strictErr(node, attrName, value, err); strictError != nil {
+				return strictError
 			}
 		}
 		callSetter(value2, target, reflect.ValueOf(floatArray))
@@ -5649,13 +5649,13 @@ func (im *Image) SetSoftMask(mask *model.Image) error {
 }
 
 func (tp *templateProcessor) parseChart(node *templateNode) (any, error) {
-	_abcbdab, _ := tp.effectiveAttrValue(node, "src")
-	if _abcbdab == "" {
+	sourceName, _ := tp.effectiveAttrValue(node, "src")
+	if sourceName == "" {
 		return nil, tp.nodeError(node, "chart `src` attribute cannot be empty")
 	}
-	chart, ok := tp.options.ChartMap[_abcbdab]
+	chart, ok := tp.options.ChartMap[sourceName]
 	if !ok {
-		return nil, tp.nodeError(node, "could not find chart resource: `%s`", _abcbdab)
+		return nil, tp.nodeError(node, "could not find chart resource: `%s`", sourceName)
 	}
 	chart2 := NewChart(chart)
 	if err := tp.applyAttrs(node, chart2, chartAttrs); err != nil {
@@ -16386,8 +16386,8 @@ type subtableSplit struct {
 	height float64
 }
 
-func (_caaccfb *templateText) pos() *templateNode {
-	return &templateNode{line: _caaccfb.line, col: _caaccfb.col, offset: _caaccfb.offset}
+func (text *templateText) pos() *templateNode {
+	return &templateNode{line: text.line, col: text.col, offset: text.offset}
 }
 
 // Horizontal returns total horizontal (left + right) margin.

@@ -60,3 +60,24 @@ func TestRemoveCollectedObjectsPreservesNameArrayPositions(t *testing.T) {
 		t.Fatalf("ordinary array = %v", ordinary.Elements())
 	}
 }
+
+func TestProcessObjectsRemovesCatalogOpenAction(t *testing.T) {
+	catalog := core.MakeDict()
+	catalog.Set("Type", core.MakeName("Catalog"))
+	action := core.MakeDict()
+	action.Set("S", core.MakeName("JavaScript"))
+	action.Set("JS", core.MakeString("alert(1)"))
+	catalog.Set("OpenAction", action)
+
+	objects := []core.PdfObject{core.MakeIndirectObject(catalog)}
+	kept, err := New(SanitizationOpts{OpenAction: true}).Optimize(objects)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(kept) != 1 {
+		t.Fatalf("kept object count = %d, want 1", len(kept))
+	}
+	if catalog.Get("OpenAction") != nil {
+		t.Fatal("catalog still contains OpenAction")
+	}
+}

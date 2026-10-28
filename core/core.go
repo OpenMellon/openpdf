@@ -1356,7 +1356,9 @@ func (dct *DCTEncoder) MakeStreamDict() *PdfObjectDictionary {
 }
 
 // Direct traces the indirect object to the direct object it contains.
-func (_cfbfbgd *PdfIndirectObject) Direct() PdfObject { return TraceToDirectObject(_cfbfbgd) }
+func (indirectObject *PdfIndirectObject) Direct() PdfObject {
+	return TraceToDirectObject(indirectObject)
+}
 
 func (crypt *PdfCrypt) cryptFilterDict(encryptDict *PdfObjectDictionary, filterName string) *PdfObjectDictionary {
 	if filterName == "" {
