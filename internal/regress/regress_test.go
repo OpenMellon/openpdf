@@ -66,6 +66,15 @@ type goldens struct {
 	name  string
 	dir   string
 	files map[string][]byte
+	outd  string
+}
+
+// out returns the failure-artefact directory, created once per scenario so all its artefacts land together.
+func (g *goldens) out() string {
+	if g.outd == "" {
+		g.outd = outDir(g.t, g.name)
+	}
+	return g.outd
 }
 
 func newGoldens(t *testing.T, name string) *goldens {
@@ -122,18 +131,20 @@ func (g *goldens) compare(file string, want, got []byte) {
 	t.Helper()
 	switch {
 	case strings.HasSuffix(file, ".png"):
-		comparePNG(t, outDir(t, g.name), file, want, got)
+		comparePNG(t, g.out(), file, want, got)
 	case bytes.Equal(want, got):
+	case file == "doc.pdf" && pinnedToolchain() == "":
+		t.Fatal("go.mod has no toolchain line, so the toolchain the byte goldens belong to is unknown")
 	case file == "doc.pdf" && !onPinnedToolchain():
 		// Compressed streams differ between Go releases, so exact bytes are only comparable on the toolchain
 		// the goldens were generated with. The dump, text and pixels are still checked.
 		t.Logf("doc.pdf bytes differ, not enforced on %s (go.mod toolchain is %s)", runtime.Version(), pinnedToolchain())
 	case strings.HasSuffix(file, ".txt"):
 		t.Errorf("%s differs from golden:\n%s", file, lineDiff(string(want), string(got)))
-		saveActual(t, outDir(t, g.name), file, got)
+		saveActual(t, g.out(), file, got)
 	default:
 		t.Errorf("%s differs from golden (%d bytes want, %d got); see doc.dump.txt for what changed", file, len(want), len(got))
-		saveActual(t, outDir(t, g.name), file, got)
+		saveActual(t, g.out(), file, got)
 	}
 }
 

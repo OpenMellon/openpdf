@@ -21,6 +21,10 @@ type scenario struct {
 	// pixels renders every page to a PNG golden. Only valid when all text is embedded TrueType: render falls back
 	// to host fonts for anything else, so pixels would differ between machines.
 	pixels bool
+	// password opens an encrypted result. noBytes skips doc.pdf and the dump, for output that is not deterministic
+	// (encryption uses random salts and file IDs); text and pixels are still checked.
+	password string
+	noBytes  bool
 }
 
 var scenarios = []scenario{
@@ -33,21 +37,24 @@ func TestScenarios(t *testing.T) {
 			// Golden tests share the package-level metadata globals set in TestMain, so they never run in parallel.
 			data := sc.build(t)
 			g := newGoldens(t, sc.name)
-			g.add("doc.pdf", data)
-			dump, err := dumpPDF(data)
-			if err != nil {
-				t.Fatalf("dump: %v", err)
+			if !sc.noBytes {
+				g.add("doc.pdf", data)
+				dump, err := dumpPDF(data)
+				if err != nil {
+					t.Fatalf("dump: %v", err)
+				}
+				g.add("doc.dump.txt", []byte(dump))
 			}
-			g.add("doc.dump.txt", []byte(dump))
-			text, pages := readPages(t, data)
+			text, pages := readPages(t, data, sc.password)
 			g.add("text.txt", []byte(text))
-			if sc.pixels {
-				dev := render.NewImageDevice()
-				for i, page := range pages {
-					img, err := dev.Render(page)
-					if err != nil {
-						t.Fatalf("render page %d: %v", i+1, err)
-					}
+			dev := render.NewImageDevice()
+			for i, page := range pages {
+				img, err := dev.Render(page)
+				if err != nil {
+					t.Fatalf("render page %d: %v", i+1, err)
+				}
+				// Without embedded fonts the pixels depend on the host, so rendering is only a smoke check.
+				if sc.pixels {
 					png, err := encodePNG(img)
 					if err != nil {
 						t.Fatal(err)
@@ -61,11 +68,16 @@ func TestScenarios(t *testing.T) {
 }
 
 // readPages opens the PDF and returns the normalised extracted text of every page, plus the pages.
-func readPages(t *testing.T, data []byte) (string, []*model.PdfPage) {
+func readPages(t *testing.T, data []byte, password string) (string, []*model.PdfPage) {
 	t.Helper()
 	r, err := model.NewPdfReader(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("read back: %v", err)
+	}
+	if password != "" {
+		if ok, err := r.Decrypt([]byte(password)); err != nil || !ok {
+			t.Fatalf("decrypt: ok=%v err=%v", ok, err)
+		}
 	}
 	n, err := r.GetNumPages()
 	if err != nil {
