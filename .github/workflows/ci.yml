@@ -21,10 +21,13 @@ jobs:
       GOTOOLCHAIN: ${{ matrix.gotoolchain }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version-file: ${{ matrix.go-version-file }}
           go-version: ${{ matrix.go-version }}
+      - run: scripts/check-author.sh HEAD
       - run: go build ./...
       - run: go vet -composites=false ./...
       # Failed golden comparisons write their actual and diff files here.

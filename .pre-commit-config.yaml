@@ -61,3 +61,11 @@ repos:
         language: script
         entry: scripts/check-file-tokens.sh
         exclude: ^internal/cmap/bcmaps/|^model/internal/colorprofile/
+
+      # Every commit must be authored and committed as OpenMellon, never a personal identity
+      - id: check-author
+        name: check commit author
+        language: script
+        entry: scripts/check-author.sh
+        always_run: true
+        pass_filenames: false
