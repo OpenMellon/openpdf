@@ -4,3 +4,4 @@
 specs/
 .specify/
 .agents/
+.claude/skills/speckit-*/
