@@ -10,6 +10,17 @@ import (
 	"github.com/OpenMellon/openpdf/model"
 )
 
+type wordBag struct {
+	model.PdfRectangle
+	maxFontSize              float64
+	vertRulings, horzRulings rulingList
+	pageHeight               float64
+	bins                     map[int][]*textWord
+	removed                  map[*textWord]struct{}
+	removedCount             map[int]int
+	binStart                 map[int]int
+}
+
 func (wb *wordBag) maxDepth() float64 { return wb.pageHeight - wb.Lly }
 
 func (wb *wordBag) removeDuplicates() {
@@ -56,16 +67,6 @@ func (wb *wordBag) removeDuplicates() {
 	}
 }
 
-func removeWordFromSlice(words []*textWord, word *textWord) []*textWord {
-	for i, w := range words {
-		if w == word {
-			return removeWordAt(words, i)
-		}
-	}
-	common.Log.Error("removeWord: words doesn't contain word=%s", word)
-	return nil
-}
-
 func (wb *wordBag) applyRemovals(removals map[int]map[*textWord]struct{}) {
 	for idx, rm := range removals {
 		if len(rm) == 0 {
@@ -98,52 +99,6 @@ func makeWordBag(words []*textWord, pageHeight float64, vertRulings, horzRulings
 	}
 	bag.sort()
 	return bag
-}
-
-func mergeWordBags(bags []*wordBag) []*wordBag {
-	if len(bags) <= 1 {
-		return bags
-	}
-	if debugWordBags {
-		common.Log.Info("mergeWordBags:")
-	}
-	sort.Slice(bags, func(i, j int) bool {
-		a, b := bags[i], bags[j]
-		areaA := a.Width() * a.Height()
-		areaB := b.Width() * b.Height()
-		if areaA != areaB {
-			return areaA > areaB
-		}
-		if a.Height() != b.Height() {
-			return a.Height() > b.Height()
-		}
-		return i < j
-	})
-	var merged []*wordBag
-	absorbed := make(intSet)
-	for i := 0; i < len(bags); i++ {
-		if absorbed.has(i) {
-			continue
-		}
-		big := bags[i]
-		for j := i + 1; j < len(bags); j++ {
-			if absorbed.has(i) {
-				continue
-			}
-			small := bags[j]
-			expanded := big.PdfRectangle
-			expanded.Llx -= big.maxFontSize
-			if rectContains(expanded, small.PdfRectangle) {
-				big.absorb(small)
-				absorbed.add(j)
-			}
-		}
-		merged = append(merged, big)
-	}
-	if len(bags) != len(merged)+len(absorbed) {
-		common.Log.Error("mergeWordBags: %d→%d absorbed=%d", len(bags), len(merged), len(absorbed))
-	}
-	return merged
 }
 
 func (wb *wordBag) blocked(word *textWord) bool {
@@ -328,6 +283,7 @@ func (wb *wordBag) arrangeText(noBreaks bool) *textPara {
 	}
 	return para
 }
+
 func (wb *wordBag) minDepth() float64 { return wb.pageHeight - (wb.Ury - wb.maxFontSize) }
 
 func (wb *wordBag) removeWord(word *textWord, idx int) {
@@ -515,54 +471,6 @@ func (wb *wordBag) endDeferredRemoval() {
 	wb.binStart = nil
 }
 
-func splitWordBag(src *wordBag, pageHeight float64, vertRulings, horzRulings rulingList, noBreaks bool) []*wordBag {
-	var out []*wordBag
-	for _, binIdx := range src.depthIndexes() {
-		grew := false
-		for !src.empty(binIdx) {
-			seedIdx := src.firstReadingIndex(binIdx)
-			seed := src.firstWord(seedIdx)
-			bag := newWordBag(seed, pageHeight, vertRulings, horzRulings)
-			src.removeWord(seed, seedIdx)
-			if debugSplitBags {
-				common.Log.Info("firstWord ^^^^ %s", seed.String())
-			}
-			for loop := true; loop; loop = grew {
-				grew = false
-				adjGap := otherScanOffsetFactor * bag.maxFontSize
-				readingGap := horizontalScanOffsetFactor * bag.maxFontSize
-				if noBreaks {
-					readingGap = math.MaxFloat64
-				}
-				depthGap := scanMarginFactor * bag.maxFontSize
-				if debugSplitBags {
-					common.Log.Info("paraWords depth %.2f - %.2f maxIntraDepthGap=%.2f maxIntraReadingGap=%.2f", bag.minDepth(), bag.maxDepth(), depthGap, readingGap)
-				}
-				if src.scanBand("vertical", bag, withGap(overlapsHorizontally, 0), bag.minDepth()-depthGap, bag.maxDepth()+depthGap, verticalGapFraction, false, false) > 0 {
-					grew = true
-				}
-				if src.scanBand("horizontal", bag, withGap(overlapsHorizontally, readingGap), bag.minDepth(), bag.maxDepth(), horizontalGapFraction, false, false) > 0 {
-					grew = true
-				}
-				if grew {
-					continue
-				}
-				numPulled := src.scanBand("", bag, withGap(isAdjacentRight, adjGap), bag.minDepth(), bag.maxDepth(), otherGapFraction, true, false)
-				if numPulled > 0 {
-					numLines := (bag.maxDepth() - bag.minDepth()) / bag.maxFontSize
-					if (numPulled > 1 && float64(numPulled) > 0.3*numLines) || numPulled <= 10 {
-						if src.scanBand("other", bag, withGap(isAdjacentRight, adjGap), bag.minDepth(), bag.maxDepth(), otherGapFraction, false, true) > 0 {
-							grew = true
-						}
-					}
-				}
-			}
-			out = append(out, bag)
-		}
-	}
-	return out
-}
-
 func (wb *wordBag) depthBand(lo, hi float64) []int {
 	if len(wb.bins) == 0 {
 		return nil
@@ -575,23 +483,6 @@ func newWordBag(word *textWord, pageHeight float64, vertRulings, horzRulings rul
 	words := []*textWord{word}
 	bag := wordBag{bins: map[int][]*textWord{idx: words}, PdfRectangle: word.PdfRectangle, maxFontSize: word.fontSize, pageHeight: pageHeight, vertRulings: vertRulings, horzRulings: horzRulings}
 	return &bag
-}
-
-type wordBag struct {
-	model.PdfRectangle
-	maxFontSize              float64
-	vertRulings, horzRulings rulingList
-	pageHeight               float64
-	bins                     map[int][]*textWord
-	removed                  map[*textWord]struct{}
-	removedCount             map[int]int
-	binStart                 map[int]int
-}
-
-func removeWordAt(words []*textWord, idx int) []*textWord {
-	numWords := len(words)
-	copy(words[idx:], words[idx+1:])
-	return words[:numWords-1]
 }
 
 func (wb *wordBag) firstReadingIndex(idx int) int {

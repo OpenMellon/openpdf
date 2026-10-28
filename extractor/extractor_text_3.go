@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/color"
 	"math"
+	"sort"
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
@@ -13,6 +14,105 @@ import (
 	"github.com/OpenMellon/openpdf/internal/transform"
 	"github.com/OpenMellon/openpdf/model"
 )
+
+type textObject struct {
+	extractor       *Extractor
+	resources       *model.PdfPageResources
+	gs              contentstream.GraphicsState
+	state           *textState
+	savedStates     *stateStack
+	tm              transform.Matrix
+	tlm             transform.Matrix
+	marks           []*textMark
+	unsupportedFont bool
+}
+
+func (to *textObject) getFontDict(name string) (fontObj core.PdfObject, err error) {
+	resources := to.resources
+	if resources == nil {
+		common.Log.Debug("getFontDict. No resources. name=%#q", name)
+		return nil, nil
+	}
+	fontObj, ok := resources.GetFontByName(core.PdfObjectName(name))
+	if !ok {
+		common.Log.Debug("ERROR: getFontDict: Font not found: name=%#q", name)
+		return nil, errors.New("font not in resources")
+	}
+	return fontObj, nil
+}
+
+func (to *textObject) getFontDirect(name string) (*model.PdfFont, error) {
+	fontDict, err := to.getFontDict(name)
+	if err != nil {
+		return nil, err
+	}
+	font, err := model.NewPdfFontFromPdfObject(fontDict)
+	if err != nil {
+		common.Log.Debug("getFontDirect: NewPdfFontFromPdfObject failed. name=%#q err=%v", name, err)
+	}
+	return font, err
+}
+
+func (to *textObject) setFont(name string, size float64) error {
+	if to == nil {
+		return nil
+	}
+	to.state.tfs = size
+	font, err := to.getFont(name)
+	if err != nil {
+		return err
+	}
+	to.state.tfont = font
+	return nil
+}
+
+func (to *textObject) getFont(name string) (*model.PdfFont, error) {
+	if to.extractor.fonts != nil {
+		dict, err := to.getFontDict(name)
+		if err != nil {
+			common.Log.Debug("ERROR: getFont: name=%s, error: %s", name, err.Error())
+			return nil, err
+		}
+		to.extractor.fontClock++
+		entry, ok := to.extractor.fonts[dict.String()]
+		if ok {
+			entry.lastUsed = to.extractor.fontClock
+			return entry.font, nil
+		}
+	}
+	dict, err2 := to.getFontDict(name)
+	if err2 != nil {
+		return nil, err2
+	}
+	fontDirect, err2 := to.getFontDirect(name)
+	if err2 != nil {
+		return nil, err2
+	}
+	if to.extractor.fonts != nil {
+		entry := fontEntry{fontDirect, to.extractor.fontClock}
+		if len(to.extractor.fonts) >= maxCachedFonts {
+			var keys []string
+			for key := range to.extractor.fonts {
+				keys = append(keys, key)
+			}
+			sort.Slice(keys, func(i, j int) bool {
+				return to.extractor.fonts[keys[i]].lastUsed < to.extractor.fonts[keys[j]].lastUsed
+			})
+			delete(to.extractor.fonts, keys[0])
+		}
+		to.extractor.fonts[dict.String()] = entry
+	}
+	return fontDirect, nil
+}
+
+func (to *textObject) getCurrentFont() *model.PdfFont {
+	tfont := to.state.tfont
+	if tfont == nil {
+		common.Log.Debug("ERROR: No font defined. Using default.")
+		return model.DefaultFont()
+	}
+	return tfont
+}
 
 func (to *textObject) setHorizScaling(scale float64) {
 	if to == nil {
@@ -59,6 +159,7 @@ func (to *textObject) advanceTextMatrix(buf []byte) {
 		to.tm.Concat(trans)
 	}
 }
+
 func (to *textObject) moveText(tx, ty float64) { to.moveLP(tx, ty) }
 
 func (to *textObject) showText(obj core.PdfObject, raw []byte, mcid int, actualText string) error {
@@ -74,6 +175,7 @@ func (to *textObject) setCharSpacing(spacing float64) {
 		common.Log.Info("setCharSpacing: %.2f state=%s", spacing, to.state.String())
 	}
 }
+
 func (to *textObject) nextLine() { to.moveLP(0, -to.state.tl) }
 
 func (to *textObject) getFillColor() color.Color {
@@ -401,18 +503,90 @@ func (to *textObject) newTextMark(text string, trm transform.Matrix, end transfo
 	return mark, inPage
 }
 
-type textObject struct {
-	extractor       *Extractor
-	resources       *model.PdfPageResources
-	gs              contentstream.GraphicsState
-	state           *textState
-	savedStates     *stateStack
-	tm              transform.Matrix
-	tlm             transform.Matrix
-	marks           []*textMark
-	unsupportedFont bool
-}
-
 func newTextObject(ex *Extractor, resources *model.PdfPageResources, gs contentstream.GraphicsState, state *textState, stack *stateStack) *textObject {
 	return &textObject{extractor: ex, resources: resources, gs: gs, savedStates: stack, state: state, tm: transform.IdentityMatrix(), tlm: transform.IdentityMatrix()}
+}
+
+// Font represents the font properties on a PDF page.
+type Font struct {
+	PdfFont *model.PdfFont
+
+	// FontName represents Font Name from font properties.
+	FontName string
+
+	// FontType represents Font Subtype entry in the font dictionary inside page resources.
+	// Examples : type0, Type1, MMType1, Type3, TrueType, CIDFont.
+	FontType string
+
+	// ToUnicode is true if font provides a `ToUnicode` mapping.
+	ToUnicode bool
+
+	// IsCID is true if underlying font is a composite font.
+	// Composite font is represented by a font dictionary whose Subtype is `Type0`
+	IsCID bool
+
+	// IsSimple is true if font is simple font.
+	// A simple font is limited to only 8 bit (255) character codes.
+	IsSimple bool
+
+	// FontData represents the raw data of the embedded font file.
+	// It can have format TrueType (TTF), PostScript Font (PFB) or Compact Font Format (CCF).
+	// FontData value can be indicates from `FontFile`, `FontFile2` or `FontFile3` inside Font Descriptor.
+	// At most, only one of `FontFile`, `FontFile2` or `FontFile3` will be FontData value.
+	FontData []byte
+
+	// FontFileName is a name representing the font. it has format:
+	// (Font Name) + (Font Type Extension), example: helvetica.ttf.
+	FontFileName string
+
+	// FontDescriptor represents metrics and other attributes inside font properties from PDF Structure (Font Descriptor).
+	FontDescriptor *model.PdfFontDescriptor
+}
+
+type fontEntry struct {
+	font     *model.PdfFont
+	lastUsed int64
+}
+
+type textContext struct{ disableDehyphenation bool }
+
+func (tc *textContext) isDehyphenationDisabled() bool {
+	if tc == nil {
+		return false
+	}
+	return tc.disableDehyphenation
+}
+
+type textState struct {
+	tc                float64
+	tw                float64
+	th                float64
+	tl                float64
+	tfs               float64
+	tmode             RenderMode
+	trise             float64
+	tfont             *model.PdfFont
+	rect              model.PdfRectangle
+	numChars          int
+	numMisparsedChars int
+}
+
+func newTextState(mediaBox model.PdfRectangle) textState {
+	return textState{th: 100, tmode: RenderModeFill, rect: mediaBox}
+}
+
+// String returns a description of `state`.
+func (ts *textState) String() string {
+	s := "[NOT SET]"
+	if ts.tfont != nil {
+		s = ts.tfont.BaseFont()
+	}
+	return fmt.Sprintf("tc=%.2f tw=%.2f tfs=%.2f font=%q", ts.tc, ts.tw, ts.tfs, s)
+}
+
+type textResult struct {
+	pageText          PageText
+	numChars          int
+	numMisparsedChars int
+	form              *model.XObjectForm
 }

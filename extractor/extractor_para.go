@@ -1,22 +1,23 @@
 package extractor
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math"
 	"sort"
-	"strings"
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/transform"
-	"github.com/OpenMellon/openpdf/model"
 )
 
-func isAdjacentRight(bag *wordBag, word *textWord, gap float64) bool {
-	return bag.Urx <= word.Llx && word.Llx < bag.Urx+gap
-}
+type (
+	paraList    []*textPara
+	patternWalk struct {
+		stream *core.PdfObjectStream
+		ctm    transform.Matrix
+	}
+)
 
 func (pl paraList) inTile(tile gridTile) paraList {
 	var paras paraList
@@ -35,47 +36,6 @@ func (pl paraList) inTile(tile gridTile) paraList {
 	return paras
 }
 
-func (tp *textPara) toTextMarks(offset *int, ctx *textContext) []TextMark {
-	if tp.table == nil {
-		return tp.toCellTextMarks(offset, ctx)
-	}
-	var marks []TextMark
-	for row := 0; row < tp.table.h; row++ {
-		for col := 0; col < tp.table.w; col++ {
-			para := tp.table.get(col, row)
-			if para == nil {
-				marks = appendMetaMark(marks, offset, "\t")
-			} else {
-				cellMarks := para.toCellTextMarks(offset, ctx)
-				marks = append(marks, cellMarks...)
-			}
-			marks = appendMetaMark(marks, offset, " ")
-		}
-		if row < tp.table.h-1 {
-			marks = appendMetaMark(marks, offset, "\n")
-		}
-	}
-	table := tp.table
-	if table.isExportable() {
-		tt := table.toTextTable(ctx)
-		marks = attachTable(marks, &tt)
-	}
-	return marks
-}
-
-func newTextPara(rect model.PdfRectangle, lines []*textLine) *textPara {
-	return &textPara{PdfRectangle: rect, lines: lines}
-}
-func (tp *textPara) bbox() model.PdfRectangle { return tp.PdfRectangle }
-
-func compareDepthThenLlx(a, b bounded) float64 {
-	d := compareDepth(a, b)
-	if !isZero(d) {
-		return d
-	}
-	return compareLlx(a, b)
-}
-
 func (pl paraList) lines() []*textLine {
 	var lines []*textLine
 	for _, para := range pl {
@@ -83,65 +43,6 @@ func (pl paraList) lines() []*textLine {
 	}
 	return lines
 }
-
-func (tp *textPara) writeCellText(writer io.Writer, ctx *textContext) {
-	for i, line := range tp.lines {
-		text := line.text()
-		dehyphenate := !ctx.isDehyphenationDisabled() && line.endsInHyphen() && i != len(tp.lines)-1
-		if dehyphenate {
-			text = dropLastRune(text)
-		}
-		writer.Write([]byte(text))
-		if !(dehyphenate || i == len(tp.lines)-1) {
-			writer.Write([]byte(separatorFor(line.depth, tp.lines[i+1].depth)))
-		}
-	}
-}
-
-func (tp *textPara) writeText(writer io.Writer, ctx *textContext) {
-	if tp.table == nil {
-		tp.writeCellText(writer, ctx)
-		return
-	}
-	for row := 0; row < tp.table.h; row++ {
-		for col := 0; col < tp.table.w; col++ {
-			para := tp.table.get(col, row)
-			if para == nil {
-				writer.Write([]byte("\t"))
-			} else {
-				sortLinesByDepth(para.lines)
-				para.writeCellText(writer, ctx)
-			}
-			writer.Write([]byte(" "))
-		}
-		if row < tp.table.h-1 {
-			writer.Write([]byte("\n"))
-		}
-	}
-}
-
-func compareLlxThenDepth(a, b bounded) float64 {
-	d := compareLlx(a, b)
-	if !isZero(d) {
-		return d
-	}
-	return compareDepth(a, b)
-}
-
-func (tp *textPara) isAtom() *textTable {
-	topLeft := tp
-	right := tp.right
-	below := tp.below
-	if right.taken() || below.taken() {
-		return nil
-	}
-	diag := right.below
-	if diag.taken() || diag != below.right {
-		return nil
-	}
-	return newTwoByTwoTable(topLeft, right, below, diag)
-}
-func isRatioSmall(num, den float64) bool { return num/math.Max(slopeEpsilon, den) < maxSlope }
 
 func (pl paraList) merge() *textPara {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
@@ -160,8 +61,6 @@ func (pl paraList) merge() *textPara {
 	return newTextPara(rect, lines)
 }
 
-func horizontalGap(a, b bounded) float64 { return a.bbox().Llx - b.bbox().Urx }
-
 func (pl paraList) list() []*list {
 	var listLines []*textLine
 	var allLines []*textLine
@@ -174,7 +73,6 @@ func (pl paraList) list() []*list {
 	items := buildListsFromLines(allLines, byStartX)
 	return items
 }
-func depthFromTop(rect model.PdfRectangle, b bounded) float64 { return rect.Ury - b.bbox().Lly }
 
 func (pl paraList) yNeighbours(tol float64) map[*textPara][]int {
 	evs := make([]event, 2*len(pl))
@@ -233,7 +131,6 @@ func (pl paraList) computeEBBoxes() {
 		}
 	}
 }
-func (tp *textPara) taken() bool { return tp == nil || tp.isTaken }
 
 func (pl paraList) reorder(idxs []int) {
 	paras := make(paraList, len(pl))
@@ -241,40 +138,6 @@ func (pl paraList) reorder(idxs []int) {
 		paras[i] = pl[idx]
 	}
 	copy(pl, paras)
-}
-
-func overlapsHorizontally(bag *wordBag, word *textWord, gap float64) bool {
-	return word.Llx < bag.Urx+gap && bag.Llx-gap < word.Urx
-}
-
-func minLlx(words []gridWord) float64 {
-	minX := words[0].llx
-	for _, word := range words[1:] {
-		if word.llx < minX {
-			minX = word.llx
-		}
-	}
-	return minX
-}
-
-type textPara struct {
-	model.PdfRectangle
-	eBBox   model.PdfRectangle
-	lines   []*textLine
-	table   *textTable
-	isTaken bool
-	isEmpty bool
-	left    *textPara
-	right   *textPara
-	above   *textPara
-	below   *textPara
-	lists   []list
-}
-
-func compareDepth(a, b bounded) float64 { return bboxDepth(a) - bboxDepth(b) }
-
-func yOverlap(a, b model.PdfRectangle) bool {
-	return a.Lly <= b.Ury && b.Lly <= a.Ury
 }
 
 func (pl paraList) xNeighbours(tol float64) map[*textPara][]int {
@@ -292,16 +155,6 @@ func (pl paraList) xNeighbours(tol float64) map[*textPara][]int {
 	}
 	return pl.eventNeighbours(evs)
 }
-
-type (
-	paraList    []*textPara
-	patternWalk struct {
-		stream *core.PdfObjectStream
-		ctm    transform.Matrix
-	}
-)
-
-func compareLlx(a, b bounded) float64 { return a.bbox().Llx - b.bbox().Llx }
 
 func (pl paraList) log(s string) {
 	if !debugTopoOrder {
@@ -321,14 +174,6 @@ func (pl paraList) log(s string) {
 	}
 }
 
-func spacesForGap(gap, charW float64) string {
-	if gap <= 0 {
-		return " "
-	}
-	n := min(max(int(gap/charW), 1), maxGapSpaces)
-	return strings.Repeat(" ", n)
-}
-
 func (pl paraList) sortReadingOrder() {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("sortReadingOrder: paras=%d ===========x=============", len(pl))
@@ -339,7 +184,6 @@ func (pl paraList) sortReadingOrder() {
 	pl.computeEBBoxes()
 	sort.Slice(pl, func(i, j int) bool { return compareDepthThenLlx(pl[i], pl[j]) <= 0 })
 }
-func paraXOverlaps(para, para2 *textPara) bool { return xOverlap(para.eBBox, para2.eBBox) }
 
 func (pl paraList) eventNeighbours(evs []event) map[*textPara][]int {
 	sort.Slice(evs, func(i, j int) bool {
@@ -387,10 +231,6 @@ func (pl paraList) eventNeighbours(evs []event) map[*textPara][]int {
 	return out
 }
 
-func xOverlap(a, b model.PdfRectangle) bool {
-	return b.Llx <= a.Urx && a.Llx <= b.Urx
-}
-
 func (pl paraList) readBefore(llyIdx []int, i, j int) bool {
 	a, b := pl[i], pl[j]
 	if paraXOverlaps(a, b) && a.Lly > b.Lly {
@@ -417,7 +257,7 @@ func (pl paraList) readBefore(llyIdx []int, i, j int) bool {
 	}
 	return true
 }
-func (tp *textPara) fontsize() float64 { return tp.lines[0].fontSize }
+
 func (pl paraList) topoOrder() []int {
 	if debugTopoOrder {
 		common.Log.Info("topoOrder:")
@@ -481,62 +321,6 @@ func (pl paraList) llyOrdering() []int {
 	return order
 }
 
-// String returns a description of `p`.
-func (tp *textPara) String() string {
-	if tp.isEmpty {
-		return fmt.Sprintf("%6.2f [EMPTY]", tp.PdfRectangle)
-	}
-	dims := ""
-	if tp.table != nil {
-		dims = fmt.Sprintf("[%dx%d] ", tp.table.w, tp.table.h)
-	}
-	return fmt.Sprintf("%6.2f %s%d lines %q", tp.PdfRectangle, dims, len(tp.lines), truncate(tp.text(), 50))
-}
-
-func buildChildLists(lines []*textLine, m map[float64][]*textLine, depths []float64, level int, parentDepth, nextDepth float64) []*list {
-	items := []*list{}
-	lvl := level
-	level = level + 1
-	d := depths[lvl]
-	levelLines := m[d]
-	cands := linesBetweenDepths(levelLines, nextDepth, parentDepth)
-	for i, line := range cands {
-		var limit float64
-		subItems := []*list{}
-		depth := line.depth
-		next := nextDepth
-		if i < len(cands)-1 {
-			next = cands[i+1].depth
-		}
-		if level < len(depths) {
-			subItems = buildChildLists(lines, m, depths, level, depth, next)
-		}
-		limit = next
-		if len(subItems) > 0 {
-			subItem := subItems[0]
-			if len(subItem.lines) > 0 {
-				limit = subItem.lines[0].depth
-			}
-		}
-		itemLines := []*textLine{line}
-		cont := bulletContinuationLines(line, lines, depth, limit)
-		itemLines = append(itemLines, cont...)
-		item := newList(itemLines, "bullet", subItems)
-		item.text = joinLinesText(itemLines, "")
-		items = append(items, item)
-	}
-	return items
-}
-
-func nextIndexNot(strs []string, from int, val string) int {
-	i := from
-	for ; i < len(strs); i++ {
-		if strs[i] != val {
-			return i
-		}
-	}
-	return i
-}
 func (pl paraList) sortTopoOrder() { order := pl.topoOrder(); pl.reorder(order) }
 
 func (pl paraList) writeText(writer io.Writer, ctx *textContext) {
@@ -556,31 +340,6 @@ func (pl paraList) writeText(writer io.Writer, ctx *textContext) {
 	}
 	writer.Write([]byte("\n"))
 	writer.Write([]byte("\n"))
-}
-
-func paraDepthEqual(a, b *textPara) bool {
-	if a.isEmpty || b.isEmpty {
-		return true
-	}
-	return isZero(a.depth() - b.depth())
-}
-func lineStartX(line *textLine) float64 { return line.words[0].Llx }
-
-func withGap(test func(*wordBag, *textWord, float64) bool, gap float64) func(*wordBag, *textWord) bool {
-	return func(bag *wordBag, w *textWord) bool { return test(bag, w, gap) }
-}
-
-func (tp *textPara) getListLines() []*textLine {
-	var lines []*textLine
-	bulletLines := linesWithBullets(tp.lines)
-	for _, line := range tp.lines {
-		b := line.words[0].text[0]
-		if startsWithBulletByte(b) {
-			lines = append(lines, line)
-		}
-	}
-	lines = append(lines, bulletLines...)
-	return lines
 }
 
 func (pl paraList) addNeighbours() {
@@ -715,39 +474,6 @@ func (pl paraList) addNeighbours() {
 		}
 	}
 }
-func bboxDepth(b bounded) float64 { return -b.bbox().Lly }
-
-func (tp *textPara) text() string {
-	buf := new(bytes.Buffer)
-	tp.writeText(buf, &textContext{})
-	return buf.String()
-}
-
-type bounded interface{ bbox() model.PdfRectangle }
-
-func spacesForOffset(offset, unit float64) string {
-	if offset <= unit {
-		return ""
-	}
-	n := min(int(offset/unit+0.5), maxOffsetSpaces)
-	return strings.Repeat(" ", n)
-}
-
-type event struct {
-	pos     float64
-	isStart bool
-	idx     int
-}
-
-func (tp *textPara) depth() float64 {
-	if tp.isEmpty {
-		return -1.0
-	}
-	if len(tp.lines) > 0 {
-		return tp.lines[0].depth
-	}
-	return tp.table.depth()
-}
 
 func (pl paraList) llyRange(idxs []int, lo, hi float64) []int {
 	n := len(pl)
@@ -759,18 +485,175 @@ func (pl paraList) llyRange(idxs []int, lo, hi float64) []int {
 	return idxs[start:end]
 }
 
-func (tp *textPara) toCellTextMarks(offset *int, ctx *textContext) []TextMark {
-	var marks []TextMark
-	for i, line := range tp.lines {
-		lineMarks := line.toTextMarks(offset)
-		dehyphenate := !ctx.isDehyphenationDisabled() && line.endsInHyphen() && i != len(tp.lines)-1
-		if dehyphenate {
-			lineMarks = trimLastMarkRune(lineMarks, offset)
+func (pl paraList) findTextTables() []*textTable {
+	var tables []*textTable
+	for _, para := range pl {
+		if para.taken() || para.Width() == 0 {
+			continue
 		}
-		marks = append(marks, lineMarks...)
-		if !(dehyphenate || i == len(tp.lines)-1) {
-			marks = appendMetaMark(marks, offset, separatorFor(line.depth, tp.lines[i+1].depth))
+		table := para.isAtom()
+		if table == nil {
+			continue
+		}
+		table.growTable()
+		if table.w*table.h < minTableParas {
+			continue
+		}
+		table.markCells()
+		table.log("grown")
+		tables = append(tables, table)
+	}
+	return tables
+}
+
+func (pl paraList) extractTables(tilings []gridTiling) paraList {
+	if debugTables {
+		common.Log.Debug("extractTables=%d ===========x=============", len(pl))
+	}
+	if len(pl) < minTableParas {
+		return pl
+	}
+	tables := pl.findTables(tilings)
+	if debugTables {
+		common.Log.Info("combined tables %d ================", len(tables))
+		for i, table := range tables {
+			table.log(fmt.Sprintf("combined %d", i))
 		}
 	}
-	return marks
+	return pl.applyTables(tables)
+}
+
+func (pl paraList) tables(ctx *textContext) []TextTable {
+	var tables []TextTable
+	if debugTables {
+		common.Log.Info("paras.tables:")
+	}
+	for _, para := range pl {
+		table := para.table
+		if table != nil && table.isExportable() {
+			tables = append(tables, table.toTextTable(ctx))
+		}
+	}
+	return tables
+}
+
+func (pl paraList) findTables(tilings []gridTiling) []*textTable {
+	pl.addNeighbours()
+	sort.Slice(pl, func(n, n2 int) bool { return compareLlxThenDepth(pl[n], pl[n2]) < 0 })
+	var tables []*textTable
+	if useGridTables {
+		gridTables := pl.findGridTables(tilings)
+		tables = append(tables, gridTables...)
+	}
+	if useTextTables {
+		textTables := pl.findTextTables()
+		tables = append(tables, textTables...)
+	}
+	return tables
+}
+
+func (pl paraList) findTableGrid(tiling gridTiling) (*textTable, map[*textPara]struct{}) {
+	numLlx := len(tiling.llx)
+	numLly := len(tiling.lly)
+	table := textTable{
+		exportable: true, w: numLlx, h: numLly, cells: make(map[uint64]*textPara, numLlx*numLly), compositeCells: make(map[uint64]compositeCell, numLlx*numLly),
+		PdfRectangle: tiling.PdfRectangle,
+	}
+	used := make(map[*textPara]struct{})
+	maxEmpty := int((1.0 - maxEmptyFraction) * float64(numLlx*numLly))
+	numEmpty := 0
+	if debugGrids {
+		common.Log.Info("findTableGrid: %d x %d", numLlx, numLly)
+	}
+	for row, lly := range tiling.lly {
+		rowTiles, ok := tiling.tiles[lly]
+		if !ok {
+			continue
+		}
+		for col, llx := range tiling.llx {
+			tile, ok2 := rowTiles[llx]
+			if !ok2 {
+				continue
+			}
+			paras := pl.inTile(tile)
+			if len(paras) == 0 {
+				numEmpty++
+				if numEmpty > maxEmpty {
+					if debugGrids {
+						common.Log.Info("!numEmpty=%d", numEmpty)
+					}
+					return nil, nil
+				}
+			} else {
+				table.putComposite(col, row, paras, tile.PdfRectangle)
+				for _, para := range paras {
+					used[para] = struct{}{}
+				}
+			}
+		}
+	}
+	numHeader := 0
+	for i := 0; i < numLlx; i++ {
+		para := table.get(i, 0)
+		if para == nil || !para.isEmpty {
+			numHeader++
+		}
+	}
+	if numHeader == 0 {
+		if debugGrids {
+			common.Log.Info("!numHeader=0")
+		}
+		return nil, nil
+	}
+	reduced := table.reduceTiling(tiling, reduceTilingTolerance)
+	reduced = reduced.subdivide()
+	return reduced, used
+}
+
+func (pl paraList) findGridTables(tilings []gridTiling) []*textTable {
+	if debugTables {
+		common.Log.Info("findGridTables: %d paras", len(pl))
+		for i, para := range pl {
+			fmt.Printf("%4d: %s\n", i, para)
+		}
+	}
+	var tables []*textTable
+	for i, tiling := range tilings {
+		tableGrid, used := pl.findTableGrid(tiling)
+		if tableGrid != nil {
+			tableGrid.log(fmt.Sprintf("findTableWithGrids: %d", i))
+			tables = append(tables, tableGrid)
+			tableGrid.markCells()
+		}
+		for para := range used {
+			para.isTaken = true
+		}
+	}
+	if debugTables {
+		common.Log.Info("findGridTables: %d tables", len(tables))
+	}
+	return tables
+}
+
+func (pl paraList) applyTables(tables []*textTable) paraList {
+	var paras paraList
+	for _, table := range tables {
+		paras = append(paras, table.newTablePara())
+	}
+	for _, para := range pl {
+		if para.isTaken {
+			continue
+		}
+		paras = append(paras, para)
+	}
+	return paras
+}
+
+func paraXOverlaps(para, para2 *textPara) bool { return xOverlap(para.eBBox, para2.eBBox) }
+
+func paraDepthEqual(a, b *textPara) bool {
+	if a.isEmpty || b.isEmpty {
+		return true
+	}
+	return isZero(a.depth() - b.depth())
 }

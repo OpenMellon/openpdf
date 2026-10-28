@@ -9,9 +9,36 @@ import (
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/contentstream"
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/openpdf/internal/transform"
 	"github.com/OpenMellon/openpdf/model"
 )
+
+// PageTextOptions holds various options available in extraction process.
+type PageTextOptions struct {
+	disableDocumentTags  bool
+	mode                 ExtractionMode
+	disableDehyphenation bool
+}
+
+// PageImages represents extracted images on a PDF page with spatial information:
+// display position and size.
+type PageImages struct{ Images []ImageMark }
+
+// PageText represents the layout of text on a device page.
+type PageText struct {
+	marks           []*textMark
+	text            string
+	cachedMarksText string
+	viewMarks       []TextMark
+	tables          []TextTable
+	pageSize        model.PdfRectangle
+	strokes         []pathSection
+	fills           []pathSection
+	structTreeRoot  *model.StructTreeRoot
+	pageObject      core.PdfObject
+	ops             *contentstream.ContentStreamOperations
+	forms           []FormContent
+	options         PageTextOptions
+}
 
 func (pt *PageText) makeGridText(marks []*textMark) string {
 	if len(marks) == 0 {
@@ -43,16 +70,6 @@ func (pt *PageText) makeGridText(marks []*textMark) string {
 // painted.
 func (pt *PageText) FormContents() []FormContent { return pt.forms }
 
-func (e *Extractor) isTextOnly() bool {
-	if e.collectPaths {
-		return false
-	}
-	if e.options == nil {
-		return false
-	}
-	return e.options.ExtractionMode == ExtractionModeGrid
-}
-
 // Marks returns the TextMark collection for a page. It represents all the text on the page.
 func (pt PageText) Marks() *TextMarkArray { return &TextMarkArray{marks: pt.viewMarks} }
 
@@ -70,59 +87,6 @@ func (pt PageText) GridText() string {
 		return pt.text
 	}
 	return pt.makeGridText(pt.marks)
-}
-
-func makeTextPage(marks []*textMark, pageSize model.PdfRectangle, rulings rulingList, tilings []gridTiling, noBreaks bool) paraList {
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("makeTextPage: %d elements pageSize=%.2f", len(marks), pageSize)
-	}
-	if len(marks) == 0 {
-		return nil
-	}
-	words := makeTextWords(marks, pageSize, false)
-	if len(words) == 0 {
-		return nil
-	}
-	rulings.log("makeTextPage")
-	vertRulings, horzRulings := rulings.vertsHorzs()
-	bag := makeWordBag(words, pageSize.Ury, vertRulings, horzRulings)
-	bags := splitWordBag(bag, pageSize.Ury, vertRulings, horzRulings, noBreaks)
-	bags = mergeWordBags(bags)
-	paras := make(paraList, 0, len(bags))
-	for _, bag2 := range bags {
-		para := bag2.arrangeText(noBreaks)
-		if para != nil {
-			paras = append(paras, para)
-		}
-	}
-	if len(paras) >= minTableParas {
-		paras = paras.extractTables(tilings)
-	}
-	paras.sortReadingOrder()
-	paras.sortTopoOrder()
-	paras.log("sorted in reading order")
-	return paras
-}
-
-// FormContent holds a form XObject painted on the page together with its
-// parsed content stream operations. The DirectObject fields of the text marks
-// that originate from a form reference PdfObjects inside Operations, so
-// consumers that rewrite content streams (e.g. the redactor) must edit
-// Operations and re-encode Form rather than the page content stream.
-// Marks merged from annotation appearance streams (extraction with
-// Options.IncludeAnnotations) are not covered: the objects they reference
-// belong to appearance stream parses that are not reported here.
-type FormContent struct {
-	// Name is the resource name the form was first painted under.
-	Name string
-
-	// Form is the form XObject. Its underlying stream primitive is shared
-	// with every other page or form that references the same XObject.
-	Form *model.XObjectForm
-
-	// Operations is the parse of the form's content stream that the merged
-	// text marks reference.
-	Operations *contentstream.ContentStreamOperations
 }
 
 // List returns all the list objects detected on the page.
@@ -161,28 +125,6 @@ func (pt PageText) List() lists {
 	return items
 }
 
-// ExtractPageText returns the text contents of `e` (an Extractor for a page) as a PageText.
-// TODO(peterwilliams97): The stats complicate this function signature and aren't very useful.
-//
-//	Replace with a function like Extract() (*PageText, error)
-func (e *Extractor) ExtractPageText() (*PageText, int, int, error) {
-	pageText, numChars, numMisparsed, err := e.extractPageText(e.contents, e.resources, transform.IdentityMatrix(), 0, false, nil)
-	if err != nil && !errors.Is(err, model.ErrColorOutOfRange) {
-		return nil, 0, 0, err
-	}
-	if e.options != nil {
-		pageText.options.mode = e.options.ExtractionMode
-		pageText.options.disableDocumentTags = e.options.DisableDocumentTags
-		pageText.options.disableDehyphenation = e.options.DisableDehyphenation
-	}
-	pageText.computeViews()
-	if e.options != nil {
-		if e.options.ApplyCropBox && e.cropBox != nil {
-			pageText.ApplyArea(*e.cropBox)
-		}
-	}
-	return pageText, numChars, numMisparsed, nil
-}
 func (pt PageText) marksText() string { return pt.cachedMarksText }
 
 // ApplyArea processes the page text only within the specified area `bbox`.
@@ -240,16 +182,6 @@ func (pt PageText) Tables() []TextTable {
 	return pt.tables
 }
 
-func (e *Extractor) extractPageText(contents string, resources *model.PdfPageResources, ctm transform.Matrix, formDepth int, isAnnotation bool, gs *contentstream.GraphicsState) (*PageText, int, int, error) {
-	contentStreamParser, err := contentstream.NewContentStreamParser(contents).Parse()
-	if err != nil {
-		common.Log.Debug("ERROR: extractPageText parse failed. err=%v", err)
-		pageText := &PageText{pageSize: e.mediaBox, structTreeRoot: e.structTreeRoot, pageObject: e.pageObject}
-		return pageText, 0, 0, err
-	}
-	return e.extractPageTextFromOps(contentStreamParser, resources, ctm, formDepth, isAnnotation, gs)
-}
-
 // String returns a string describing `pt`.
 func (pt PageText) String() string {
 	header := fmt.Sprintf("PageText: %d elements", len(pt.marks))
@@ -278,88 +210,8 @@ func (pt *PageText) appendFormContent(name string, form *model.XObjectForm, ops 
 	pt.forms = append(pt.forms, FormContent{Name: name, Form: form, Operations: ops})
 }
 
-// ExtractTextWithStats works like ExtractText but returns the number of characters in the output
-// (`numChars`) and the number of characters that were not decoded (`numMisses`).
-func (e *Extractor) ExtractTextWithStats() (text string, numChars int, numMisses int, err error) {
-	pageText, numChars, numMisses, err := e.ExtractPageText()
-	if err != nil {
-		return "", numChars, numMisses, err
-	}
-	return pageText.Text(), numChars, numMisses, nil
-}
-
-// ExtractText processes and extracts all text data in content streams and returns as a string.
-// It takes into account character encodings in the PDF file, which are decoded by
-// CharcodeBytesToUnicode.
-// Characters that can't be decoded are replaced with MissingCodeRune ('\ufffd' = �).
-func (e *Extractor) ExtractText() (string, error) {
-	textWithStats, _, _, err := e.ExtractTextWithStats()
-	return textWithStats, err
-}
-
-// PageText represents the layout of text on a device page.
-type PageText struct {
-	marks           []*textMark
-	text            string
-	cachedMarksText string
-	viewMarks       []TextMark
-	tables          []TextTable
-	pageSize        model.PdfRectangle
-	strokes         []pathSection
-	fills           []pathSection
-	structTreeRoot  *model.StructTreeRoot
-	pageObject      core.PdfObject
-	ops             *contentstream.ContentStreamOperations
-	forms           []FormContent
-	options         PageTextOptions
-}
-
 // Text returns the extracted page text.
 func (pt PageText) Text() string { return pt.text }
-
-func makeSimpleText(marks []*textMark, pageSize model.PdfRectangle) string {
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("makeSimpleText: %d elements pageSize=%.2f", len(marks), pageSize)
-	}
-	out := ""
-	if len(marks) == 0 {
-		return out
-	}
-	words := makeTextWords(marks, pageSize, true)
-	if len(words) == 0 {
-		return out
-	}
-	prevDepth := 0.0
-	first := true
-	line := ""
-	for _, word := range words {
-		fontSize := word.fontSize
-		if fontSize > minFontSize {
-			fontSize = minFontSize
-		}
-		if (word.depth-prevDepth > lineMergeFactor*fontSize && prevDepth != 0.0) || (prevDepth-word.depth > fontSize*10) {
-			bidi := reorderBidi([]rune(line))
-			line = bidi.text
-			line += "\n"
-			out += line
-			line = ""
-		} else {
-			if !first {
-				line += " "
-			}
-		}
-		line += word.text
-		first = false
-		prevDepth = word.depth
-	}
-	if line != "" {
-		bidi := reorderBidi([]rune(line))
-		line = bidi.text
-		line += "\n"
-		out += line
-	}
-	return out
-}
 
 func (pt *PageText) computeViews() {
 	if pt.options.mode == ExtractionModePlain {
@@ -399,4 +251,101 @@ func (pt *PageText) getText() string {
 		}
 	}
 	return out.String()
+}
+
+func (pt *PageText) getParagraphs() paraList {
+	var rulings rulingList
+	if useStrokeRulings {
+		strokeRulings := makeStrokeRulings(pt.strokes)
+		rulings = append(rulings, strokeRulings...)
+	}
+	if useFillRulings {
+		fillRulings := makeFillRulings(pt.fills)
+		rulings = append(rulings, fillRulings...)
+	}
+	rulings, tilings := rulings.toTilings()
+	var paras paraList
+	numMarks := len(pt.marks)
+	for angle := 0; angle < 360 && numMarks > 0; angle += 90 {
+		orientMarks := make([]*textMark, 0, len(pt.marks)-numMarks)
+		for _, mark := range pt.marks {
+			if mark.orientation == angle {
+				orientMarks = append(orientMarks, mark)
+			}
+		}
+		if len(orientMarks) > 0 {
+			orientParas := makeTextPage(orientMarks, pt.pageSize, rulings, tilings, pt.options.mode == ExtractionModeLayoutNoBreaks)
+			paras = append(paras, orientParas...)
+			numMarks -= len(orientMarks)
+		}
+	}
+	return paras
+}
+
+// PageFonts represents extracted fonts on a PDF page.
+type PageFonts struct{ Fonts []Font }
+
+func (pf *PageFonts) extractPageResourcesToFont(resources *model.PdfPageResources) error {
+	if resources.Font == nil {
+		return errors.New(msgNoFontFound)
+	}
+	fontDict, ok := core.GetDict(resources.Font)
+	if !ok {
+		return errors.New(msgFontConvert)
+	}
+	for _, key := range fontDict.Keys() {
+		var (
+			hasToUnicode = true
+			data         []byte
+			fileName     string
+		)
+		fontObj, ok2 := resources.GetFontByName(key)
+		if !ok2 {
+			return errors.New(msgFontPropsNotFound)
+		}
+		pdfFont, err := model.NewPdfFontFromPdfObject(fontObj)
+		if err != nil {
+			return err
+		}
+		descriptor := pdfFont.FontDescriptor()
+		fontName := pdfFont.FontDescriptor().FontName.String()
+		subtype := pdfFont.Subtype()
+		if containsFont(pf.Fonts, fontName) {
+			continue
+		}
+		if len(pdfFont.ToUnicode()) == 0 {
+			hasToUnicode = false
+		}
+		if descriptor.FontFile != nil {
+			if stream, ok3 := core.GetStream(descriptor.FontFile); ok3 {
+				data, err = core.DecodeStream(stream)
+				if err != nil {
+					return err
+				}
+				fileName = fontName + ".pfb"
+			}
+		} else if descriptor.FontFile2 != nil {
+			if stream, ok3 := core.GetStream(descriptor.FontFile2); ok3 {
+				data, err = core.DecodeStream(stream)
+				if err != nil {
+					return err
+				}
+				fileName = fontName + ".ttf"
+			}
+		} else if descriptor.FontFile3 != nil {
+			if stream, ok3 := core.GetStream(descriptor.FontFile3); ok3 {
+				data, err = core.DecodeStream(stream)
+				if err != nil {
+					return err
+				}
+				fileName = fontName + ".cff"
+			}
+		}
+		if len(fileName) < 1 {
+			common.Log.Debug(msgFontStreamInvalid)
+		}
+		font := Font{FontName: fontName, PdfFont: pdfFont, IsCID: pdfFont.IsCID(), IsSimple: pdfFont.IsSimple(), ToUnicode: hasToUnicode, FontType: subtype, FontData: data, FontFileName: fileName, FontDescriptor: descriptor}
+		pf.Fonts = append(pf.Fonts, font)
+	}
+	return nil
 }
