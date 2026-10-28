@@ -26,4 +26,26 @@ jobs:
           go-version-file: ${{ matrix.go-version-file }}
           go-version: ${{ matrix.go-version }}
       - run: go build ./...
+      - run: go vet -composites=false ./...
+      # Failed golden comparisons write their actual and diff files here.
       - run: go test ./...
+        env:
+          OPENPDF_REGRESS_OUT: ${{ runner.temp }}/regress-out
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regress-out-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/regress-out
+          if-no-files-found: ignore
+      # The golden suite is excluded from -race: it would run several times slower for no extra coverage of its own.
+      - run: |
+          set -o pipefail
+          go list ./... | grep -v /internal/regress | xargs -r go test -race
+      # Coverage across all packages, from every test including the goldens, on the development toolchain only.
+      - if: matrix.gotoolchain == 'auto'
+        run: go test -coverpkg=./... -coverprofile=cover.out ./... && go tool cover -func=cover.out | tail -1
+      - if: matrix.gotoolchain == 'auto'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: cover.out
