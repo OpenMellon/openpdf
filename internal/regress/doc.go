@@ -2,7 +2,7 @@
 //
 // Each scenario builds (or reads) a PDF, then compares four artefacts with the files under testdata/<name>/:
 //
-//   - doc.pdf: the exact bytes written, for scenarios whose output is deterministic
+//   - doc.pdf: the exact bytes written (only compared on the go.mod toolchain: compressed streams vary by Go release)
 //   - doc.dump.txt: a normalised textual dump of every object, which is what to review in a diff
 //   - text.txt: the text the extractor reads from every page
 //   - page-N.png: every page rendered at 72 dpi, for scenarios whose text is embedded TrueType

@@ -11,9 +11,11 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 )
 
-// elided keys hold values that legitimately vary between runs or builds.
+// elided keys hold values that legitimately vary between runs, builds or Go releases. Length is the size of the
+// compressed stream, which the standard library's flate encoder changes between releases; the decoded stream body
+// is dumped instead.
 var elided = map[core.PdfObjectName]bool{
-	"ID": true, "CreationDate": true, "ModDate": true, "Producer": true,
+	"ID": true, "CreationDate": true, "ModDate": true, "Producer": true, "Length": true,
 }
 
 // dumpPDF returns a normalised, human-readable listing of every object in the PDF: objects in number order,

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -123,6 +124,10 @@ func (g *goldens) compare(file string, want, got []byte) {
 	case strings.HasSuffix(file, ".png"):
 		comparePNG(t, outDir(t, g.name), file, want, got)
 	case bytes.Equal(want, got):
+	case file == "doc.pdf" && !onPinnedToolchain():
+		// Compressed streams differ between Go releases, so exact bytes are only comparable on the toolchain
+		// the goldens were generated with. The dump, text and pixels are still checked.
+		t.Logf("doc.pdf bytes differ, not enforced on %s (go.mod toolchain is %s)", runtime.Version(), pinnedToolchain())
 	case strings.HasSuffix(file, ".txt"):
 		t.Errorf("%s differs from golden:\n%s", file, lineDiff(string(want), string(got)))
 		saveActual(t, outDir(t, g.name), file, got)
@@ -166,3 +171,19 @@ func lineDiff(want, got string) string {
 	}
 	return b.String()
 }
+
+// pinnedToolchain returns the toolchain line from go.mod, the Go release the byte goldens are generated with.
+func pinnedToolchain() string {
+	data, err := os.ReadFile(filepath.Join("..", "..", "go.mod"))
+	if err != nil {
+		return ""
+	}
+	for line := range strings.SplitSeq(string(data), "\n") {
+		if v, ok := strings.CutPrefix(strings.TrimSpace(line), "toolchain "); ok {
+			return v
+		}
+	}
+	return ""
+}
+
+func onPinnedToolchain() bool { return runtime.Version() == pinnedToolchain() }
