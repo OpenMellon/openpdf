@@ -1293,7 +1293,8 @@ func (p *fdfParser) parseIndirectObject() (core.PdfObject, error) {
 						Stream:              data,
 						PdfObjectDictionary: ind.PdfObject.(*core.PdfObjectDictionary),
 						ObjectNumber:        ind.ObjectNumber,
-						GenerationNumber:    ind.GenerationNumber}
+						GenerationNumber:    ind.GenerationNumber,
+					}
 					p.skipSpaces()
 					p.reader.Discard(9)
 					p.skipSpaces()

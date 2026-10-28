@@ -3,9 +3,10 @@
 
 package syncmap
 
-import "maps"
-
-import "sync"
+import (
+	"maps"
+	"sync"
+)
 
 type StringsTuple struct{ Key, Value string }
 

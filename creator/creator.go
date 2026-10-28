@@ -15145,7 +15145,6 @@ func parseCommands(tokens []token) ([]*Command, error) {
 		floats   []float64
 	)
 	for _, token := range slices.Backward(tokens) {
-
 		if token.isCommand {
 			paramCount := svgCommands.paramCounts[strings.ToLower(token.text)]
 			floatsLen := len(floats)

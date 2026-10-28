@@ -9374,7 +9374,8 @@ func (w *PdfWriter) setDocInfo(obj core.PdfObject) {
 		}
 	}
 	indirect := core.PdfIndirectObject{
-		PdfObject: obj}
+		PdfObject: obj,
+	}
 	w.infoObj = &indirect
 	w.addObject(&indirect)
 }
@@ -13247,7 +13248,8 @@ func NewPdfPage() *PdfPage {
 	page.pageDict = core.MakeDict()
 	page.Resources = NewPdfPageResources()
 	indirect := core.PdfIndirectObject{
-		PdfObject: page.pageDict}
+		PdfObject: page.pageDict,
+	}
 	page.primitive = &indirect
 	page.originalDict = page.pageDict.ShallowCopy()
 	return &page
@@ -25993,7 +25995,8 @@ func NewPdfWriter() PdfWriter {
 		}
 	}
 	indirect := core.PdfIndirectObject{
-		PdfObject: dict}
+		PdfObject: dict,
+	}
 	writer.infoObj = &indirect
 	writer.addObject(&indirect)
 	indirect2 := core.PdfIndirectObject{}

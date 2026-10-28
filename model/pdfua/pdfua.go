@@ -634,7 +634,6 @@ func (w *contentWalker) evalContent(stack []mcFrame) {
 	state := 0
 	inArtifact := false
 	for _, frame := range slices.Backward(stack) {
-
 		if frame.artifact {
 			inArtifact = true
 			if state == 0 {

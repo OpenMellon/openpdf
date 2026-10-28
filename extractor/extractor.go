@@ -5796,8 +5796,10 @@ func (tm *textMark) String() string {
 func (pl paraList) findTableGrid(tiling gridTiling) (*textTable, map[*textPara]struct{}) {
 	numLlx := len(tiling.llx)
 	numLly := len(tiling.lly)
-	table := textTable{exportable: true, w: numLlx, h: numLly, cells: make(map[uint64]*textPara, numLlx*numLly), compositeCells: make(map[uint64]compositeCell, numLlx*numLly),
-		PdfRectangle: tiling.PdfRectangle}
+	table := textTable{
+		exportable: true, w: numLlx, h: numLly, cells: make(map[uint64]*textPara, numLlx*numLly), compositeCells: make(map[uint64]compositeCell, numLlx*numLly),
+		PdfRectangle: tiling.PdfRectangle,
+	}
 	used := make(map[*textPara]struct{})
 	maxEmpty := int((1.0 - maxEmptyFraction) * float64(numLlx*numLly))
 	numEmpty := 0
@@ -8230,8 +8232,10 @@ func (tt *textTable) toTextTable(ctx *textContext) TextTable {
 			cells[i][j].Marks.marks = para.toTextMarks(&offset, ctx)
 		}
 	}
-	table := TextTable{W: tt.w, H: tt.h, Cells: cells,
-		PdfRectangle: tt.bbox()}
+	table := TextTable{
+		W: tt.w, H: tt.h, Cells: cells,
+		PdfRectangle: tt.bbox(),
+	}
 	return table
 }
 
