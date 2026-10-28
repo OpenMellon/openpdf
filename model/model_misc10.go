@@ -288,7 +288,7 @@ func getPdfProducer() string {
 	if len(pdfProducer) > 0 {
 		return pdfProducer
 	}
-	return fmt.Sprintf("OpenPDF v%s () - https://github.com/OpenMellon/openpdf", libraryVersion())
+	return fmt.Sprintf("OpenPDF v%s - https://github.com/OpenMellon/openpdf", libraryVersion())
 }
 
 // ToWriter creates a new writer from the current reader, based on the specified options.
