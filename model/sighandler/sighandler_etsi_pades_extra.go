@@ -14,8 +14,8 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/openpdf/model/sigutil"
-	"github.com/OpenMellon/timestamp"
 	"github.com/unidoc/pkcs7"
+	"github.com/unidoc/timestamp"
 )
 
 // GetTimestampServerURL returns the URL of the timestamp server.

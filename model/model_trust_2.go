@@ -7,8 +7,8 @@ import (
 	_ "image/gif"
 	"time"
 
-	"github.com/OpenMellon/timestamp"
 	"github.com/unidoc/pkcs7"
+	"github.com/unidoc/timestamp"
 )
 
 func (t *trustEvaluator) verifySignatureTimestamp(data, encryptedDigest []byte, certificates, certs []*x509.Certificate, evidence revocationEvidence) (time.Time, []string, error) {

@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/timestamp"
+	"github.com/unidoc/timestamp"
 	"golang.org/x/crypto/ocsp"
 )
 

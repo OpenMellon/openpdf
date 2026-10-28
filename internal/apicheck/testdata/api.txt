@@ -8226,13 +8226,13 @@ github.com/OpenMellon/openpdf/model/sigutil func NewCRLClient func() *github.com
 github.com/OpenMellon/openpdf/model/sigutil func NewCertClient func() *github.com/OpenMellon/openpdf/model/sigutil.CertClient
 github.com/OpenMellon/openpdf/model/sigutil func NewOCSPClient func() *github.com/OpenMellon/openpdf/model/sigutil.OCSPClient
 github.com/OpenMellon/openpdf/model/sigutil func NewTimestampClient func() *github.com/OpenMellon/openpdf/model/sigutil.TimestampClient
-github.com/OpenMellon/openpdf/model/sigutil func NewTimestampRequest func(io.Reader, *github.com/OpenMellon/timestamp.RequestOptions) (*github.com/OpenMellon/timestamp.Request, error)
+github.com/OpenMellon/openpdf/model/sigutil func NewTimestampRequest func(io.Reader, *github.com/unidoc/timestamp.RequestOptions) (*github.com/unidoc/timestamp.Request, error)
 github.com/OpenMellon/openpdf/model/sigutil method *github.com/OpenMellon/openpdf/model/sigutil.CRLClient MakeRequest func(string, *crypto/x509.Certificate) ([]byte, error)
 github.com/OpenMellon/openpdf/model/sigutil method *github.com/OpenMellon/openpdf/model/sigutil.CertClient Get func(string) (*crypto/x509.Certificate, error)
 github.com/OpenMellon/openpdf/model/sigutil method *github.com/OpenMellon/openpdf/model/sigutil.CertClient GetIssuer func(*crypto/x509.Certificate) (*crypto/x509.Certificate, error)
 github.com/OpenMellon/openpdf/model/sigutil method *github.com/OpenMellon/openpdf/model/sigutil.CertClient IsCA func(*crypto/x509.Certificate) bool
 github.com/OpenMellon/openpdf/model/sigutil method *github.com/OpenMellon/openpdf/model/sigutil.OCSPClient MakeRequest func(string, *crypto/x509.Certificate, *crypto/x509.Certificate) (*golang.org/x/crypto/ocsp.Response, []byte, error)
-github.com/OpenMellon/openpdf/model/sigutil method *github.com/OpenMellon/openpdf/model/sigutil.TimestampClient GetEncodedToken func(string, *github.com/OpenMellon/timestamp.Request) ([]byte, error)
+github.com/OpenMellon/openpdf/model/sigutil method *github.com/OpenMellon/openpdf/model/sigutil.TimestampClient GetEncodedToken func(string, *github.com/unidoc/timestamp.Request) ([]byte, error)
 github.com/OpenMellon/openpdf/model/sigutil type CRLClient
 github.com/OpenMellon/openpdf/model/sigutil type CertClient
 github.com/OpenMellon/openpdf/model/sigutil type OCSPClient

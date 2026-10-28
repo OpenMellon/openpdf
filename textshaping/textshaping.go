@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/OpenMellon/garabic"
+	"github.com/unidoc/garabic"
 	"golang.org/x/text/unicode/bidi"
 )
 
