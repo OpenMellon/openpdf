@@ -49,6 +49,23 @@ errors. Run them across the whole repo with `pre-commit run --all-files`.
    go test ./...
    ~~~
 
+## Updating the regression goldens
+
+`internal/regress` builds PDFs with the creator, annotator and other packages and compares them with committed
+goldens in `internal/regress/testdata/<scenario>/`: the exact PDF bytes (`doc.pdf`), a readable dump of every object
+(`doc.dump.txt`), the extracted text (`text.txt`) and, for pages whose text is embedded TrueType, a PNG per page.
+
+If a change alters output on purpose, regenerate and review the result before committing it:
+
+~~~
+go test ./internal/regress -update
+git diff --stat internal/regress
+~~~
+
+Read the `doc.dump.txt` diffs to see what changed in the PDF and look at the changed `page-N.png` files. Commit them
+with the change. If a golden fails and you did not mean to change output, set `OPENPDF_REGRESS_OUT=<dir>` to get the
+actual files and a `diff-page-N.png` with the differing pixels in red.
+
 ## Pull requests
 
 - Fill in the pull request template, including how you verified the change and the AI disclosure.

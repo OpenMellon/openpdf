@@ -28,6 +28,7 @@ func Example_forms() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	page.AddAnnotation(field.Annotations[0].PdfAnnotation)
 	form := model.NewPdfAcroForm()
 	form.Fields = &[]*model.PdfField{field.PdfField}
 	w := model.NewPdfWriter()

@@ -144,10 +144,10 @@ go test ./... -run Example -v
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and how to open a pull
-request, and [SUPPORT.md](SUPPORT.md) for where to ask questions. Report security vulnerabilities privately as
-described in [SECURITY.md](SECURITY.md). Everyone taking part is expected to follow the
-[Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, how to open a pull
+request and how to update the regression goldens in `internal/regress`, and [SUPPORT.md](SUPPORT.md) for where to
+ask questions. Report security vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Everyone taking
+part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
