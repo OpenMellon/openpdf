@@ -2,16 +2,19 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # Goldens are written already normalised; the hooks must never rewrite them.
       - id: end-of-file-fixer
+        exclude: ^internal/regress/testdata/
       - id: trailing-whitespace
+        exclude: ^internal/regress/testdata/
       - id: mixed-line-ending
         args: [--fix=lf]
+        exclude: ^internal/regress/testdata/
       - id: check-yaml
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: check-added-large-files
       - id: detect-private-key
-        exclude: ^(pkcs7|timestamp)/
 
   - repo: https://github.com/tekwizely/pre-commit-golang
     rev: v1.0.0-rc.4
