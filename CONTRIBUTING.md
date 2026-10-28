@@ -66,6 +66,9 @@ Read the `doc.dump.txt` diffs to see what changed in the PDF and look at the cha
 with the change. If a golden fails and you did not mean to change output, set `OPENPDF_REGRESS_OUT=<dir>` to get the
 actual files and a `diff-page-N.png` with the differing pixels in red.
 
+The goldens also cover PDFs OpenPDF only reads (`internal/regress/testdata/inputs`). See
+`internal/regress/testdata/README.md` for how they are made and how to run the corpus smoke test on your own PDFs.
+
 ## Pull requests
 
 - Fill in the pull request template, including how you verified the change and the AI disclosure.

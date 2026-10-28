@@ -1,0 +1,30 @@
+%PDF-1.7
+trailer << /Root 1 0 R /Size 7 >>
+
+1 0 obj
+<< /Pages 2 0 R /Type /Catalog >>
+
+2 0 obj
+<< /Count 1 /Kids [3 0 R] /Type /Pages >>
+
+3 0 obj
+<< /Contents [4 0 R 5 0 R 6 0 R] /MediaBox [0 0 300 200] /Parent 2 0 R /Type /Page >>
+
+4 0 obj
+  << /Filter [/ASCII85Decode /FlateDecode] /Length <elided> >>
+  stream
+  1 0 0 rg 20 20 100 60 re f
+  0 0 1 RG 4 w 150 40 m 280 160 l S
+  endstream
+
+5 0 obj
+  << /Filter /RunLengthDecode /Length <elided> >>
+  stream
+  0 0.6 0 rg 160 120 120 60 re f
+  endstream
+
+6 0 obj
+  << /Filter /ASCIIHexDecode /Length <elided> >>
+  stream
+  0.5 g 20 120 100 60 re f
+  endstream

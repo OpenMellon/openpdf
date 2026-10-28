@@ -1,0 +1,23 @@
+%PDF-1.7
+trailer << /Root 1 0 R /Size 5 >>
+
+1 0 obj
+<< /Pages 2 0 R /Type /Catalog >>
+
+2 0 obj
+<< /Count 1 /Kids [3 0 R] /Type /Pages >>
+
+3 0 obj
+<< /Contents [4 0 R] /MediaBox [0 0 300 200] /Parent 2 0 R /Resources << >> /Type /Page >>
+
+4 0 obj
+  << /Length <elided> >>
+  stream
+  0.9 g 0 0 300 200 re f
+  q 120 0 0 120 90 40 cm
+  BI /W 4 /H 4 /CS /RGB /BPC 8 /F /AHx
+  ID
+  FF000000FF000000FFFFFF0000FFFFFF00FF000000FFFFFF808080FF80000080FF80FF00800000008000000080C0C0C0>
+  EI
+  Q
+  endstream

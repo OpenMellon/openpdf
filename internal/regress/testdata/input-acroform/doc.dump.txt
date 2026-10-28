@@ -1,0 +1,23 @@
+%PDF-1.7
+trailer << /Root 1 0 R /Size 7 >>
+
+1 0 obj
+<< /AcroForm << /DA (/Helv 12 Tf 0 g) /DR << /Font << /Helv 4 0 R >> >> /Fields [5 0 R] >> /Pages 2 0 R /Type /Catalog >>
+
+2 0 obj
+<< /Count 1 /Kids [3 0 R] /Type /Pages >>
+
+3 0 obj
+<< /Annots [5 0 R] /MediaBox [0 0 300 200] /Parent 2 0 R /Type /Page >>
+
+4 0 obj
+<< /BaseFont /Helvetica /Subtype /Type1 /Type /Font >>
+
+5 0 obj
+<< /AP << /N 6 0 R >> /DA (/Helv 12 Tf 0 g) /F 4 /FT /Tx /Rect [20 100 220 124] /Subtype /Widget /T (email) /Type /Annot /V (ada@example.com) >>
+
+6 0 obj
+  << /BBox [0 0 200 24] /Length <elided> /Resources << /Font << /Helv 4 0 R >> >> /Subtype /Form /Type /XObject >>
+  stream
+  /Tx BMC BT /Helv 12 Tf 0 g 2 7 Td (ada@example.com) Tj ET EMC
+  endstream

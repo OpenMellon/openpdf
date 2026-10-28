@@ -1,0 +1,58 @@
+%PDF-1.7
+trailer << /Root 1 0 R /Size 10 >>
+
+1 0 obj
+<< /Pages 2 0 R /Type /Catalog >>
+
+2 0 obj
+<< /Count 1 /Kids [3 0 R] /Type /Pages >>
+
+3 0 obj
+<< /Contents 4 0 R /MediaBox [0 0 300 200] /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /Type /Page >>
+
+4 0 obj
+  << /Length <elided> >>
+  stream
+  BT /F1 20 Tf 20 100 Td <0026002C002700030049005200510057000F0003002C0047004800510057004C0057005C0010002B> Tj ET
+  endstream
+
+5 0 obj
+<< /BaseFont /GoRegular /DescendantFonts [6 0 R] /Encoding /Identity-H /Subtype /Type0 /ToUnicode 9 0 R /Type /Font >>
+
+6 0 obj
+<< /BaseFont /GoRegular /CIDSystemInfo << /Ordering (Identity) /Registry (Adobe) /Supplement 0 >> /CIDToGIDMap /Identity /DW 500 /FontDescriptor 7 0 R /Subtype /CIDFontType2 /Type /Font /W [38 [722] 44 [399] 39 [722] 3 [278] 73 [278] 82 [556] 81 [556] 87 [283] 15 [316] 71 [556] 72 [556] 76 [247] 92 [500] 16 [584] 43 [722]] >>
+
+7 0 obj
+<< /Ascent 771 /CapHeight 723 /Descent -193 /Flags 4 /FontBBox [-215 -265 1055 1119] /FontFile2 8 0 R /FontName /GoRegular /ItalicAngle 0 /StemV 70 /Type /FontDescriptor >>
+
+8 0 obj
+  << /Filter /FlateDecode /Length <elided> /Length1 148672 >>
+  stream
+  <binary 148672 bytes sha256=197d9f3703b4c00af609178876a8d73e396f64fe438b2c871778566632374be3>
+  endstream
+
+9 0 obj
+  << /Length <elided> >>
+  stream
+  /CIDInit /ProcSet findresource begin 12 dict begin begincmap
+  /CMapName /Adobe-Identity-UCS def /CMapType 2 def
+  1 begincodespacerange <0000> <FFFF> endcodespacerange
+  15 beginbfchar
+  <0026> <0043>
+  <002C> <0049>
+  <0027> <0044>
+  <0003> <0020>
+  <0049> <0066>
+  <0052> <006F>
+  <0051> <006E>
+  <0057> <0074>
+  <000F> <002C>
+  <0047> <0064>
+  <0048> <0065>
+  <004C> <0069>
+  <005C> <0079>
+  <0010> <002D>
+  <002B> <0048>
+  endbfchar
+  endcmap CMapName currentdict /CMap defineresource pop end end
+  endstream

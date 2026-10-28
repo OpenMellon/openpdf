@@ -1,0 +1,35 @@
+%PDF-1.7
+trailer << /Filter /FlateDecode /Length <elided> /Root 1 0 R /Size 8 /Type /XRef /W [1 4 1] >>
+
+1 0 obj
+<< /Pages 2 0 R /Type /Catalog >>
+
+2 0 obj
+<< /Count 1 /Kids [3 0 R] /Type /Pages >>
+
+3 0 obj
+<< /Contents 5 0 R /MediaBox [0 0 300 200] /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Type /Page >>
+
+4 0 obj
+<< /BaseFont /Helvetica /Subtype /Type1 /Type /Font >>
+
+5 0 obj
+  << /Length <elided> >>
+  stream
+  BT /F1 18 Tf 20 100 Td (Xref stream and object stream) Tj ET
+  endstream
+
+6 0 obj
+  << /Filter /FlateDecode /First 20 /Length <elided> /N 4 /Type /ObjStm >>
+  stream
+  1 0 2 34 3 76 4 187 << /Type /Catalog /Pages 2 0 R >>
+  << /Type /Pages /Kids [3 0 R] /Count 1 >>
+  << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> >> >>
+  << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+  endstream
+
+7 0 obj
+  << /Filter /FlateDecode /Length <elided> /Root 1 0 R /Size 8 /Type /XRef /W [1 4 1] >>
+  stream
+  <binary 48 bytes sha256=02e0d7198323be914b7dc2a69af373ac019d00e5f90a9bed2fd68e0932f36b8f>
+  endstream
