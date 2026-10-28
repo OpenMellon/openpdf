@@ -1,0 +1,73 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      corpus_url:
+        description: URL of a .zip of PDFs to run the corpus smoke test over (skipped when empty)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [FuzzReader, FuzzContentStream, FuzzCMap]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      # The fuzzer's generated corpus lives in the Go build cache; keep it so each night builds on the last.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build/fuzz
+          key: fuzz-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: fuzz-${{ matrix.target }}-
+      - name: Fuzz ${{ matrix.target }}
+        env:
+          TARGET: ${{ matrix.target }}
+        run: go test ./internal/regress -run '^$' -fuzz "^${TARGET}\$" -fuzztime 5m
+      # A crasher is written to testdata/fuzz/<target>/ by the fuzzer; commit it so plain go test keeps checking it.
+      - if: "!cancelled()"
+        uses: actions/upload-artifact@v4
+        with:
+          name: crasher-${{ matrix.target }}
+          path: internal/regress/testdata/fuzz
+          if-no-files-found: ignore
+
+  corpus:
+    if: github.event_name == 'workflow_dispatch' && inputs.corpus_url != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Download corpus
+        env:
+          CORPUS_URL: ${{ inputs.corpus_url }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/corpus"
+          curl -fsSL --max-time 600 --max-filesize 2147483648 "$CORPUS_URL" -o "$RUNNER_TEMP/corpus.zip"
+          unzip -q "$RUNNER_TEMP/corpus.zip" -d "$RUNNER_TEMP/corpus"
+      - name: Run corpus smoke test
+        env:
+          OPENPDF_CORPUS: ${{ runner.temp }}/corpus
+          OPENPDF_REGRESS_OUT: ${{ runner.temp }}/corpus-out
+        run: go test ./internal/regress -run '^TestCorpus$' -v -timeout 60m
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-results
+          path: ${{ runner.temp }}/corpus-out/corpus.csv
+          if-no-files-found: ignore

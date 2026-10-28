@@ -69,6 +69,11 @@ actual files and a `diff-page-N.png` with the differing pixels in red.
 The goldens also cover PDFs OpenPDF only reads (`internal/regress/testdata/inputs`). See
 `internal/regress/testdata/README.md` for how they are made and how to run the corpus smoke test on your own PDFs.
 
+The same package holds fuzz targets for the reader, content stream parser and CMap parser. `go test` runs their seeds and
+any committed crashers; the Nightly workflow fuzzes each for five minutes. To fuzz one locally, run
+`go test ./internal/regress -run '^$' -fuzz '^FuzzReader$' -fuzztime 1m`, and commit any file it writes under
+`internal/regress/testdata/fuzz`.
+
 ## Pull requests
 
 - Fill in the pull request template, including how you verified the change and the AI disclosure.
