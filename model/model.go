@@ -1347,7 +1347,7 @@ func NewPdfFontFromTTF(r io.ReadSeeker) (*PdfFont, error) {
 		common.Log.Debug("ERROR: loading TTF font: %v", err)
 		return nil, err
 	}
-	font := &pdfFontSimple{charWidths: make(map[textencoding.CharCode]float64), subtype: "TrueType"}
+	font := &pdfFontSimple{charWidths: make(map[textencoding.CharCode]float64), fontCommon: fontCommon{subtype: "TrueType"}}
 	font.encoder = textencoding.NewWinAnsiEncoder()
 	font.baseFont = ttfParse.PostScriptName
 	font.FirstChar = core.MakeInteger(int64(defaultFirstChar))
@@ -1661,7 +1661,7 @@ const (
 )
 
 func newPdfCIDFontType2FromTtf(ttf fonts.TtfType, data []byte, otf *fonts.OtfType) (PdfFont, error) {
-	font := &pdfCIDFontType2{subtype: "CIDFontType2", CIDToGIDMap: core.MakeName("Identity")}
+	font := &pdfCIDFontType2{fontCommon: fontCommon{subtype: "CIDFontType2"}, CIDToGIDMap: core.MakeName("Identity")}
 	if len(ttf.Widths) <= 0 {
 		return PdfFont{}, errors.New("ERROR: Missing required attribute (Widths)")
 	}
@@ -1695,7 +1695,7 @@ func newPdfCIDFontType2FromTtf(ttf fonts.TtfType, data []byte, otf *fonts.OtfTyp
 	} else {
 		enc = ttf.NewEncoder()
 	}
-	font2 := pdfFontType0{subtype: "Type0", baseFont: ttf.PostScriptName, DescendantFont: &PdfFont{context: font}, Encoding: core.MakeName("Identity-H"), encoder: enc}
+	font2 := pdfFontType0{fontCommon: fontCommon{subtype: "Type0", baseFont: ttf.PostScriptName}, DescendantFont: &PdfFont{context: font}, Encoding: core.MakeName("Identity-H"), encoder: enc}
 	if len(ttf.Chars) > 0 {
 		textByCode := make(map[cmap.CharCode]string, len(ttf.Chars))
 		for n, char := range ttf.Chars {
@@ -3711,7 +3711,7 @@ func (p *PdfPage) GetPageAsIndirectObject() *core.PdfIndirectObject { return p.p
 
 func newPdfFontSimpleFromStdFont(stdFont fonts.StdFont) pdfFontSimple {
 	descriptor := stdFont.Descriptor()
-	return pdfFontSimple{subtype: "Type1", baseFont: stdFont.Name(), fontMetrics: stdFont.GetMetricsTable(), std14Descriptor: &PdfFontDescriptor{FontName: core.MakeName(string(descriptor.Name)), FontFamily: core.MakeName(descriptor.Family), FontWeight: core.MakeFloat(float64(descriptor.Weight)), Flags: core.MakeInteger(int64(descriptor.Flags)), FontBBox: core.MakeArrayFromFloats(descriptor.BBox[:]), ItalicAngle: core.MakeFloat(descriptor.ItalicAngle), Ascent: core.MakeFloat(descriptor.Ascent), Descent: core.MakeFloat(descriptor.Descent), CapHeight: core.MakeFloat(descriptor.CapHeight), XHeight: core.MakeFloat(descriptor.XHeight), StemV: core.MakeFloat(descriptor.StemV), StemH: core.MakeFloat(descriptor.StemH)}, std14Encoder: stdFont.Encoder()}
+	return pdfFontSimple{fontCommon: fontCommon{subtype: "Type1", baseFont: stdFont.Name()}, fontMetrics: stdFont.GetMetricsTable(), std14Descriptor: &PdfFontDescriptor{FontName: core.MakeName(string(descriptor.Name)), FontFamily: core.MakeName(descriptor.Family), FontWeight: core.MakeFloat(float64(descriptor.Weight)), Flags: core.MakeInteger(int64(descriptor.Flags)), FontBBox: core.MakeArrayFromFloats(descriptor.BBox[:]), ItalicAngle: core.MakeFloat(descriptor.ItalicAngle), Ascent: core.MakeFloat(descriptor.Ascent), Descent: core.MakeFloat(descriptor.Descent), CapHeight: core.MakeFloat(descriptor.CapHeight), XHeight: core.MakeFloat(descriptor.XHeight), StemV: core.MakeFloat(descriptor.StemV), StemH: core.MakeFloat(descriptor.StemH)}, std14Encoder: stdFont.Encoder()}
 }
 
 // PdfAction represents an action in PDF (section 12.6 p. 412).
@@ -10344,7 +10344,7 @@ func NewCompositePdfFont(r io.ReadSeeker) (*PdfFont, error) {
 		}
 		return &cidFontType2, nil
 	}
-	font := &pdfCIDFontType0{subtype: "CIDFontType0", charWidths: make(map[textencoding.CharCode]float64), CIDToGIDMap: core.MakeName("Identity")}
+	font := &pdfCIDFontType0{fontCommon: fontCommon{subtype: "CIDFontType0"}, charWidths: make(map[textencoding.CharCode]float64), CIDToGIDMap: core.MakeName("Identity")}
 	font.SetOtfType(&otfParse)
 	font.baseFont = otfParse.PostScriptName
 	if font.baseFont == "" {
@@ -10407,7 +10407,7 @@ func NewCompositePdfFont(r io.ReadSeeker) (*PdfFont, error) {
 		}
 	}
 	font.fontDescriptor = fontDescriptor
-	font2 := &pdfFontType0{subtype: "Type0", baseFont: otfParse.PostScriptName, Encoding: core.MakeName("Identity-H"), encoder: otfParse.NewEncoder()}
+	font2 := &pdfFontType0{fontCommon: fontCommon{subtype: "Type0", baseFont: otfParse.PostScriptName}, Encoding: core.MakeName("Identity-H"), encoder: otfParse.NewEncoder()}
 	font2.baseFont = font.baseFont + "-Identity-H"
 	if len(otfParse.Chars) > 0 {
 		font2.toUnicodeCMap = cmapFromGlyphMap(otfParse.Chars)

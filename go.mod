@@ -1,16 +1,18 @@
 module github.com/OpenMellon/openpdf
 
-go 1.27.3
+go 1.26.0
+
+toolchain go1.27.3
 
 require (
-	github.com/OpenMellon/freetype v0.1.0
-	github.com/OpenMellon/garabic v0.1.0
-	github.com/OpenMellon/go-xmp v0.1.0
-	github.com/OpenMellon/pkcs7 v0.1.0
-	github.com/OpenMellon/timestamp v0.1.1
-	github.com/OpenMellon/typesetting v0.1.0
-	github.com/OpenMellon/unichart v0.1.0
-	github.com/OpenMellon/unitype v0.1.0
+	github.com/OpenMellon/freetype v0.1.1
+	github.com/OpenMellon/garabic v0.1.1
+	github.com/OpenMellon/go-xmp v0.1.1
+	github.com/OpenMellon/pkcs7 v0.1.1
+	github.com/OpenMellon/timestamp v0.1.2
+	github.com/OpenMellon/typesetting v0.1.1
+	github.com/OpenMellon/unichart v0.1.1
+	github.com/OpenMellon/unitype v0.1.1
 	github.com/adrg/sysfont v0.1.2
 	github.com/h2non/filetype v1.1.3
 	github.com/stretchr/testify v1.12.1

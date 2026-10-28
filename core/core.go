@@ -2491,9 +2491,8 @@ func (parser *PdfParser) lookupObjectViaOS(osObjNumber int, index int, visited m
 		return nil, errors.New("object cannot be null")
 	}
 	indirect := PdfIndirectObject{
-		ObjectNumber: int64(index),
-		PdfObject:    object,
-		parser:       parser,
+		PdfObjectReference: PdfObjectReference{ObjectNumber: int64(index), parser: parser},
+		PdfObject:          object,
 	}
 	return &indirect, nil
 }
@@ -9705,7 +9704,7 @@ func (dict *PdfObjectDictionary) Remove(key PdfObjectName) {
 
 func (parser *PdfParser) parseIndirectObject(cursor *readerAtCursor, visited map[int]struct{}) (PdfObject, error) {
 	indirect := PdfIndirectObject{
-		parser: parser,
+		PdfObjectReference: PdfObjectReference{parser: parser},
 	}
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("-Read indirect obj")
@@ -9870,8 +9869,10 @@ func (parser *PdfParser) parseIndirectObject(cursor *readerAtCursor, visited map
 					stream := PdfObjectStream{
 						Stream:              streamData,
 						PdfObjectDictionary: indirect.PdfObject.(*PdfObjectDictionary),
-						ObjectNumber:        indirect.ObjectNumber,
-						GenerationNumber:    indirect.GenerationNumber,
+						PdfObjectReference: PdfObjectReference{
+							ObjectNumber:     indirect.ObjectNumber,
+							GenerationNumber: indirect.GenerationNumber,
+						},
 					}
 					stream.PdfObjectReference.parser = parser
 					parser.skipSpaces(cursor)

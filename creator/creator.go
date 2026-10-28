@@ -2515,7 +2515,7 @@ func (tc *TableCell) GetPosition() (row, col int) { return tc.row, tc.col }
 func (c *Creator) MoveTo(x, y float64) { c.context.X = x; c.context.Y = y }
 
 func newGraphicSVG(root *GraphicSVGElement) (*GraphicSVG, error) {
-	return &GraphicSVG{root: root, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, structType: model.StructureTypeFigure}, nil
+	return &GraphicSVG{root: root, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, taggedDrawable: taggedDrawable{structType: model.StructureTypeFigure}}, nil
 }
 
 func (rc rgbColor) ToRGB() (float64, float64, float64) {
@@ -3660,7 +3660,7 @@ func newTOC(text string, lineNumberStyle, style2 TextStyle) *TOC {
 	styledParagraph.SetMargins(0, 0, 0, 5)
 	chunk := styledParagraph.Append(text)
 	chunk.Style = style
-	return &TOC{heading: styledParagraph, lines: []*TOCLine{}, lineNumberStyle: lineNumberStyle, lineTitleStyle: lineNumberStyle, lineSeparatorStyle: lineNumberStyle, linePageStyle: lineNumberStyle, lineSeparator: ".", lineLevelOffset: 10, lineMargins: Margins{0, 0, 2, 2}, positioning: PositionRelative, defaultStyle: lineNumberStyle, showLinks: true, structType: model.StructureTypeTOC}
+	return &TOC{heading: styledParagraph, lines: []*TOCLine{}, lineNumberStyle: lineNumberStyle, lineTitleStyle: lineNumberStyle, lineSeparatorStyle: lineNumberStyle, linePageStyle: lineNumberStyle, lineSeparator: ".", lineLevelOffset: 10, lineMargins: Margins{0, 0, 2, 2}, positioning: PositionRelative, defaultStyle: lineNumberStyle, showLinks: true, taggedDrawable: taggedDrawable{structType: model.StructureTypeTOC}}
 }
 
 // SetDefaultFont sets the fonts used by default by creator components which
@@ -4194,7 +4194,7 @@ var lineAttrs = map[string]attrApplyFunc{"x1": floatAttr(func(line *Line, x1 flo
 })}
 
 func newDivision() *Division {
-	return &Division{enableBreak: true, structType: model.StructureTypeDivision}
+	return &Division{enableBreak: true, taggedDrawable: taggedDrawable{structType: model.StructureTypeDivision}}
 }
 
 func (gse *GraphicSVGElement) drawRect(cc *contentstream.ContentCreator, resources *model.PdfPageResources) {
@@ -6145,7 +6145,7 @@ func (to *TOC) Add(number, title, page string, level uint) *TOCLine {
 }
 
 func newChart(chart chartrender.ChartRenderable) *Chart {
-	return &Chart{chart: chart, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, structType: model.StructureTypeFigure}
+	return &Chart{chart: chart, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, taggedDrawable: taggedDrawable{structType: model.StructureTypeFigure}}
 }
 
 func validateSetter(s string, i any, n int, types ...reflect.Type) reflect.Value {
@@ -9358,7 +9358,7 @@ var chapterHeadingAttrs = map[string]attrApplyFunc{"font": fontAttr(func(para *S
 func (l *Line) Style() contentdraw.LineStyle { return l.style }
 
 func newStyledParagraph(defaultStyle TextStyle) *StyledParagraph {
-	return &StyledParagraph{chunks: []*TextChunk{}, defaultStyle: defaultStyle, linkStyle: linkTextStyle(defaultStyle.Font), lineHeight: 1.0, alignment: TextAlignmentLeft, enableWrap: true, defaultWrap: true, enableWordWrap: false, angle: 0, unusedA: 1, unusedB: 1, positioning: PositionRelative, languageID: "", artifact: nil, structType: model.StructureTypeParagraph}
+	return &StyledParagraph{chunks: []*TextChunk{}, defaultStyle: defaultStyle, linkStyle: linkTextStyle(defaultStyle.Font), lineHeight: 1.0, alignment: TextAlignmentLeft, enableWrap: true, defaultWrap: true, enableWordWrap: false, angle: 0, unusedA: 1, unusedB: 1, positioning: PositionRelative, languageID: "", artifact: nil, taggedDrawable: taggedDrawable{structType: model.StructureTypeParagraph}}
 }
 
 func (tp *templateProcessor) effectiveAttrValue(node *templateNode, s string) (string, bool) {
@@ -9805,7 +9805,7 @@ const whitespaceChars = " \t\r\n"
 func newImage(img *model.Image) (*Image, error) {
 	width := float64(img.Width)
 	height := float64(img.Height)
-	return &Image{img: img, origWidth: width, origHeight: height, width: width, height: height, angle: 0, opacity: 1.0, positioning: PositionRelative, structType: model.StructureTypeFigure}, nil
+	return &Image{img: img, origWidth: width, origHeight: height, width: width, height: height, angle: 0, opacity: 1.0, positioning: PositionRelative, taggedDrawable: taggedDrawable{structType: model.StructureTypeFigure}}, nil
 }
 
 // NewTextStyle creates a new text style object which can be used to style
@@ -10372,7 +10372,7 @@ func (c *Creator) NewCurve(x1, y1, cx, cy, x2, y2 float64) *Curve {
 
 // NewTextChunk returns a new text chunk instance.
 func NewTextChunk(text string, style TextStyle) *TextChunk {
-	return &TextChunk{Text: text, Style: style, VerticalAlignment: TextVerticalAlignmentBaseline, annotations: []*model.PdfAnnotation{}, lineBreaks: []bool{}, structType: model.StructureTypeSpan}
+	return &TextChunk{Text: text, Style: style, VerticalAlignment: TextVerticalAlignmentBaseline, annotations: []*model.PdfAnnotation{}, lineBreaks: []bool{}, taggedDrawable: taggedDrawable{structType: model.StructureTypeSpan}}
 }
 
 // CurvePolygon represents a curve polygon shape.
@@ -10434,7 +10434,7 @@ func hasTextChunk(v any) bool {
 }
 
 func newList(style TextStyle) *List {
-	return &List{marker: TextChunk{Text: "• ", Style: style}, indent: 0, defaultIndent: true, positioning: PositionRelative, textStyle: style, structType: model.StructureTypeList}
+	return &List{marker: TextChunk{Text: "• ", Style: style}, indent: 0, defaultIndent: true, positioning: PositionRelative, textStyle: style, taggedDrawable: taggedDrawable{structType: model.StructureTypeList}}
 }
 
 func (tc *TableCell) cloneProps(content VectorDrawable) *TableCell {
