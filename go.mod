@@ -6,7 +6,7 @@ toolchain go1.27.3
 
 require (
 	github.com/OpenMellon/garabic v0.1.1
-	github.com/OpenMellon/timestamp v0.1.2
+	github.com/OpenMellon/timestamp v0.1.3
 	github.com/OpenMellon/unitype v0.1.1
 	github.com/adrg/sysfont v0.1.2
 	github.com/h2non/filetype v1.1.3
@@ -26,7 +26,6 @@ require (
 )
 
 require (
-	github.com/OpenMellon/pkcs7 v0.1.1 // indirect
 	github.com/adrg/strutil v0.3.1 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect

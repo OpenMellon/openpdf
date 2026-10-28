@@ -1,9 +1,7 @@
 github.com/OpenMellon/garabic v0.1.1 h1:5iCvq24OUkis/i1rgM4oakxZWtPzKKFdI/jTZn/YMIE=
 github.com/OpenMellon/garabic v0.1.1/go.mod h1:Vhio0yWHoFHbX+0SjqccTz/gRlFSihw/uV141lm29uI=
-github.com/OpenMellon/pkcs7 v0.1.1 h1:t2CF3zJWROot2bE5Z+2MlrFxW0mJUFIHu7TnvShdZ2I=
-github.com/OpenMellon/pkcs7 v0.1.1/go.mod h1:18Na/0pJnW7iO/0ZIFeAuad4dzYqKrUqD229zNAlCsI=
-github.com/OpenMellon/timestamp v0.1.2 h1:N+Q4TfKJX2Ho9GP7nn3cd+5d+FV8Ph3My3l7FkUIl88=
-github.com/OpenMellon/timestamp v0.1.2/go.mod h1:S3tNxN7sjyEpH8obfOsX1UtYUtJ0Hree2/A7Qyk8A0E=
+github.com/OpenMellon/timestamp v0.1.3 h1:uSAc50vLi9DFxL/JuDDsDUmlGXF9exKCIOgrXndXTY0=
+github.com/OpenMellon/timestamp v0.1.3/go.mod h1:K1WqYENYaS6lJt5OyrDYY7orS7sZ9Gh96Rg/YbuPcp0=
 github.com/OpenMellon/unitype v0.1.1 h1:9VwEmC7pSMZkFv7U5OZ3EmHk0vJg7XU5W0GXoWGt4LY=
 github.com/OpenMellon/unitype v0.1.1/go.mod h1:JuicZfxE4II8k3J/dgS8M+qD51DOn4vpzyuprzLU0/A=
 github.com/adrg/strutil v0.2.2/go.mod h1:EF2fjOFlGTepljfI+FzgTG13oXthR7ZAil9/aginnNQ=
