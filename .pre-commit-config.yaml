@@ -51,3 +51,10 @@ repos:
         entry: go fix -inline=false -rangeint=false ./...
         types: [go]
         pass_filenames: false
+
+      # Rejects staged files over 5,000 tokens (bytes / 4); the error message explains how to split them
+      - id: max-file-tokens
+        name: max file tokens
+        language: script
+        entry: scripts/check-file-tokens.sh
+        exclude: ^internal/cmap/bcmaps/|^model/internal/colorprofile/
