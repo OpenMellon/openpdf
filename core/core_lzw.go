@@ -10,6 +10,20 @@ import (
 	tifflzw "golang.org/x/image/tiff/lzw"
 )
 
+// LZWEncoder provides LZW encoding/decoding functionality.
+type LZWEncoder struct {
+	Predictor        int
+	BitsPerComponent int
+
+	// For predictors
+	Columns int
+	Colors  int
+
+	// LZW algorithm setting.
+	EarlyChange int
+	limits      decodeLimits
+}
+
 // DecodeStream decodes a LZW encoded stream and returns the result as a
 // slice of bytes.
 func (enc *LZWEncoder) DecodeStream(streamObj *PdfObjectStream) ([]byte, error) {
@@ -42,20 +56,6 @@ func (enc *LZWEncoder) DecodeStream(streamObj *PdfObjectStream) ([]byte, error) 
 
 // GetFilterName returns the name of the encoding filter.
 func (enc *LZWEncoder) GetFilterName() string { return StreamEncodingFilterNameLZW }
-
-// LZWEncoder provides LZW encoding/decoding functionality.
-type LZWEncoder struct {
-	Predictor        int
-	BitsPerComponent int
-
-	// For predictors
-	Columns int
-	Colors  int
-
-	// LZW algorithm setting.
-	EarlyChange int
-	limits      decodeLimits
-}
 
 // DecodeBytes decodes a slice of LZW encoded bytes and returns the result.
 func (enc *LZWEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
@@ -230,6 +230,7 @@ func newLZWEncoderFromStream(streamObj *PdfObjectStream, decodeParams *PdfObject
 	}
 	return lzwEncoder, nil
 }
+
 func (enc *LZWEncoder) setDecodeLimits(limits decodeLimits) { enc.limits = limits }
 
 // UpdateParams updates the parameter values of the encoder.

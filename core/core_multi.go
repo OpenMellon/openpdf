@@ -5,7 +5,6 @@ import (
 	"io"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/OpenMellon/openpdf/common"
 )
@@ -46,10 +45,6 @@ func (multi *MultiEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 	return data, nil
 }
 
-// DecodeBytes returns the passed in slice of bytes.
-// The purpose of the method is to satisfy the StreamEncoder interface.
-func (rawEncoder *RawEncoder) DecodeBytes(encoded []byte) ([]byte, error) { return encoded, nil }
-
 // UpdateParams updates the parameter values of the encoder.
 func (multi *MultiEncoder) UpdateParams(params *PdfObjectDictionary) {
 	for _, encoder := range multi.encoders {
@@ -57,54 +52,12 @@ func (multi *MultiEncoder) UpdateParams(params *PdfObjectDictionary) {
 	}
 }
 
-// UpdateParams updates the parameter values of the encoder.
-func (rawEncoder *RawEncoder) UpdateParams(params *PdfObjectDictionary) {}
-
 // NewMultiEncoder returns a new instance of MultiEncoder.
 func NewMultiEncoder() *MultiEncoder {
 	multi := MultiEncoder{}
 	multi.encoders = []StreamEncoder{}
 	return &multi
 }
-
-type multiFallbackReader struct {
-	src       io.Reader
-	fallbacks []StreamEncoder
-	started   bool
-	err       error
-	data      []byte
-	pos       int
-}
-
-// EncodeStream encodes the stream data using the encoded specified by the stream's dictionary.
-func EncodeStream(streamObj *PdfObjectStream) error {
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Encode stream")
-	}
-	encoderFromStream, err := NewEncoderFromStream(streamObj)
-	if err != nil {
-		common.Log.Debug("Stream decoding failed: %v", err)
-		return err
-	}
-	if lzw, ok := encoderFromStream.(*LZWEncoder); ok {
-		lzw.EarlyChange = 0
-		streamObj.Set("EarlyChange", MakeInteger(0))
-	}
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Encoder: %+v\n", encoderFromStream)
-	}
-	bytes, err := encoderFromStream.EncodeBytes(streamObj.Stream)
-	if err != nil {
-		common.Log.Debug("Stream encoding failed: %v", err)
-		return err
-	}
-	streamObj.Stream = bytes
-	streamObj.Set("Length", MakeInteger(int64(len(bytes))))
-	return nil
-}
-
-// MakeStreamDict makes a new instance of an encoding dictionary for a stream object.
-func (rawEncoder *RawEncoder) MakeStreamDict() *PdfObjectDictionary { return MakeDict() }
 
 // MakeStreamDict makes a new instance of an encoding dictionary for a stream object.
 func (multi *MultiEncoder) MakeStreamDict() *PdfObjectDictionary {
@@ -235,38 +188,6 @@ func newMultiEncoderFromStream(streamObj *PdfObjectStream) (*MultiEncoder, error
 	return multiEncoder, nil
 }
 
-// EncodeBytes returns the passed in slice of bytes.
-// The purpose of the method is to satisfy the StreamEncoder interface.
-func (rawEncoder *RawEncoder) EncodeBytes(data []byte) ([]byte, error) { return data, nil }
-
-func (r *multiFallbackReader) Read(p []byte) (int, error) {
-	if !r.started {
-		r.started = true
-		all, err := io.ReadAll(r.src)
-		if err != nil {
-			r.err = err
-			return 0, err
-		}
-		for _, fallback := range r.fallbacks {
-			all, err = fallback.DecodeBytes(all)
-			if err != nil {
-				r.err = err
-				return 0, err
-			}
-		}
-		r.data = all
-	}
-	if r.err != nil {
-		return 0, r.err
-	}
-	if r.pos >= len(r.data) {
-		return 0, io.EOF
-	}
-	n := copy(p, r.data[r.pos:])
-	r.pos += n
-	return n, nil
-}
-
 // GetFilterArray returns the names of the underlying encoding filters in an array that
 // can be used as /Filter entry.
 func (multi *MultiEncoder) GetFilterArray() *PdfObjectArray {
@@ -296,11 +217,6 @@ func (multi *MultiEncoder) DecodeReader(r io.Reader) io.Reader {
 		cur = streamingDecoder.DecodeReader(cur)
 	}
 	return cur
-}
-
-// RegisterCustomStreamEncoder register a custom encoder handler for certain filter.
-func RegisterCustomStreamEncoder(filterName string, customStreamEncoder StreamEncoder) {
-	customStreamEncoders.Store(filterName, customStreamEncoder)
 }
 
 // AddEncoder adds the passed in encoder to the underlying encoder slice.
@@ -334,31 +250,6 @@ func (multi *MultiEncoder) MakeDecodeParams() PdfObject {
 	return array
 }
 
-// DecodeStream decodes the stream data and returns the decoded data.
-// An error is returned upon failure.
-func DecodeStream(streamObj *PdfObjectStream) ([]byte, error) {
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Decode stream")
-	}
-	encoderFromStream, err := NewEncoderFromStream(streamObj)
-	if err != nil {
-		common.Log.Debug("ERROR: Stream decoding failed: %v", err)
-		return nil, err
-	}
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Encoder: %#v\n", encoderFromStream)
-	}
-	stream, err := encoderFromStream.DecodeStream(streamObj)
-	if err != nil {
-		common.Log.Debug("ERROR: Stream decoding failed: %v", err)
-		return nil, err
-	}
-	return stream, nil
-}
-
-// RawEncoder implements Raw encoder/decoder (no encoding, pass through)
-type RawEncoder struct{}
-
 // EncodeBytes encodes the passed in slice of bytes by passing it through the
 // EncodeBytes method of the underlying encoders.
 func (multi *MultiEncoder) EncodeBytes(data []byte) ([]byte, error) {
@@ -374,123 +265,45 @@ func (multi *MultiEncoder) EncodeBytes(data []byte) ([]byte, error) {
 	return encoded, nil
 }
 
-// DecodeStream returns the passed in stream as a slice of bytes.
-// The purpose of the method is to satisfy the StreamEncoder interface.
-func (rawEncoder *RawEncoder) DecodeStream(streamObj *PdfObjectStream) ([]byte, error) {
-	return streamObj.Stream, nil
-}
-
-// StreamEncoder represents the interface for all PDF stream encoders.
-type StreamEncoder interface {
-	GetFilterName() string
-	MakeDecodeParams() PdfObject
-	MakeStreamDict() *PdfObjectDictionary
-	UpdateParams(dict *PdfObjectDictionary)
-	EncodeBytes(data []byte) ([]byte, error)
-	DecodeBytes(data []byte) ([]byte, error)
-	DecodeStream(stream *PdfObjectStream) ([]byte, error)
-}
-
-// NewRawEncoder returns a new instace of RawEncoder.
-func NewRawEncoder() *RawEncoder { return &RawEncoder{} }
-
-// MakeDecodeParams makes a new instance of an encoding dictionary based on
-// the current encoder settings.
-func (rawEncoder *RawEncoder) MakeDecodeParams() PdfObject { return nil }
-
-const (
-	StreamEncodingFilterNameFlate     = "FlateDecode"
-	StreamEncodingFilterNameLZW       = "LZWDecode"
-	StreamEncodingFilterNameDCT       = "DCTDecode"
-	StreamEncodingFilterNameRunLength = "RunLengthDecode"
-	StreamEncodingFilterNameASCIIHex  = "ASCIIHexDecode"
-	StreamEncodingFilterNameASCII85   = "ASCII85Decode"
-	StreamEncodingFilterNameCCITTFax  = "CCITTFaxDecode"
-	StreamEncodingFilterNameJBIG2     = "JBIG2Decode"
-	StreamEncodingFilterNameJPX       = "JPXDecode"
-	StreamEncodingFilterNameRaw       = "Raw"
-)
-
-// GetFilterName returns the name of the encoding filter.
-func (rawEncoder *RawEncoder) GetFilterName() string { return StreamEncodingFilterNameRaw }
-
-var customStreamEncoders sync.Map
-
-// DecodeReader returns r unchanged.
-func (rawEncoder *RawEncoder) DecodeReader(r io.Reader) io.Reader { return r }
-
 // DecodeStream decodes a multi-encoded stream by passing it through the
 // DecodeStream method of the underlying encoders.
 func (multi *MultiEncoder) DecodeStream(streamObj *PdfObjectStream) ([]byte, error) {
 	return multi.DecodeBytes(streamObj.Stream)
 }
 
-// NewEncoderFromStream creates a StreamEncoder based on the stream's dictionary.
-func NewEncoderFromStream(streamObj *PdfObjectStream) (StreamEncoder, error) {
-	toDirectObject := TraceToDirectObject(streamObj.Get("Filter"))
-	if toDirectObject == nil {
-		return NewRawEncoder(), nil
-	}
-	if _, ok := toDirectObject.(*PdfObjectNull); ok {
-		return NewRawEncoder(), nil
-	}
-	name, ok := toDirectObject.(*PdfObjectName)
-	if !ok {
-		arr, isArr := toDirectObject.(*PdfObjectArray)
-		if !isArr {
-			return nil, fmt.Errorf("filter not a Name or Array object")
+type multiFallbackReader struct {
+	src       io.Reader
+	fallbacks []StreamEncoder
+	started   bool
+	err       error
+	data      []byte
+	pos       int
+}
+
+func (r *multiFallbackReader) Read(p []byte) (int, error) {
+	if !r.started {
+		r.started = true
+		all, err := io.ReadAll(r.src)
+		if err != nil {
+			r.err = err
+			return 0, err
 		}
-		if arr.Len() == 0 {
-			return NewRawEncoder(), nil
-		}
-		if arr.Len() != 1 {
-			multiEncoderFromStream, err := newMultiEncoderFromStream(streamObj)
+		for _, fallback := range r.fallbacks {
+			all, err = fallback.DecodeBytes(all)
 			if err != nil {
-				common.Log.Error("Failed creating multi encoder: %v", err)
-				return nil, err
+				r.err = err
+				return 0, err
 			}
-			if common.Log.IsLogLevel(common.LogLevelTrace) {
-				common.Log.Trace("Multi enc: %s\n", multiEncoderFromStream)
-			}
-			return multiEncoderFromStream, nil
 		}
-		toDirectObject = arr.Get(0)
-		name, isArr = toDirectObject.(*PdfObjectName)
-		if !isArr {
-			return nil, fmt.Errorf("filter array member not a Name object")
-		}
+		r.data = all
 	}
-	if encoder, ok2 := customStreamEncoders.Load(name.String()); ok2 {
-		return encoder.(StreamEncoder), nil
+	if r.err != nil {
+		return 0, r.err
 	}
-	var encoder StreamEncoder
-	var err error
-	switch *name {
-	case StreamEncodingFilterNameFlate:
-		encoder, err = newFlateEncoderFromStream(streamObj, nil)
-	case StreamEncodingFilterNameLZW:
-		encoder, err = newLZWEncoderFromStream(streamObj, nil)
-	case StreamEncodingFilterNameDCT:
-		encoder, err = newDCTEncoderFromStream(streamObj, nil)
-	case StreamEncodingFilterNameRunLength:
-		encoder, err = newRunLengthEncoderFromStream(streamObj, nil)
-	case StreamEncodingFilterNameASCIIHex:
-		encoder = NewASCIIHexEncoder()
-	case StreamEncodingFilterNameASCII85, "A85":
-		encoder = NewASCII85Encoder()
-	case StreamEncodingFilterNameCCITTFax:
-		encoder, err = newCCITTFaxEncoderFromStream(streamObj, nil)
-	case StreamEncodingFilterNameJBIG2:
-		encoder, err = newJBIG2EncoderFromStream(streamObj, nil)
-	case StreamEncodingFilterNameJPX:
-		encoder = NewJPXEncoder()
-	default:
-		common.Log.Debug("ERROR: Unsupported encoding method!")
-		return nil, fmt.Errorf("unsupported encoding method (%s)", *name)
+	if r.pos >= len(r.data) {
+		return 0, io.EOF
 	}
-	if err != nil {
-		return nil, err
-	}
-	applyDecodeLimits(encoder, decodeLimitsFromStream(streamObj))
-	return encoder, nil
+	n := copy(p, r.data[r.pos:])
+	r.pos += n
+	return n, nil
 }

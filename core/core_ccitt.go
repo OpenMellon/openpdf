@@ -9,9 +9,18 @@ import (
 	"github.com/OpenMellon/openpdf/internal/imageutil"
 )
 
-// JPXEncoder implements JPX encoder/decoder (dummy, for now)
-// FIXME: implement
-type JPXEncoder struct{}
+// CCITTFaxEncoder implements Group3 and Group4 facsimile (fax) encoder/decoder.
+type CCITTFaxEncoder struct {
+	K                      int
+	EndOfLine              bool
+	EncodedByteAlign       bool
+	Columns                int
+	Rows                   int
+	EndOfBlock             bool
+	BlackIs1               bool
+	DamagedRowsBeforeError int
+	limits                 decodeLimits
+}
 
 func newCCITTFaxEncoderFromStream(streamObj *PdfObjectStream, decodeParams *PdfObjectDictionary) (*CCITTFaxEncoder, error) {
 	ccittFaxEncoder := NewCCITTFaxEncoder()
@@ -97,36 +106,8 @@ func newCCITTFaxEncoderFromStream(streamObj *PdfObjectStream, decodeParams *PdfO
 	return ccittFaxEncoder, nil
 }
 
-// MakeDecodeParams makes a new instance of an encoding dictionary based on
-// the current encoder settings.
-func (jpxEncoder *JPXEncoder) MakeDecodeParams() PdfObject { return nil }
-
 // GetFilterName returns the name of the encoding filter.
 func (ccitt *CCITTFaxEncoder) GetFilterName() string { return StreamEncodingFilterNameCCITTFax }
-
-// GetFilterName returns the name of the encoding filter.
-func (jpxEncoder *JPXEncoder) GetFilterName() string { return StreamEncodingFilterNameJPX }
-
-// DecodeBytes decodes a slice of JPX encoded bytes and returns the result.
-func (jpxEncoder *JPXEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
-	common.Log.Debug("Error: Attempting to use unsupported encoding %s", jpxEncoder.GetFilterName())
-	return encoded, ErrNoJPXDecode
-}
-
-// MakeStreamDict makes a new instance of an encoding dictionary for a stream object.
-func (jpxEncoder *JPXEncoder) MakeStreamDict() *PdfObjectDictionary { return MakeDict() }
-
-// UpdateParams updates the parameter values of the encoder.
-func (jpxEncoder *JPXEncoder) UpdateParams(params *PdfObjectDictionary) {}
-
-const maxCCITTColumns = 65535
-
-// DecodeStream decodes a JPX encoded stream and returns the result as a
-// slice of bytes.
-func (jpxEncoder *JPXEncoder) DecodeStream(streamObj *PdfObjectStream) ([]byte, error) {
-	common.Log.Debug("Error: Attempting to use unsupported encoding %s", jpxEncoder.GetFilterName())
-	return streamObj.Stream, ErrNoJPXDecode
-}
 
 // MakeDecodeParams makes a new instance of an encoding dictionary based on
 // the current encoder settings.
@@ -264,25 +245,6 @@ func (ccitt *CCITTFaxEncoder) EncodeBytes(data []byte) ([]byte, error) {
 	return encoder.Encode(datas), nil
 }
 
-// CCITTFaxEncoder implements Group3 and Group4 facsimile (fax) encoder/decoder.
-type CCITTFaxEncoder struct {
-	K                      int
-	EndOfLine              bool
-	EncodedByteAlign       bool
-	Columns                int
-	Rows                   int
-	EndOfBlock             bool
-	BlackIs1               bool
-	DamagedRowsBeforeError int
-	limits                 decodeLimits
-}
-
-// EncodeBytes JPX encodes the passed in slice of bytes.
-func (jpxEncoder *JPXEncoder) EncodeBytes(data []byte) ([]byte, error) {
-	common.Log.Debug("Error: Attempting to use unsupported encoding %s", jpxEncoder.GetFilterName())
-	return data, ErrNoJPXDecode
-}
-
 // DecodeBytes decodes the CCITTFax encoded image data.
 func (ccitt *CCITTFaxEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 	if ccitt.Columns < 1 || ccitt.Columns > maxCCITTColumns {
@@ -304,9 +266,6 @@ func (ccitt *CCITTFaxEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 	return all, nil
 }
 
-// NewJPXEncoder returns a new instance of JPXEncoder.
-func NewJPXEncoder() *JPXEncoder { return &JPXEncoder{} }
-
 // MakeStreamDict makes a new instance of an encoding dictionary for a stream object.
 func (ccitt *CCITTFaxEncoder) MakeStreamDict() *PdfObjectDictionary {
 	dict := MakeDict()
@@ -314,4 +273,5 @@ func (ccitt *CCITTFaxEncoder) MakeStreamDict() *PdfObjectDictionary {
 	dict.SetIfNotNil("DecodeParms", ccitt.MakeDecodeParams())
 	return dict
 }
+
 func (ccitt *CCITTFaxEncoder) setDecodeLimits(limits decodeLimits) { ccitt.limits = limits }

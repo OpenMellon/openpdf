@@ -10,8 +10,18 @@ import (
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/imageutil"
-	"github.com/OpenMellon/openpdf/internal/precision"
 )
+
+// DCTEncoder provides a DCT (JPG) encoding/decoding functionality for images.
+type DCTEncoder struct {
+	ColorComponents  int
+	BitsPerComponent int
+	Width            int
+	Height           int
+	Quality          int
+	Decode           []float64
+	limits           decodeLimits
+}
 
 func newDCTEncoderFromStream(streamObj *PdfObjectStream, multi *MultiEncoder) (*DCTEncoder, error) {
 	dctEncoder := NewDCTEncoder()
@@ -81,6 +91,7 @@ func newDCTEncoderFromStream(streamObj *PdfObjectStream, multi *MultiEncoder) (*
 func (dct *DCTEncoder) DecodeStream(streamObj *PdfObjectStream) ([]byte, error) {
 	return dct.DecodeBytes(streamObj.Stream)
 }
+
 func (dct *DCTEncoder) setDecodeLimits(limits decodeLimits) { dct.limits = limits }
 
 // MakeStreamDict makes a new instance of an encoding dictionary for a stream object.
@@ -90,10 +101,6 @@ func (dct *DCTEncoder) MakeStreamDict() *PdfObjectDictionary {
 	dict.Set("Filter", MakeName(dct.GetFilterName()))
 	return dict
 }
-
-const (
-	DefaultJPEGQuality = 75
-)
 
 // EncodeBytes DCT encodes the passed in slice of bytes.
 func (dct *DCTEncoder) EncodeBytes(data []byte) ([]byte, error) {
@@ -114,12 +121,6 @@ func (dct *DCTEncoder) EncodeBytes(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-func scaleDecodeValue(v uint, dmin, dmax float64) float64 {
-	f := precision.RoundFloat((float64(v) / 255.0), 6)
-	delta := precision.RoundFloat((dmax-dmin)*f, 6)
-	return precision.RoundFloat((dmin+delta)*255.0, 6)
 }
 
 // UpdateParams updates the parameter values of the encoder.
@@ -304,41 +305,6 @@ func (dct *DCTEncoder) DecodeBytes(encoded []byte) (decoded []byte, err error) {
 	return bytes, nil
 }
 
-// RGBToGrayscale converts RGB color values to grayscale using the standard luminance formula.
-//
-// Parameters r, g, b are expected to be integers in the range [0, 255].
-//
-// The coefficient used in the formula to convert RGB values to grayscale.
-// This formula is based on the luminance perception of the human eye,
-// which is more sensitive to green light and less sensitive to blue light.
-// The full formula is:  [ gray = 0.299 * R + 0.587 * G + 0.114 * B ]
-//
-// This implementation uses integer arithmetic for better performance by using
-// scaled coefficients: 299, 587, 114 (scaled by 1000).
-func RGBToGrayscale(r, g, b int) int { gray := 299*r + 587*g + 114*b; return gray / 1000 }
-
-func imageBaseFromDict(dict *PdfObjectDictionary) (img *imageutil.ImageBase) {
-	var (
-		num *PdfObjectInteger
-		ok  bool
-	)
-	if num, ok = dict.Get("Width").(*PdfObjectInteger); ok {
-		img = &imageutil.ImageBase{Width: int(*num)}
-	} else {
-		return nil
-	}
-	if num, ok = dict.Get("Height").(*PdfObjectInteger); ok {
-		img.Height = int(*num)
-	}
-	if num, ok = dict.Get("BitsPerComponent").(*PdfObjectInteger); ok {
-		img.BitsPerComponent = int(*num)
-	}
-	if num, ok = dict.Get("ColorComponents").(*PdfObjectInteger); ok {
-		img.ColorComponents = int(*num)
-	}
-	return img
-}
-
 // NewDCTEncoder makes a new DCT encoder with default parameters.
 func NewDCTEncoder() *DCTEncoder {
 	dct := &DCTEncoder{}
@@ -347,25 +313,6 @@ func NewDCTEncoder() *DCTEncoder {
 	dct.Quality = DefaultJPEGQuality
 	dct.Decode = []float64{0.0, 1.0, 0.0, 1.0, 0.0, 1.0}
 	return dct
-}
-
-// DrawableImage is same as golang image/draw's Image interface that allow drawing images.
-type DrawableImage interface {
-	ColorModel() color.Model
-	Bounds() image.Rectangle
-	At(x, y int) color.Color
-	Set(x, y int, c color.Color)
-}
-
-// DCTEncoder provides a DCT (JPG) encoding/decoding functionality for images.
-type DCTEncoder struct {
-	ColorComponents  int
-	BitsPerComponent int
-	Width            int
-	Height           int
-	Quality          int
-	Decode           []float64
-	limits           decodeLimits
 }
 
 // MakeDecodeParams makes a new instance of an encoding dictionary based on

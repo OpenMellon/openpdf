@@ -2,47 +2,15 @@ package core
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/OpenMellon/openpdf/common"
 )
-
-func (parser *PdfParser) traceStreamLength(obj PdfObject, visited map[int]struct{}) (PdfObject, error) {
-	internal, err := parser.resolveInternal(obj, visited)
-	if err != nil {
-		return nil, err
-	}
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Stream length? %s", internal)
-	}
-	return internal, nil
-}
-
-func (parser *PdfParser) resolveReference(ref *PdfObjectReference) (PdfObject, bool, error) {
-	if cachedObject, ok := parser.LoadCachedObject(int(ref.ObjectNumber)); ok {
-		return cachedObject, true, nil
-	}
-	byReference, err := parser.LookupByReference(*ref)
-	if err != nil {
-		return nil, false, err
-	}
-	parser.StoreCachedObject(int(ref.ObjectNumber), byReference)
-	return byReference, false, nil
-}
-
-const maxTraceDepth = 10
-
-// LookupByReference looks up a PdfObject by a reference.
-func (parser *PdfParser) LookupByReference(ref PdfObjectReference) (PdfObject, error) {
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Looking up reference %s", ref.String())
-	}
-	return parser.LookupByNumber(int(ref.ObjectNumber))
-}
 
 func (parser *PdfParser) lookupObjectViaOS(osObjNumber int, index int, visited map[int]struct{}) (PdfObject, error) {
 	var objStm objectStream
@@ -253,21 +221,6 @@ func (parser *PdfParser) objectFileOffset(objNum int) (int64, bool) {
 	return xrefObj.Offset, true
 }
 
-func parseObjSignature(line string) (int, int, error) {
-	stringSubmatch := objHeaderRegexp.FindStringSubmatch(line)
-	if len(stringSubmatch) < 3 {
-		return 0, 0, errors.New("unable to detect indirect object signature")
-	}
-	objNum, _ := strconv.Atoi(stringSubmatch[1])
-	genNum, _ := strconv.Atoi(stringSubmatch[2])
-	return objNum, genNum, nil
-}
-
-type lookupResult struct {
-	obj       PdfObject
-	decrypted bool
-}
-
 func (parser *PdfParser) lookupByNumberWrapperInternal(objNumber int, retry bool, visited map[int]struct{}) (PdfObject, bool, error) {
 	if cachedObject, ok := parser.LoadCachedObject(objNumber); ok {
 		return cachedObject, false, nil
@@ -299,8 +252,6 @@ func (parser *PdfParser) lookupByNumberWrapperInternal(objNumber int, retry bool
 	result := res.(lookupResult)
 	return result.obj, result.decrypted, nil
 }
-
-var objHeaderRegexp = regexp.MustCompile("(\\d+)\\s+(\\d+)\\s+obj")
 
 // ParseIndirectObjectsSequential reads indirect objects sequentially from
 // the parser's source starting at startOffset and invokes fn for each one.
@@ -343,16 +294,6 @@ func (parser *PdfParser) resolveInternal(obj PdfObject, visited map[int]struct{}
 	return byNumberWrapperInternal, nil
 }
 
-func indirectObjectIDs(obj PdfObject) (int64, int64, error) {
-	if indirect, ok := obj.(*PdfIndirectObject); ok {
-		return indirect.ObjectNumber, indirect.GenerationNumber, nil
-	}
-	if stream, ok := obj.(*PdfObjectStream); ok {
-		return stream.ObjectNumber, stream.GenerationNumber, nil
-	}
-	return 0, 0, errors.New("not an indirect/stream object")
-}
-
 // Resolve resolves a PdfObject to direct object, looking up and resolving references as needed (unlike TraceToDirect).
 func (parser *PdfParser) Resolve(obj PdfObject) (PdfObject, error) {
 	return parser.resolveInternal(obj, map[int]struct{}{})
@@ -364,4 +305,279 @@ func (parser *PdfParser) Resolve(obj PdfObject) (PdfObject, error) {
 func (parser *PdfParser) LookupByNumber(objNumber int) (PdfObject, error) {
 	byNumberWrapperInternal, _, err := parser.lookupByNumberWrapperInternal(objNumber, true, map[int]struct{}{})
 	return byNumberWrapperInternal, err
+}
+
+func (parser *PdfParser) parseString(cursor *readerAtCursor) (*PdfObjectString, error) {
+	cursor.ReadByte()
+	buffer := acquireBuffer()
+	defer releaseBuffer(buffer)
+	depth := 1
+	for {
+		next, err := cursor.Peek(1)
+		if err != nil {
+			return MakeString(buffer.String()), err
+		}
+		if next[0] == '\\' {
+			cursor.ReadByte()
+			escaped, err := cursor.ReadByte()
+			if err != nil {
+				return MakeString(buffer.String()), err
+			}
+			if IsOctalDigit(escaped) {
+				lookahead, err := cursor.Peek(2)
+				if err != nil {
+					return MakeString(buffer.String()), err
+				}
+				var digits []byte
+				digits = append(digits, escaped)
+				for _, digit := range lookahead {
+					if IsOctalDigit(digit) {
+						digits = append(digits, digit)
+					} else {
+						break
+					}
+				}
+				cursor.Discard(len(digits) - 1)
+				if common.Log.IsLogLevel(common.LogLevelTrace) {
+					common.Log.Trace("Numeric string \"%s\"", digits)
+				}
+				value, err := strconv.ParseUint(string(digits), 8, 32)
+				if err != nil {
+					return MakeString(buffer.String()), err
+				}
+				buffer.WriteByte(byte(value))
+				continue
+			}
+			switch escaped {
+			case 'n':
+				buffer.WriteRune('\n')
+			case 'r':
+				buffer.WriteRune('\r')
+			case 't':
+				buffer.WriteRune('\t')
+			case 'b':
+				buffer.WriteRune('\b')
+			case 'f':
+				buffer.WriteRune('\f')
+			case '(':
+				buffer.WriteRune('(')
+			case ')':
+				buffer.WriteRune(')')
+			case '\\':
+				buffer.WriteRune('\\')
+			}
+			continue
+		} else if next[0] == '(' {
+			depth++
+		} else if next[0] == ')' {
+			depth--
+			if depth == 0 {
+				cursor.ReadByte()
+				break
+			}
+		}
+		value, _ := cursor.ReadByte()
+		buffer.WriteByte(value)
+	}
+	return MakeString(buffer.String()), nil
+}
+
+func (parser *PdfParser) parseName(cursor *readerAtCursor) (PdfObjectName, error) {
+	buffer := acquireBuffer()
+	defer releaseBuffer(buffer)
+	started := false
+	for {
+		next, err := cursor.Peek(1)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return PdfObjectName(buffer.String()), err
+		}
+		if !started {
+			switch next[0] {
+			case '/':
+				started = true
+				cursor.ReadByte()
+			case '%':
+				parser.readComment(cursor)
+				parser.skipSpaces(cursor)
+			default:
+				common.Log.Debug("ERROR Name starting with %s (% x)", next, next)
+				return PdfObjectName(buffer.String()), fmt.Errorf("invalid name: (%c)", next[0])
+			}
+		} else {
+			if IsWhiteSpace(next[0]) {
+				break
+			} else if (next[0] == '/') || (next[0] == '[') || (next[0] == '(') || (next[0] == ']') || (next[0] == '<') || (next[0] == '>') {
+				break
+			} else if next[0] == '#' {
+				escape, err := cursor.Peek(3)
+				if err != nil {
+					return PdfObjectName(buffer.String()), err
+				}
+				var decoded [1]byte
+				_, err = hex.Decode(decoded[:], escape[1:3])
+				if err != nil {
+					common.Log.Debug("ERROR: Invalid hex following '#', continuing using literal - Output may be incorrect")
+					buffer.WriteByte('#')
+					cursor.Discard(1)
+					continue
+				}
+				cursor.Discard(3)
+				buffer.WriteByte(decoded[0])
+			} else {
+				value, _ := cursor.ReadByte()
+				buffer.WriteByte(value)
+			}
+		}
+	}
+	return PdfObjectName(buffer.String()), nil
+}
+
+func (parser *PdfParser) readTextLine(cursor *readerAtCursor) (string, error) {
+	buffer := acquireBuffer()
+	defer releaseBuffer(buffer)
+	for {
+		data, err := cursor.Peek(1)
+		if err != nil {
+			common.Log.Debug("Error %s", err.Error())
+			return buffer.String(), err
+		}
+		if (data[0] != '\r') && (data[0] != '\n') {
+			b, _ := cursor.ReadByte()
+			buffer.WriteByte(b)
+		} else {
+			break
+		}
+	}
+	return buffer.String(), nil
+}
+
+func (parser *PdfParser) parseHexString(cursor *readerAtCursor) (*PdfObjectString, error) {
+	cursor.ReadByte()
+	buffer := acquireBuffer()
+	defer releaseBuffer(buffer)
+	for {
+		next, err := cursor.Peek(1)
+		if err != nil {
+			return MakeString(""), err
+		}
+		if next[0] == '>' {
+			cursor.ReadByte()
+			break
+		}
+		value, _ := cursor.ReadByte()
+		if parser.compliance {
+			if bytes.IndexByte(hexDigits, value) == -1 {
+				parser.metadata.invalidHexRunes = true
+			}
+		}
+		if !IsWhiteSpace(value) {
+			buffer.WriteByte(value)
+		}
+	}
+	if buffer.Len()%2 == 1 {
+		parser.metadata.oddLengthHexStrings = true
+		buffer.WriteRune('0')
+	}
+	decoded, _ := hex.DecodeString(buffer.String())
+	return MakeHexString(string(decoded)), nil
+}
+
+func (parser *PdfParser) seekPdfVersionTopDown(cursor *readerAtCursor) (int, int, error) {
+	cursor.SetFileOffset(0)
+	probeLen := 20
+	data := make([]byte, probeLen)
+	for {
+		b, err := cursor.ReadByte()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return 0, 0, err
+			}
+		}
+		if IsDecimalDigit(b) && data[probeLen-1] == '.' && IsDecimalDigit(data[probeLen-2]) && data[probeLen-3] == '-' && data[probeLen-4] == 'F' && data[probeLen-5] == 'D' && data[probeLen-6] == 'P' {
+			major := int(data[probeLen-2] - '0')
+			minor := int(b - '0')
+			return major, minor, nil
+		}
+		data = append(data[1:probeLen], b)
+	}
+	return 0, 0, errors.New("version not found")
+}
+
+func (parser *PdfParser) skipComments(cursor *readerAtCursor) error {
+	if _, err := parser.skipSpaces(cursor); err != nil {
+		return err
+	}
+	first := true
+	for {
+		next, err := cursor.Peek(1)
+		if err != nil {
+			common.Log.Debug("Error %s", err.Error())
+			return err
+		}
+		if first && next[0] != '%' {
+			return nil
+		}
+		first = false
+		if (next[0] != '\r') && (next[0] != '\n') {
+			cursor.ReadByte()
+		} else {
+			break
+		}
+	}
+	return parser.skipComments(cursor)
+}
+
+func (parser *PdfParser) parseNumber(cursor *readerAtCursor) (PdfObject, error) {
+	return ParseNumber(cursor.Underlying())
+}
+
+func (parser *PdfParser) skipSpaces(cursor *readerAtCursor) (int, error) {
+	count := 0
+	for {
+		value, err := cursor.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		if IsWhiteSpace(value) {
+			count++
+		} else {
+			cursor.UnreadByte()
+			break
+		}
+	}
+	return count, nil
+}
+
+func (parser *PdfParser) parsePdfVersion() (int, int, error) {
+	cursor := parser.newCursor(0)
+	var probeLen int64 = 20
+	data := make([]byte, probeLen)
+	cursor.Read(data)
+	var err error
+	var major, minor int
+	if stringSubmatch := pdfVersionRegexp.FindStringSubmatch(string(data)); len(stringSubmatch) < 3 {
+		if major, minor, err = parser.seekPdfVersionTopDown(cursor); err != nil {
+			common.Log.Debug("Failed recovery - unable to find version")
+			return 0, 0, err
+		}
+		headerOffset := cursor.GetFileOffset() - 8
+		if headerOffset > 0 {
+			parser.reader = newOffsetReaderAt(parser.reader, headerOffset)
+			parser.fileSize -= headerOffset
+		}
+	} else {
+		if major, err = strconv.Atoi(stringSubmatch[1]); err != nil {
+			return 0, 0, err
+		}
+		if minor, err = strconv.Atoi(stringSubmatch[2]); err != nil {
+			return 0, 0, err
+		}
+	}
+	common.Log.Debug("Pdf version %d.%d", major, minor)
+	return major, minor, nil
 }

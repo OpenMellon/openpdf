@@ -4,12 +4,52 @@ import (
 	"image"
 
 	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/internal/imageutil"
 	"github.com/OpenMellon/openpdf/internal/jbig2"
 	"github.com/OpenMellon/openpdf/internal/jbig2/bitmap"
 	"github.com/OpenMellon/openpdf/internal/jbig2/decoder"
 	"github.com/OpenMellon/openpdf/internal/jbig2/document"
 	jbig2errors "github.com/OpenMellon/openpdf/internal/jbig2/errors"
 )
+
+// JBIG2Encoder implements both jbig2 encoder and the decoder. The encoder allows to encode
+// provided images (best used document scans) in multiple way. By default it uses single page generic
+// encoder. It allows to store lossless data as a single segment.
+// In order to store multiple image pages use the 'FileMode' which allows to store more pages within single jbig2 document.
+// WIP: In order to obtain better compression results the encoder would allow to encode the input in a
+// lossy or lossless way with a component (symbol) mode. It divides the image into components.
+// Then checks if any component is 'similar' to the others and maps them together. The symbol classes are stored
+// in the dictionary. Then the encoder creates text regions which uses the related symbol classes to fill it's space.
+// The similarity is defined by the 'Threshold' variable (default: 0.95). The less the value is, the more components
+// matches to single class, thus the compression is better, but the result might become lossy.
+type JBIG2Encoder struct {
+	// These values are required to be set for the 'EncodeBytes' method.
+	// ColorComponents defines the number of color components for provided image.
+	ColorComponents int
+
+	// BitsPerComponent is the number of bits that stores per color component
+	BitsPerComponent int
+
+	// Width is the width of the image to encode
+	Width int
+
+	// Height is the height of the image to encode.
+	Height int
+	doc    *document.Document
+
+	// Globals are the JBIG2 global segments.
+	Globals jbig2.Globals
+
+	// IsChocolateData defines if the data is encoded such that
+	// binary data '1' means black and '0' white.
+	// otherwise the data is called vanilla.
+	// Naming convention taken from: 'https://en.wikipedia.org/wiki/Binary_image#Interpretation'
+	IsChocolateData bool
+
+	// DefaultPageSettings are the settings parameters used by the jbig2 encoder.
+	DefaultPageSettings JBIG2EncoderSettings
+	limits              decodeLimits
+}
 
 // NewJBIG2Encoder creates a new JBIG2Encoder.
 func NewJBIG2Encoder() *JBIG2Encoder { return &JBIG2Encoder{doc: document.InitEncodeDocument(false)} }
@@ -139,45 +179,6 @@ func (jbig2 *JBIG2Encoder) AddPageImage(img *JBIG2Image, settings *JBIG2EncoderS
 // GetFilterName returns the name of the encoding filter.
 func (jbig2 *JBIG2Encoder) GetFilterName() string { return StreamEncodingFilterNameJBIG2 }
 
-// JBIG2Encoder implements both jbig2 encoder and the decoder. The encoder allows to encode
-// provided images (best used document scans) in multiple way. By default it uses single page generic
-// encoder. It allows to store lossless data as a single segment.
-// In order to store multiple image pages use the 'FileMode' which allows to store more pages within single jbig2 document.
-// WIP: In order to obtain better compression results the encoder would allow to encode the input in a
-// lossy or lossless way with a component (symbol) mode. It divides the image into components.
-// Then checks if any component is 'similar' to the others and maps them together. The symbol classes are stored
-// in the dictionary. Then the encoder creates text regions which uses the related symbol classes to fill it's space.
-// The similarity is defined by the 'Threshold' variable (default: 0.95). The less the value is, the more components
-// matches to single class, thus the compression is better, but the result might become lossy.
-type JBIG2Encoder struct {
-	// These values are required to be set for the 'EncodeBytes' method.
-	// ColorComponents defines the number of color components for provided image.
-	ColorComponents int
-
-	// BitsPerComponent is the number of bits that stores per color component
-	BitsPerComponent int
-
-	// Width is the width of the image to encode
-	Width int
-
-	// Height is the height of the image to encode.
-	Height int
-	doc    *document.Document
-
-	// Globals are the JBIG2 global segments.
-	Globals jbig2.Globals
-
-	// IsChocolateData defines if the data is encoded such that
-	// binary data '1' means black and '0' white.
-	// otherwise the data is called vanilla.
-	// Naming convention taken from: 'https://en.wikipedia.org/wiki/Binary_image#Interpretation'
-	IsChocolateData bool
-
-	// DefaultPageSettings are the settings parameters used by the jbig2 encoder.
-	DefaultPageSettings JBIG2EncoderSettings
-	limits              decodeLimits
-}
-
 // EncodeJBIG2Image encodes 'img' into jbig2 encoded bytes stream, using default encoder settings.
 func (jbig2 *JBIG2Encoder) EncodeJBIG2Image(img *JBIG2Image) ([]byte, error) {
 	const procEncodeJBIG2Image = "core.EncodeJBIG2Image"
@@ -252,6 +253,7 @@ func (jbig2 *JBIG2Encoder) EncodeBytes(data []byte) ([]byte, error) {
 	}
 	return jbig2.Encode()
 }
+
 func (jbig2 *JBIG2Encoder) setDecodeLimits(limits decodeLimits) { jbig2.limits = limits }
 
 // MakeDecodeParams makes a new instance of an encoding dictionary based on the current encoder settings.
@@ -312,3 +314,120 @@ func (jbig2 *JBIG2Encoder) encodeImage(img image.Image) ([]byte, error) {
 	}
 	return jbig2.Encode()
 }
+
+// JBIG2Image is the image structure used by the jbig2 encoder. Its Data must be in a
+// 1 bit per component and 1 component per pixel (1bpp). In order to create binary image
+// use GoImageToJBIG2 function. If the image data contains the row bytes padding set the HasPadding to true.
+type JBIG2Image struct {
+	// Width and Height defines the image boundaries.
+	Width, Height int
+
+	// Data is the byte slice data for the input image
+	Data []byte
+
+	// HasPadding is the attribute that defines if the last byte of the data in the row contains
+	// 0 bits padding.
+	HasPadding bool
+}
+
+func (jbig2Img *JBIG2Image) toBitmap() (bm *bitmap.Bitmap, err error) {
+	const procJBIG2ImageToBitmap = "JBIG2Image.toBitmap"
+	if jbig2Img.Data == nil {
+		return nil, jbig2errors.Error(procJBIG2ImageToBitmap, "image data not defined")
+	}
+	if jbig2Img.Width == 0 || jbig2Img.Height == 0 {
+		return nil, jbig2errors.Error(procJBIG2ImageToBitmap, "image height or width not defined")
+	}
+	if jbig2Img.HasPadding {
+		bm, err = bitmap.NewWithData(jbig2Img.Width, jbig2Img.Height, jbig2Img.Data)
+	} else {
+		bm, err = bitmap.NewWithUnpaddedData(jbig2Img.Width, jbig2Img.Height, jbig2Img.Data)
+	}
+	if err != nil {
+		return nil, jbig2errors.Wrap(err, procJBIG2ImageToBitmap, "")
+	}
+	return bm, nil
+}
+
+// ToGoImage converts the JBIG2Image to the golang image.Image.
+func (jbig2Img *JBIG2Image) ToGoImage() (image.Image, error) {
+	const procJBIG2ImageToGoImage = "JBIG2Image.ToGoImage"
+	if jbig2Img.Data == nil {
+		return nil, jbig2errors.Error(procJBIG2ImageToGoImage, "image data not defined")
+	}
+	if jbig2Img.Width == 0 || jbig2Img.Height == 0 {
+		return nil, jbig2errors.Error(procJBIG2ImageToGoImage, "image height or width not defined")
+	}
+	image, err := imageutil.NewImage(jbig2Img.Width, jbig2Img.Height, 1, 1, jbig2Img.Data, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return image, nil
+}
+
+func newJBIG2ImageFromImage(img imageutil.Image) *JBIG2Image {
+	base := img.Base()
+	return &JBIG2Image{Data: base.Data, Width: base.Width, Height: base.Height, HasPadding: true}
+}
+
+// JBIG2EncoderSettings contains the parameters and settings used by the JBIG2Encoder.
+// Current version works only on JB2Generic compression.
+type JBIG2EncoderSettings struct {
+	// FileMode defines if the jbig2 encoder should return full jbig2 file instead of
+	// shortened pdf mode. This adds the file header to the jbig2 definition.
+	FileMode bool
+
+	// Compression is the setting that defines the compression type used for encoding the page.
+	Compression JBIG2CompressionType
+
+	// DuplicatedLinesRemoval code generic region in a way such that if the lines are duplicated the encoder
+	// doesn't store it twice.
+	DuplicatedLinesRemoval bool
+
+	// DefaultPixelValue is the bit value initial for every pixel in the page.
+	DefaultPixelValue uint8
+
+	// ResolutionX optional setting that defines the 'x' axis input image resolution - used for single page encoding.
+	ResolutionX int
+
+	// ResolutionY optional setting that defines the 'y' axis input image resolution - used for single page encoding.
+	ResolutionY int
+
+	// Threshold defines the threshold of the image correlation for
+	// non Generic compression.
+	// User only for JB2SymbolCorrelation and JB2SymbolRankHaus methods.
+	// Best results in range [0.7 - 0.98] - the less the better the compression would be
+	// but the more lossy.
+	// Default value: 0.95
+	Threshold float64
+}
+
+// Validate validates the page settings for the JBIG2 encoder.
+func (jbiG2EncoderSettings JBIG2EncoderSettings) Validate() error {
+	const procValidateEncoder = "validateEncoder"
+	if jbiG2EncoderSettings.Threshold < 0 || jbiG2EncoderSettings.Threshold > 1.0 {
+		return jbig2errors.Errorf(procValidateEncoder, "provided threshold value: '%v' must be in range [0.0, 1.0]", jbiG2EncoderSettings.Threshold)
+	}
+	if jbiG2EncoderSettings.ResolutionX < 0 {
+		return jbig2errors.Errorf(procValidateEncoder, "provided x resolution: '%d' must be positive or zero value", jbiG2EncoderSettings.ResolutionX)
+	}
+	if jbiG2EncoderSettings.ResolutionY < 0 {
+		return jbig2errors.Errorf(procValidateEncoder, "provided y resolution: '%d' must be positive or zero value", jbiG2EncoderSettings.ResolutionY)
+	}
+	if jbiG2EncoderSettings.DefaultPixelValue != 0 && jbiG2EncoderSettings.DefaultPixelValue != 1 {
+		return jbig2errors.Errorf(procValidateEncoder, "default pixel value: '%d' must be a value for the bit: {0,1}", jbiG2EncoderSettings.DefaultPixelValue)
+	}
+	if jbiG2EncoderSettings.Compression != JB2Generic {
+		return jbig2errors.Errorf(procValidateEncoder, "provided compression is not implemented yet")
+	}
+	return nil
+}
+
+// JBIG2CompressionType defines the enum compression type used by the JBIG2Encoder.
+type JBIG2CompressionType int
+
+const (
+	JB2Generic JBIG2CompressionType = iota
+	JB2SymbolCorrelation
+	JB2SymbolRankHaus
+)

@@ -5,12 +5,32 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core/security"
 	"github.com/OpenMellon/openpdf/core/security/crypt"
 )
+
+// PdfCrypt provides PDF encryption/decryption support.
+// The PDF standard supports encryption of strings and streams (Section 7.6).
+type PdfCrypt struct {
+	encrypt          encryptDict
+	stdEncrypt       security.StdEncryptDict
+	pubSec           *security.PubSecEncryptDict
+	recipientFilter  string
+	permissions      security.Permissions
+	id0              string
+	encryptionKey    []byte
+	decryptedObjects map[PdfObject]bool
+	encryptedObjects map[PdfObject]bool
+	authenticated    bool
+	cryptFilters     cryptFilters
+	streamFilter     string
+	stringFilter     string
+	parser           *PdfParser
+	encryptedObjNums map[int]struct{}
+	lazyStreamData   map[*PdfObjectStream][]byte
+}
 
 func (crypt *PdfCrypt) decryptBytes(stream []byte, filterName string, objKey []byte) ([]byte, error) {
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
@@ -168,27 +188,6 @@ func (crypt *PdfCrypt) Decrypt(obj PdfObject, parentObjNum, parentGenNum int64) 
 		return nil
 	}
 	return nil
-}
-
-// PdfCrypt provides PDF encryption/decryption support.
-// The PDF standard supports encryption of strings and streams (Section 7.6).
-type PdfCrypt struct {
-	encrypt          encryptDict
-	stdEncrypt       security.StdEncryptDict
-	pubSec           *security.PubSecEncryptDict
-	recipientFilter  string
-	permissions      security.Permissions
-	id0              string
-	encryptionKey    []byte
-	decryptedObjects map[PdfObject]bool
-	encryptedObjects map[PdfObject]bool
-	authenticated    bool
-	cryptFilters     cryptFilters
-	streamFilter     string
-	stringFilter     string
-	parser           *PdfParser
-	encryptedObjNums map[int]struct{}
-	lazyStreamData   map[*PdfObjectStream][]byte
 }
 
 // PdfCryptNewDecrypt makes the document crypt handler based on the encryption dictionary
@@ -573,57 +572,5 @@ func (crypt *PdfCrypt) isDecrypted(obj PdfObject) bool {
 	}
 	return false
 }
+
 func (crypt *PdfCrypt) dropLazyStreamData() { crypt.lazyStreamData = nil }
-
-var ErrPasswordRequired = errors.New("document is encrypted with the standard security handler; a password is required")
-
-// String returns a descriptive information string about the encryption method used.
-func (crypt *PdfCrypt) String() string {
-	if crypt == nil {
-		return ""
-	}
-	var out strings.Builder
-	out.WriteString(crypt.encrypt.Filter + " - ")
-	if crypt.isPubSec() {
-		out.WriteString(fmt.Sprintf("%s (%d recipients) - ", crypt.pubSec.SubFilter, len(crypt.pubSec.Recipients)))
-	}
-	if crypt.encrypt.V == 0 {
-		out.WriteString("Undocumented algorithm")
-	} else if crypt.encrypt.V == 1 {
-		out.WriteString("RC4: 40 bits")
-	} else if crypt.encrypt.V == 2 {
-		out.WriteString(fmt.Sprintf("RC4: %d bits", crypt.encrypt.Length))
-	} else if crypt.encrypt.V == 3 {
-		out.WriteString("Unpublished algorithm")
-	} else if crypt.encrypt.V >= 4 {
-		out.WriteString(fmt.Sprintf("Stream filter: %s - String filter: %s", crypt.streamFilter, crypt.stringFilter))
-		out.WriteString("; Crypt filters:")
-		for sKey, cryptFilter := range crypt.cryptFilters {
-			out.WriteString(fmt.Sprintf(" - %s: %s (%d)", sKey, cryptFilter.Name(), cryptFilter.KeyLength()))
-		}
-	}
-	accessPermissions := crypt.GetAccessPermissions()
-	out.WriteString(fmt.Sprintf(" - %#v", accessPermissions))
-	return out.String()
-}
-
-// GetAccessPermissions returns the PDF access permissions as an AccessPermissions object.
-// For a public-key encrypted document they are the permissions granted to the
-// authenticated recipient, and zero before authentication.
-func (crypt *PdfCrypt) GetAccessPermissions() security.Permissions {
-	if crypt.isPubSec() {
-		return crypt.permissions
-	}
-	return crypt.stdEncrypt.P
-}
-
-func (crypt *PdfCrypt) encryptBytes(data []byte, filterName string, key []byte) ([]byte, error) {
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Encrypt bytes")
-	}
-	filter, ok := crypt.cryptFilters[filterName]
-	if !ok {
-		return nil, fmt.Errorf("unknown crypt filter (%s)", filterName)
-	}
-	return filter.EncryptBytes(data, key)
-}

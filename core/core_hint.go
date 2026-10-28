@@ -1,9 +1,3 @@
-// Copyright 2020 FoxyUtils ehf. Licensed under the MIT License.
-// See the LICENSE file in the repository root.
-
-// Package core defines and implements the primitive PDF object types in golang, and provides functionality
-// for parsing those from a PDF file stream. This includes I/O handling, cross references, repairs, encryption,
-// encoding and other core capabilities.
 package core
 
 import (
@@ -11,33 +5,25 @@ import (
 	"fmt"
 
 	"github.com/OpenMellon/openpdf/common"
-	"github.com/OpenMellon/openpdf/internal/lazystream"
 )
 
-func checkParamDictEnd(firstXrefOffset int64) *LinearizationViolation {
-	if firstXrefOffset <= 0 || firstXrefOffset > maxLinearizationParamDictEnd {
-		return &LinearizationViolation{Code: LinErrParamDictNotFirstObject, Severity: SeverityError, Message: fmt.Sprintf("linearization parameter dictionary does not fit within the first %d bytes (ends at %d)", maxLinearizationParamDictEnd, firstXrefOffset)}
-	}
-	return nil
+// HintTables holds the decoded hint stream tables from a linearized PDF.
+// The Page Offset and Shared Object tables are mandatory; the rest are
+// optional and may be nil if the producer did not emit them.
+type HintTables struct {
+	PageOffset       *PageOffsetHintTable
+	SharedObject     *SharedObjectHintTable
+	Thumbnail        *ThumbnailHintTable
+	OutlineHierarchy *GenericHintTable
+	ArticleThread    *GenericHintTable
+	NamedDestination *GenericHintTable
+	InteractiveForm  *GenericHintTable
+	InformationDict  *GenericHintTable
+	LogicalStructure *GenericHintTable
+	PageLabel        *GenericHintTable
+	Rendition        *GenericHintTable
+	EmbeddedFile     *GenericHintTable
 }
-
-func init() {
-	lazystream.Take = func(owner, target any) ([]byte, bool) {
-		crypt, ok := owner.(*PdfCrypt)
-		stream, isStream := target.(*PdfObjectStream)
-		if !ok || !isStream || crypt == nil {
-			return nil, false
-		}
-		return crypt.takeLazyStreamData(stream)
-	}
-	lazystream.Drop = func(v any) {
-		if crypt, ok := v.(*PdfCrypt); ok && crypt != nil {
-			crypt.dropLazyStreamData()
-		}
-	}
-}
-
-func init() { maxDecodedStreamSize.Store(defaultMaxDecodedStreamSize) }
 
 func parseHintTables(data []byte, dict *PdfObjectDictionary, numPages int) (*HintTables, error) {
 	if dict == nil {
@@ -97,6 +83,13 @@ func parseHintTables(data []byte, dict *PdfObjectDictionary, numPages int) (*Hin
 		}
 	}
 	return hints, nil
+}
+
+// HintRange is a (file offset, length) pair from the linearization
+// dictionary's /H array describing where the hint stream(s) live.
+type HintRange struct {
+	Offset int64
+	Length int64
 }
 
 func parseHintRanges(arr *PdfObjectArray) []HintRange {

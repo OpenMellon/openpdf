@@ -1,12 +1,97 @@
 package core
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 
 	"github.com/OpenMellon/openpdf/common"
 )
+
+func (parser *PdfParser) readComment(cursor *readerAtCursor) (string, error) {
+	var buffer bytes.Buffer
+	_, err := parser.skipSpaces(cursor)
+	if err != nil {
+		return buffer.String(), err
+	}
+	first := true
+	for {
+		next, err := cursor.Peek(1)
+		if err != nil {
+			common.Log.Debug("Error %s", err.Error())
+			return buffer.String(), err
+		}
+		if first && next[0] != '%' {
+			return buffer.String(), errors.New("comment should start with %")
+		}
+		first = false
+		if (next[0] != '\r') && (next[0] != '\n') {
+			value, _ := cursor.ReadByte()
+			buffer.WriteByte(value)
+		} else {
+			break
+		}
+	}
+	return buffer.String(), nil
+}
+
+// PdfVersion returns version of the PDF file.
+func (parser *PdfParser) PdfVersion() Version { return parser.version }
+
+func (parser *PdfParser) parseDetailedHeader() (err error) {
+	cursor := parser.newCursor(0)
+	winLen := 20
+	data := make([]byte, winLen)
+	var (
+		ok  bool
+		pos int
+	)
+	for {
+		b, err2 := cursor.ReadByte()
+		if err2 != nil {
+			if err2 == io.EOF {
+				break
+			} else {
+				return err2
+			}
+		}
+		if IsDecimalDigit(b) && data[winLen-1] == '.' && IsDecimalDigit(data[winLen-2]) && data[winLen-3] == '-' && data[winLen-4] == 'F' && data[winLen-5] == 'D' && data[winLen-6] == 'P' && data[winLen-7] == '%' {
+			parser.version = Version{Major: int(data[winLen-2] - '0'), Minor: int(b - '0')}
+			parser.metadata.headerPosition = pos - 7
+			ok = true
+			break
+		}
+		pos++
+		data = append(data[1:winLen], b)
+	}
+	if !ok {
+		return fmt.Errorf("no file header found")
+	}
+	b, err := cursor.ReadByte()
+	if err == io.EOF {
+		return fmt.Errorf("not a valid Pdf document")
+	}
+	if err != nil {
+		return err
+	}
+	parser.metadata.eolAfterHeader = b == '\n'
+	b, err = cursor.ReadByte()
+	if err != nil {
+		return fmt.Errorf("not a valid pdf document: %w", err)
+	}
+	if b != '%' {
+		return nil
+	}
+	commentBytes := make([]byte, 4)
+	_, err = cursor.Read(commentBytes)
+	if err != nil {
+		return fmt.Errorf("not a valid pdf document: %w", err)
+	}
+	parser.metadata.headerCommentBytes = [4]byte{commentBytes[0], commentBytes[1], commentBytes[2], commentBytes[3]}
+	return nil
+}
 
 // ParseIndirectObjectAt parses an indirect object starting at the given byte
 // offset in the source. Returns the indirect object (*PdfIndirectObject) or
@@ -284,224 +369,3 @@ func (parser *PdfParser) parseObject(cursor *readerAtCursor, depth int) (PdfObje
 func (parser *PdfParser) ParseIndirectObject() (PdfObject, error) {
 	return parser.ParseIndirectObjectAt(0)
 }
-
-func (parser *PdfParser) parseIndirectObject(cursor *readerAtCursor, visited map[int]struct{}) (PdfObject, error) {
-	indirect := PdfIndirectObject{
-		PdfObjectReference: PdfObjectReference{parser: parser},
-	}
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("-Read indirect obj")
-	}
-	data, err := cursor.Peek(20)
-	if err != nil {
-		if err != io.EOF {
-			common.Log.Debug("ERROR: Fail to read indirect obj")
-			return &indirect, err
-		}
-	}
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("(indirect obj peek \"%s\"", string(data))
-	}
-	stringSubmatchIndex := objHeaderRegexp.FindStringSubmatchIndex(string(data))
-	if len(stringSubmatchIndex) < 6 {
-		if err == io.EOF {
-			return nil, err
-		}
-		common.Log.Debug("ERROR: Unable to find object signature (%s)", string(data))
-		return &indirect, errors.New("unable to detect indirect object signature")
-	}
-	cursor.Discard(stringSubmatchIndex[0])
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Offsets % d", stringSubmatchIndex)
-	}
-	length := stringSubmatchIndex[1] - stringSubmatchIndex[0]
-	peeked := make([]byte, length)
-	_, err = cursor.ReadAtLeast(peeked, length)
-	if err != nil {
-		common.Log.Debug("ERROR: unable to read - %s", err)
-		return nil, err
-	}
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("textline: %s", peeked)
-	}
-	stringSubmatch := objHeaderRegexp.FindStringSubmatch(string(peeked))
-	if len(stringSubmatch) < 3 {
-		common.Log.Debug("ERROR: Unable to find object signature (%s)", string(peeked))
-		return &indirect, errors.New("unable to detect indirect object signature")
-	}
-	objNum, _ := strconv.Atoi(stringSubmatch[1])
-	genNum, _ := strconv.Atoi(stringSubmatch[2])
-	indirect.ObjectNumber = int64(objNum)
-	indirect.GenerationNumber = int64(genNum)
-	for {
-		afterObj, err2 := cursor.Peek(2)
-		if err2 != nil {
-			return &indirect, err2
-		}
-		if common.Log.IsLogLevel(common.LogLevelTrace) {
-			common.Log.Trace("Ind. peek: %s (% x)!", string(afterObj), string(afterObj))
-		}
-		if IsWhiteSpace(afterObj[0]) {
-			parser.skipSpaces(cursor)
-		} else if afterObj[0] == '%' {
-			parser.skipComments(cursor)
-		} else if (afterObj[0] == '<') && (afterObj[1] == '<') {
-			if common.Log.IsLogLevel(common.LogLevelTrace) {
-				common.Log.Trace("Call parseDict")
-			}
-			indirect.PdfObject, err2 = parser.parseDict(cursor, 0)
-			if common.Log.IsLogLevel(common.LogLevelTrace) {
-				common.Log.Trace("EOF Call parseDict: %v", err2)
-			}
-			if err2 != nil {
-				return &indirect, err2
-			}
-			if common.Log.IsLogLevel(common.LogLevelTrace) {
-				common.Log.Trace("Parsed dictionary... finished.")
-			}
-		} else if (afterObj[0] == '/') || (afterObj[0] == '(') || (afterObj[0] == '[') || (afterObj[0] == '<') {
-			indirect.PdfObject, err2 = parser.parseObject(cursor, 0)
-			if err2 != nil {
-				return &indirect, err2
-			}
-			if common.Log.IsLogLevel(common.LogLevelTrace) {
-				common.Log.Trace("Parsed object ... finished.")
-			}
-		} else if afterObj[0] == ']' {
-			common.Log.Debug("WARNING: ']' character not being used as an array ending marker. Skipping.")
-			cursor.Discard(1)
-		} else {
-			if afterObj[0] == 'e' {
-				textLine, err3 := parser.readTextLine(cursor)
-				if err3 != nil {
-					return nil, err3
-				}
-				if len(textLine) >= 6 && textLine[0:6] == "endobj" {
-					break
-				}
-			} else if afterObj[0] == 's' {
-				afterObj, _ = cursor.Peek(10)
-				if string(afterObj[:6]) == "stream" {
-					skip := 6
-					if len(afterObj) > 6 {
-						if IsWhiteSpace(afterObj[skip]) && afterObj[skip] != '\r' && afterObj[skip] != '\n' {
-							common.Log.Debug("Non-conformant PDF not ending stream line properly with EOL marker")
-							parser.metadata.nonConformantStream = true
-							skip++
-						}
-						switch afterObj[skip] {
-						case '\r':
-							skip++
-							if afterObj[skip] == '\n' {
-								skip++
-							}
-						case '\n':
-							skip++
-						default:
-							parser.metadata.nonConformantStream = true
-						}
-					}
-					cursor.Discard(skip)
-					dict, ok := indirect.PdfObject.(*PdfObjectDictionary)
-					if !ok {
-						return nil, errors.New("stream object missing dictionary")
-					}
-					if common.Log.IsLogLevel(common.LogLevelTrace) {
-						common.Log.Trace("Stream dict %s", dict)
-					}
-					streamLength, err3 := parser.traceStreamLength(dict.Get("Length"), visited)
-					if err3 != nil {
-						common.Log.Debug("Fail to trace stream length: %v", err3)
-						return nil, err3
-					}
-					if common.Log.IsLogLevel(common.LogLevelTrace) {
-						common.Log.Trace("Stream length? %s", streamLength)
-					}
-					num, isNum := streamLength.(*PdfObjectInteger)
-					if !isNum {
-						return nil, errors.New("stream length needs to be an integer")
-					}
-					length2 := *num
-					if length2 < 0 {
-						return nil, errors.New("stream needs to be longer than 0")
-					}
-					fileOffset := cursor.GetFileOffset()
-					nextOffset := parser.xrefNextObjectOffset(fileOffset)
-					if fileOffset+int64(length2) > nextOffset && nextOffset > fileOffset {
-						common.Log.Debug("Expected ending at %d", fileOffset+int64(length2))
-						common.Log.Debug("Next object starting at %d", nextOffset)
-						corrected := nextOffset - fileOffset - 17
-						if corrected < 0 {
-							return nil, errors.New("invalid stream length, going past boundaries")
-						}
-						common.Log.Debug("Attempting a length correction to %d...", corrected)
-						length2 = PdfObjectInteger(corrected)
-						dict.Set("Length", MakeInteger(corrected))
-					}
-					if int64(length2) > parser.fileSize {
-						common.Log.Debug("ERROR: Stream length cannot be larger than file size")
-						return nil, errors.New("invalid stream length, larger than file size")
-					}
-					streamData := make([]byte, length2)
-					_, err3 = cursor.ReadAtLeast(streamData, int(length2))
-					if err3 != nil {
-						common.Log.Debug("ERROR stream (%d): %X", len(streamData), streamData)
-						common.Log.Debug("ERROR: %v", err3)
-						return nil, err3
-					}
-					stream := PdfObjectStream{
-						Stream:              streamData,
-						PdfObjectDictionary: indirect.PdfObject.(*PdfObjectDictionary),
-						PdfObjectReference: PdfObjectReference{
-							ObjectNumber:     indirect.ObjectNumber,
-							GenerationNumber: indirect.GenerationNumber,
-						},
-					}
-					stream.PdfObjectReference.parser = parser
-					parser.skipSpaces(cursor)
-					cursor.Discard(9)
-					parser.skipSpaces(cursor)
-					return &stream, nil
-				}
-			}
-			if indirect.PdfObject != nil && afterObj[0] >= '0' && afterObj[0] <= '9' {
-				tail := afterObj
-				if len(afterObj) < 20 {
-					tail, _ = cursor.Peek(20)
-				}
-				if objHeaderRegexp.Match(tail) {
-					common.Log.Debug("WARNING: Missing endobj marker, detected new object starting")
-					break
-				}
-			}
-			indirect.PdfObject, err2 = parser.parseObject(cursor, 0)
-			if indirect.PdfObject == nil {
-				common.Log.Debug("INCOMPATIBILITY: Indirect object not containing an object - assuming null object")
-				indirect.PdfObject = MakeNull()
-			}
-			return &indirect, err2
-		}
-	}
-	if indirect.PdfObject == nil {
-		common.Log.Debug("INCOMPATIBILITY: Indirect object not containing an object - assuming null object")
-		indirect.PdfObject = MakeNull()
-	}
-	if common.Log.IsLogLevel(common.LogLevelTrace) {
-		common.Log.Trace("Returning indirect!")
-	}
-	return &indirect, nil
-}
-
-func (parser *PdfParser) parseNull(cursor *readerAtCursor) (PdfObjectNull, error) {
-	_, err := cursor.Discard(4)
-	return PdfObjectNull{}, err
-}
-
-// ParseDict reads and parses a PDF dictionary object enclosed with '<<' and
-// '>>' at the start of the source (offset 0). Convenience wrapper for
-// ParseDictAt(0), intended for parsers built from a buffer where the dict
-// is the entire content (e.g. NewParserFromString-based tests). Callers that
-// need to parse at a different offset must use ParseDictAt(offset); the
-// parser no longer carries an internal cursor for SetFileOffset-then-ParseDict
-// patterns to work against.
-func (parser *PdfParser) ParseDict() (*PdfObjectDictionary, error) { return parser.ParseDictAt(0) }

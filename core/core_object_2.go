@@ -10,6 +10,31 @@ import (
 	"github.com/OpenMellon/openpdf/common"
 )
 
+// PdfObject is an interface which all primitive PDF objects must implement.
+type PdfObject interface {
+	// String outputs a string representation of the primitive (for debugging).
+	String() string
+
+	// Write outputs the PDF primitive as written to file as expected by the standard.
+	Write() []byte
+
+	// Direct returns the direct object this object represents, dereferencing
+	// references and indirect objects. Leaf and container objects return themselves.
+	// It is equivalent to TraceToDirectObject(obj).
+	Direct() PdfObject
+
+	// Equals reports whether other has the same contents as this object. It performs
+	// the same deep comparison as EqualObjects(obj, other).
+	Equals(obj PdfObject) bool
+}
+
+// PdfObjectStreams represents the primitive PDF object streams.
+// 7.5.7 Object Streams (page 45).
+type PdfObjectStreams struct {
+	PdfObjectReference
+	vec []PdfObject
+}
+
 // Elements returns a slice of the PdfObject elements in the array.
 // Preferred over accessing the array directly as type may be changed in future major versions (v3).
 func (streams *PdfObjectStreams) Elements() []PdfObject {
@@ -25,73 +50,6 @@ func (streams *PdfObjectStreams) Write() []byte {
 		buf.WriteString(strconv.FormatInt(streams.ObjectNumber, 10))
 		buf.WriteString(" 0 R")
 	})
-}
-
-type (
-	indirectPair struct{ first, second *PdfIndirectObject }
-	objectStream struct {
-		N       int
-		data    []byte
-		offsets map[int]int64
-	}
-)
-
-// String returns a string describing `stream`.
-func (stream *PdfObjectStream) String() string {
-	return fmt.Sprintf("Object stream %d: %s", stream.ObjectNumber, stream.PdfObjectDictionary)
-}
-
-type objectStreams map[int]objectStream
-
-// MakeStream creates an PdfObjectStream with specified contents and encoding. If encoding is nil, then raw encoding
-// will be used (i.e. no encoding applied).
-func MakeStream(contents []byte, encoder StreamEncoder) (*PdfObjectStream, error) {
-	stream := &PdfObjectStream{}
-	if encoder == nil {
-		encoder = NewRawEncoder()
-	}
-	stream.PdfObjectDictionary = encoder.MakeStreamDict()
-	bytes, err := encoder.EncodeBytes(contents)
-	if err != nil {
-		return nil, err
-	}
-	stream.Set("Length", MakeInteger(int64(len(bytes))))
-	stream.Stream = bytes
-	return stream, nil
-}
-
-// Equals reports whether other has the same contents as this object (deep comparison).
-func (stream *PdfObjectStream) Equals(other PdfObject) bool {
-	if stream == nil {
-		return other == nil
-	}
-	return equalObjects(stream, other, 0, nil)
-}
-func (stream *PdfObjectStream) Direct() PdfObject { return stream }
-
-// PdfObjectStreams represents the primitive PDF object streams.
-// 7.5.7 Object Streams (page 45).
-type PdfObjectStreams struct {
-	PdfObjectReference
-	vec []PdfObject
-}
-
-// PdfObjectStream represents the primitive PDF Object stream.
-type PdfObjectStream struct {
-	PdfObjectReference
-	*PdfObjectDictionary
-	Stream []byte
-
-	// A lazy stream keeps its data in TempFile and leaves Stream nil.
-	Lazy     bool
-	TempFile string
-}
-
-// GetObjectStreams returns the *PdfObjectStreams represented by the PdfObject. On type mismatch the found bool flag is
-// false and a nil pointer is returned.
-func GetObjectStreams(obj PdfObject) (streams *PdfObjectStreams, ok bool) {
-	streams, ok = obj.(*PdfObjectStreams)
-	return streams, ok
 }
 
 // Equals reports whether other has the same contents as this object (deep comparison).
@@ -133,11 +91,33 @@ func (streams *PdfObjectStreams) Set(i int, obj PdfObject) error {
 	return nil
 }
 
-// MakeObjectStreams creates an PdfObjectStreams from a list of PdfObjects.
-func MakeObjectStreams(objects ...PdfObject) *PdfObjectStreams {
-	return &PdfObjectStreams{vec: objects}
-}
 func (streams *PdfObjectStreams) Direct() PdfObject { return streams }
+
+// PdfObjectStream represents the primitive PDF Object stream.
+type PdfObjectStream struct {
+	PdfObjectReference
+	*PdfObjectDictionary
+	Stream []byte
+
+	// A lazy stream keeps its data in TempFile and leaves Stream nil.
+	Lazy     bool
+	TempFile string
+}
+
+// String returns a string describing `stream`.
+func (stream *PdfObjectStream) String() string {
+	return fmt.Sprintf("Object stream %d: %s", stream.ObjectNumber, stream.PdfObjectDictionary)
+}
+
+// Equals reports whether other has the same contents as this object (deep comparison).
+func (stream *PdfObjectStream) Equals(other PdfObject) bool {
+	if stream == nil {
+		return other == nil
+	}
+	return equalObjects(stream, other, 0, nil)
+}
+
+func (stream *PdfObjectStream) Direct() PdfObject { return stream }
 
 // MakeLazy moves the stream data into a temporary file to reduce memory usage,
 // e.g. when creating a PDF with many images.
@@ -174,4 +154,18 @@ func (stream *PdfObjectStream) Write() []byte {
 		buf.WriteString(strconv.FormatInt(stream.ObjectNumber, 10))
 		buf.WriteString(" 0 R")
 	})
+}
+
+type objectStreams map[int]objectStream
+
+// GetObjectStreams returns the *PdfObjectStreams represented by the PdfObject. On type mismatch the found bool flag is
+// false and a nil pointer is returned.
+func GetObjectStreams(obj PdfObject) (streams *PdfObjectStreams, ok bool) {
+	streams, ok = obj.(*PdfObjectStreams)
+	return streams, ok
+}
+
+// MakeObjectStreams creates an PdfObjectStreams from a list of PdfObjects.
+func MakeObjectStreams(objects ...PdfObject) *PdfObjectStreams {
+	return &PdfObjectStreams{vec: objects}
 }

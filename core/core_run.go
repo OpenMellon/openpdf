@@ -5,6 +5,9 @@ import (
 	"io"
 )
 
+// RunLengthEncoder represents Run length encoding.
+type RunLengthEncoder struct{ limits decodeLimits }
+
 // UpdateParams updates the parameter values of the encoder.
 func (runLength *RunLengthEncoder) UpdateParams(params *PdfObjectDictionary) {}
 
@@ -59,60 +62,6 @@ func (runLength *RunLengthEncoder) DecodeBytes(encoded []byte) ([]byte, error) {
 }
 
 func (runLength *RunLengthEncoder) setDecodeLimits(limits decodeLimits) { runLength.limits = limits }
-
-func (r *runLengthReader) fillRun() error {
-	b, err := r.src.ReadByte()
-	if err != nil {
-		return err
-	}
-	switch {
-	case b == 128:
-		return io.EOF
-	case b > 128:
-		c, err2 := r.src.ReadByte()
-		if err2 != nil {
-			return err2
-		}
-		count := 257 - int(b)
-		for i := 0; i < count; i++ {
-			r.run[i] = c
-		}
-		r.runEnd = count
-		r.runPos = 0
-		return nil
-	default:
-		count := int(b) + 1
-		if _, err2 := io.ReadFull(r.src, r.run[:count]); err2 != nil {
-			return err2
-		}
-		r.runEnd = count
-		r.runPos = 0
-		return nil
-	}
-}
-
-// RunLengthEncoder represents Run length encoding.
-type RunLengthEncoder struct{ limits decodeLimits }
-
-func (r *runLengthReader) Read(p []byte) (int, error) {
-	total := 0
-	for total < len(p) {
-		if r.runPos < r.runEnd {
-			copied := copy(p[total:], r.run[r.runPos:r.runEnd])
-			total += copied
-			r.runPos += copied
-			continue
-		}
-		if r.err != nil {
-			if total > 0 {
-				return total, nil
-			}
-			return 0, r.err
-		}
-		r.err = r.fillRun()
-	}
-	return total, nil
-}
 
 // DecodeStream decodes RunLengthEncoded stream object and give back decoded bytes.
 func (runLength *RunLengthEncoder) DecodeStream(streamObj *PdfObjectStream) ([]byte, error) {
@@ -194,14 +143,6 @@ func (runLength *RunLengthEncoder) MakeStreamDict() *PdfObjectDictionary {
 	return dict
 }
 
-type runLengthReader struct {
-	src    byteReader
-	err    error
-	run    [128]byte
-	runEnd int
-	runPos int
-}
-
 // MakeDecodeParams makes a new instance of an encoding dictionary based on
 // the current encoder settings.
 func (runLength *RunLengthEncoder) MakeDecodeParams() PdfObject { return nil }
@@ -215,4 +156,63 @@ func (runLength *RunLengthEncoder) DecodeReader(r io.Reader) io.Reader {
 
 func newRunLengthEncoderFromStream(_ *PdfObjectStream, _ *PdfObjectDictionary) (*RunLengthEncoder, error) {
 	return NewRunLengthEncoder(), nil
+}
+
+type runLengthReader struct {
+	src    byteReader
+	err    error
+	run    [128]byte
+	runEnd int
+	runPos int
+}
+
+func (r *runLengthReader) fillRun() error {
+	b, err := r.src.ReadByte()
+	if err != nil {
+		return err
+	}
+	switch {
+	case b == 128:
+		return io.EOF
+	case b > 128:
+		c, err2 := r.src.ReadByte()
+		if err2 != nil {
+			return err2
+		}
+		count := 257 - int(b)
+		for i := 0; i < count; i++ {
+			r.run[i] = c
+		}
+		r.runEnd = count
+		r.runPos = 0
+		return nil
+	default:
+		count := int(b) + 1
+		if _, err2 := io.ReadFull(r.src, r.run[:count]); err2 != nil {
+			return err2
+		}
+		r.runEnd = count
+		r.runPos = 0
+		return nil
+	}
+}
+
+func (r *runLengthReader) Read(p []byte) (int, error) {
+	total := 0
+	for total < len(p) {
+		if r.runPos < r.runEnd {
+			copied := copy(p[total:], r.run[r.runPos:r.runEnd])
+			total += copied
+			r.runPos += copied
+			continue
+		}
+		if r.err != nil {
+			if total > 0 {
+				return total, nil
+			}
+			return 0, r.err
+		}
+		r.err = r.fillRun()
+	}
+	return total, nil
 }
