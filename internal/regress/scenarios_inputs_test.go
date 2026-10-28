@@ -9,8 +9,8 @@ func init() {
 		scenario{name: "input-xref-stream", input: "xref-stream.pdf"},
 		scenario{name: "input-inline-image", input: "inline-image.pdf", pixels: true},
 		scenario{name: "input-stream-filters", input: "stream-filters.pdf", pixels: true},
-		// Known bug recorded in the golden: page.Rotate is nil for pages that inherit /Rotate from a Pages node, so
-		// page 1 should render rotated 90 degrees (200x300) but renders upright. Fixing the reader changes this golden.
+		// Page 1 inherits /Rotate 90 from the root Pages node, page 2 overrides it to 0 in an inner node, page 3
+		// inherits 0 and has its own MediaBox.
 		scenario{name: "input-page-tree", input: "page-tree.pdf", pixels: true},
 		scenario{name: "input-acroform", input: "acroform.pdf"},
 		scenario{name: "input-cid-identity-h", input: "cid-identity-h.pdf", pixels: true},

@@ -28,7 +28,11 @@ func (d *ImageDevice) RenderWithOpts(page *model.PdfPage, skipFlattening bool) (
 		cropBox.Normalize()
 		cropW, cropH = cropBox.Width(), cropBox.Height()
 	}
-	rotate := page.Rotate
+	// /Rotate is inheritable from the page tree; page.Rotate is only the value set on the page itself.
+	var rotate *int64
+	if r, err := page.GetRotate(); err == nil {
+		rotate = &r
+	}
 	originX, originY, pageW, pageH := mediaBox.Llx, mediaBox.Lly, mediaBox.Width(), mediaBox.Height()
 	pageMatrix := transform.IdentityMatrix()
 	if rotate != nil && *rotate%360 != 0 && *rotate%90 == 0 {
