@@ -1691,10 +1691,7 @@ func listBoxAppearance(form *model.PdfAcroForm, widget *model.PdfAnnotationWidge
 		fontSize = h / 1.15
 		rowH = h
 	}
-	maxRows := int(h / rowH)
-	if maxRows < 1 {
-		maxRows = 1
-	}
+	maxRows := max(int(h/rowH), 1)
 	first := 0
 	if ti, ok := core.GetIntVal(field.TI); ok && ti >= 0 && ti < len(options) {
 		first = ti

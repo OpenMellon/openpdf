@@ -141,7 +141,7 @@ func makeDifferencesArray(m *charCodeGlyphNameMap) *core.PdfObjectArray {
 		codes = append(codes, code)
 		return false
 	})
-	sort.Slice(codes, func(i, j int) bool { return codes[i] < codes[j] })
+	slices.Sort(codes)
 	prev := codes[0]
 	glyph, _ := m.Read(prev)
 	arr := []core.PdfObject{core.MakeInteger(int64(prev)), core.MakeName(string(glyph))}
@@ -249,7 +249,7 @@ func (enc *differencesEncoding) Charcodes() []CharCode {
 		return false
 	})
 	if !sorted {
-		sort.Slice(codes, func(i, j int) bool { return codes[i] < codes[j] })
+		slices.Sort(codes)
 	}
 	return codes
 }
@@ -602,7 +602,7 @@ func (e *simpleEncoder) Reset()                                     {}
 func (enc *simpleEncoding) Charcodes() []CharCode {
 	codes := make([]CharCode, 0, enc.byteToRune.Length())
 	enc.byteToRune.Range(func(b byte, _ rune) (stop bool) { codes = append(codes, CharCode(b)); return false })
-	sort.Slice(codes, func(i, j int) bool { return codes[i] < codes[j] })
+	slices.Sort(codes)
 	return codes
 }
 
@@ -821,10 +821,7 @@ func (enc *TrueTypeFontEncoder) String() string {
 		return false
 	})
 	sort.Slice(entries, func(i, j int) bool { return entries[i].r < entries[j].r })
-	n := len(entries)
-	if n > maxStringEntries {
-		n = maxStringEntries
-	}
+	n := min(len(entries), maxStringEntries)
 	for i := 0; i < n; i++ {
 		e := entries[i]
 		parts = append(parts, fmt.Sprintf("%d=0x%02x: %q", e.r, e.r, rune(e.gid)))

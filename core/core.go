@@ -717,10 +717,7 @@ func (ascii85 *ASCII85Encoder) DecodeBytes(encoded []byte) ([]byte, error) {
 				idx++
 				continue
 			} else if b == '~' && pos+idx+1 < len(encoded) && encoded[pos+idx+1] == '>' {
-				outLen = (idx - skipped) - 1
-				if outLen < 0 {
-					outLen = 0
-				}
+				outLen = max((idx-skipped)-1, 0)
 				ok = true
 				break
 			} else if b >= '!' && b <= 'u' {
@@ -816,9 +813,7 @@ func (parser *PdfParser) rebuildXrefTableTopDown() error {
 		return nil
 	}
 	rebuilt := XrefTable{ObjectMap: make(map[int]XrefObject, len(xrefs.ObjectMap))}
-	for i, xrefObj := range xrefs.ObjectMap {
-		rebuilt.ObjectMap[i] = xrefObj
-	}
+	maps.Copy(rebuilt.ObjectMap, xrefs.ObjectMap)
 	for i, xrefObj := range parser.currentXrefs().ObjectMap {
 		if xrefObj.XType != XrefTypeObjectStream {
 			continue
@@ -1342,14 +1337,14 @@ func newCCITTFaxEncoderFromStream(streamObj *PdfObjectStream, decodeParams *PdfO
 // TODO(v4): Refactor to GetFilter() which can be used for /Filter (either Name or Array), this can be
 // renamed to String() as a pretty string to use in debugging etc.
 func (multi *MultiEncoder) GetFilterName() string {
-	name := ""
+	var name strings.Builder
 	for i, encoder := range multi.encoders {
-		name += encoder.GetFilterName()
+		name.WriteString(encoder.GetFilterName())
 		if i < len(multi.encoders)-1 {
-			name += " "
+			name.WriteString(" ")
 		}
 	}
-	return name
+	return name.String()
 }
 
 // MakeStreamDict makes a new instance of an encoding dictionary for a stream object.
@@ -1788,10 +1783,7 @@ func (parser *PdfParser) loadXrefs() (trailer *PdfObjectDictionary, err error) {
 	}
 	fileOffset := cursor.GetFileOffset()
 	var tailLen int64 = 64
-	start := fileOffset - tailLen
-	if start < 0 {
-		start = 0
-	}
+	start := max(fileOffset-tailLen, 0)
 	cursor.SetFileOffset(start)
 	data := make([]byte, tailLen)
 	_, err = cursor.Read(data)
@@ -2005,9 +1997,7 @@ func (parser *PdfParser) parseFirstXrefTrailer() (*PdfObjectDictionary, error) {
 	firstParser := &PdfParser{reader: parser.reader, fileSize: parser.fileSize, Opts: parser.Opts, decodedTotal: parser.decodedTotal}
 	xrefs := parser.currentXrefs()
 	m := make(map[int]XrefObject, len(xrefs.ObjectMap))
-	for i, xrefObj := range xrefs.ObjectMap {
-		m[i] = xrefObj
-	}
+	maps.Copy(m, xrefs.ObjectMap)
 	firstParser.setXrefs(XrefTable{ObjectMap: m})
 	firstParser.objStreams = make(objectStreams)
 	if parser.xrefType != nil {
@@ -2066,15 +2056,16 @@ func (asciiHex *ASCIIHexEncoder) MakeStreamDict() *PdfObjectDictionary {
 
 // String returns a string describing `array`.
 func (arr *PdfObjectArray) String() string {
-	out := "["
+	var out strings.Builder
+	out.WriteString("[")
 	for i, elem := range arr.Elements() {
-		out += elem.String()
+		out.WriteString(elem.String())
 		if i < (arr.Len() - 1) {
-			out += ", "
+			out.WriteString(", ")
 		}
 	}
-	out += "]"
-	return out
+	out.WriteString("]")
+	return out.String()
 }
 
 var xrefKeywordRegexp = regexp.MustCompile("\\s*xref\\s*")
@@ -2499,10 +2490,10 @@ func (parser *PdfParser) lookupObjectViaOS(osObjNumber int, index int, visited m
 	if object == nil {
 		return nil, errors.New("object cannot be null")
 	}
-	indirect := PdfIndirectObject{}
-	indirect.ObjectNumber = int64(index)
-	indirect.PdfObject = object
-	indirect.parser = parser
+	indirect := PdfIndirectObject{
+		ObjectNumber: int64(index),
+		PdfObject:    object,
+		parser:       parser}
 	return &indirect, nil
 }
 
@@ -2886,7 +2877,7 @@ func (parser *PdfParser) computeRevisionEndOffsets() ([]int64, bool, error) {
 		return nums, ok && len(nums) == want, nil
 	}
 	sorted := append([]int64(nil), parser.xrefOffsets...)
-	sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+	slices.Sort(sorted)
 	if len(sorted) > want-1 {
 		sorted = sorted[len(sorted)-(want-1):]
 	}
@@ -4094,18 +4085,14 @@ func resolveReferencesRecursive(pdfObject PdfObject, depth int) PdfObject {
 	case *PdfObjectDictionary:
 		v.mu.RLock()
 		m := make(map[PdfObjectName]PdfObject, len(v.dict))
-		for nameKey, obj := range v.dict {
-			m[nameKey] = obj
-		}
+		maps.Copy(m, v.dict)
 		v.mu.RUnlock()
 		for nameKey, obj := range m {
 			m[nameKey] = resolveReferencesRecursive(obj, depth+1)
 		}
 		v.mu.Lock()
-		for nameKey, obj := range m {
-			v.dict[nameKey] = obj
-		}
-		sort.Slice(v.keys, func(i, j int) bool { return v.keys[i] < v.keys[j] })
+		maps.Copy(v.dict, m)
+		slices.Sort(v.keys)
 		v.mu.Unlock()
 	}
 	return pdfObject
@@ -4531,7 +4518,7 @@ func (parser *PdfParser) lookupByNumberWrapperInternal(objNumber int, retry bool
 	}
 	visited[objNumber] = struct{}{}
 	defer delete(visited, objNumber)
-	res, err, _ := parser.lookupGroup.Do(strconv.Itoa(objNumber), func() (interface{}, error) {
+	res, err, _ := parser.lookupGroup.Do(strconv.Itoa(objNumber), func() (any, error) {
 		if cachedObject, ok := parser.LoadCachedObject(objNumber); ok {
 			return lookupResult{obj: cachedObject, decrypted: false}, nil
 		}
@@ -4780,10 +4767,7 @@ func IsOctalDigit(c byte) bool { return '0' <= c && c <= '7' }
 func (parser *PdfParser) checkPostEOFData() error {
 	const eofMarkerText = "%%EOF"
 	data := make([]byte, len([]byte(eofMarkerText))+1)
-	start := parser.fileSize - int64(len(data))
-	if start < 0 {
-		start = 0
-	}
+	start := max(parser.fileSize-int64(len(data)), 0)
 	if _, err := parser.reader.ReadAt(data, start); err != nil && err != io.EOF {
 		return err
 	}
@@ -4862,10 +4846,7 @@ func (r *ascii85Reader) fillGroup() error {
 	}
 	outLen := 4
 	if ok {
-		outLen = n - 1
-		if outLen < 0 {
-			outLen = 0
-		}
+		outLen = max(n-1, 0)
 	}
 	for i := n; i < 5; i++ {
 		data[i] = 84
@@ -5294,7 +5275,7 @@ func (parser *PdfParser) filterEOFMarkersByContext(markers []eofMarker) ([]eofMa
 		m[xrefOffset] = struct{}{}
 	}
 	nums := append([]int64(nil), parser.xrefSectionEnds...)
-	sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
+	slices.Sort(nums)
 	var result []eofMarker
 	seen := make(map[int64]struct{}, len(m))
 	prevEnd := make(map[int]int64, len(nums))
@@ -5626,7 +5607,7 @@ func (parser *PdfParser) getNumbersOfUpdatedObjects(prevParser *PdfParser) ([]in
 	}
 	fileSize := prevParser.fileSize
 	nums := make([]int, 0)
-	m := make(map[int]interface{})
+	m := make(map[int]any)
 	offsets := make(map[int]int64)
 	for i, xrefObj := range parser.currentXrefs().ObjectMap {
 		if xrefObj.Offset == 0 {
@@ -7506,7 +7487,7 @@ func (cursor *readerAtCursor) ReadBytes(delim byte) ([]byte, error) {
 	return cursor.buffered.ReadBytes(delim)
 }
 
-var bufferPool = sync.Pool{New: func() interface{} { return new(bytes.Buffer) }}
+var bufferPool = sync.Pool{New: func() any { return new(bytes.Buffer) }}
 
 func (dict *PdfObjectDictionary) setWithLock(key PdfObjectName, val PdfObject, lock bool) {
 	if lock {
@@ -7826,8 +7807,8 @@ func (limits decodeLimits) clampToTotal(n int64) int64 {
 func (multi *MultiEncoder) EncodeBytes(data []byte) ([]byte, error) {
 	encoded := data
 	var err error
-	for i := len(multi.encoders) - 1; i >= 0; i-- {
-		encoder := multi.encoders[i]
+	for _, encoder := range slices.Backward(multi.encoders) {
+
 		encoded, err = encoder.EncodeBytes(encoded)
 		if err != nil {
 			return nil, err
@@ -8910,9 +8891,7 @@ func (dict *PdfObjectDictionary) ShallowCopy() *PdfObjectDictionary {
 	clone.dict = make(map[PdfObjectName]PdfObject, len(dict.dict))
 	clone.keys = make([]PdfObjectName, len(dict.keys))
 	copy(clone.keys, dict.keys)
-	for nameKey, obj := range dict.dict {
-		clone.dict[nameKey] = obj
-	}
+	maps.Copy(clone.dict, dict.dict)
 	clone.parser = dict.parser
 	return clone
 }
@@ -9179,28 +9158,29 @@ func (crypt *PdfCrypt) String() string {
 	if crypt == nil {
 		return ""
 	}
-	out := crypt.encrypt.Filter + " - "
+	var out strings.Builder
+	out.WriteString(crypt.encrypt.Filter + " - ")
 	if crypt.isPubSec() {
-		out += fmt.Sprintf("%s (%d recipients) - ", crypt.pubSec.SubFilter, len(crypt.pubSec.Recipients))
+		out.WriteString(fmt.Sprintf("%s (%d recipients) - ", crypt.pubSec.SubFilter, len(crypt.pubSec.Recipients)))
 	}
 	if crypt.encrypt.V == 0 {
-		out += "Undocumented algorithm"
+		out.WriteString("Undocumented algorithm")
 	} else if crypt.encrypt.V == 1 {
-		out += "RC4: 40 bits"
+		out.WriteString("RC4: 40 bits")
 	} else if crypt.encrypt.V == 2 {
-		out += fmt.Sprintf("RC4: %d bits", crypt.encrypt.Length)
+		out.WriteString(fmt.Sprintf("RC4: %d bits", crypt.encrypt.Length))
 	} else if crypt.encrypt.V == 3 {
-		out += "Unpublished algorithm"
+		out.WriteString("Unpublished algorithm")
 	} else if crypt.encrypt.V >= 4 {
-		out += fmt.Sprintf("Stream filter: %s - String filter: %s", crypt.streamFilter, crypt.stringFilter)
-		out += "; Crypt filters:"
+		out.WriteString(fmt.Sprintf("Stream filter: %s - String filter: %s", crypt.streamFilter, crypt.stringFilter))
+		out.WriteString("; Crypt filters:")
 		for sKey, cryptFilter := range crypt.cryptFilters {
-			out += fmt.Sprintf(" - %s: %s (%d)", sKey, cryptFilter.Name(), cryptFilter.KeyLength())
+			out.WriteString(fmt.Sprintf(" - %s: %s (%d)", sKey, cryptFilter.Name(), cryptFilter.KeyLength()))
 		}
 	}
 	accessPermissions := crypt.GetAccessPermissions()
-	out += fmt.Sprintf(" - %#v", accessPermissions)
-	return out
+	out.WriteString(fmt.Sprintf(" - %#v", accessPermissions))
+	return out.String()
 }
 
 // SetDefaultMaxDecodedStreamSize sets the maximum number of bytes a single
@@ -9723,8 +9703,8 @@ func (dict *PdfObjectDictionary) Remove(key PdfObjectName) {
 }
 
 func (parser *PdfParser) parseIndirectObject(cursor *readerAtCursor, visited map[int]struct{}) (PdfObject, error) {
-	indirect := PdfIndirectObject{}
-	indirect.parser = parser
+	indirect := PdfIndirectObject{
+		parser: parser}
 	if common.Log.IsLogLevel(common.LogLevelTrace) {
 		common.Log.Trace("-Read indirect obj")
 	}
@@ -9885,11 +9865,11 @@ func (parser *PdfParser) parseIndirectObject(cursor *readerAtCursor, visited map
 						common.Log.Debug("ERROR: %v", err3)
 						return nil, err3
 					}
-					stream := PdfObjectStream{}
-					stream.Stream = streamData
-					stream.PdfObjectDictionary = indirect.PdfObject.(*PdfObjectDictionary)
-					stream.ObjectNumber = indirect.ObjectNumber
-					stream.GenerationNumber = indirect.GenerationNumber
+					stream := PdfObjectStream{
+						Stream:              streamData,
+						PdfObjectDictionary: indirect.PdfObject.(*PdfObjectDictionary),
+						ObjectNumber:        indirect.ObjectNumber,
+						GenerationNumber:    indirect.GenerationNumber}
 					stream.PdfObjectReference.parser = parser
 					parser.skipSpaces(cursor)
 					cursor.Discard(9)
@@ -10047,18 +10027,18 @@ func resolveReferencesIterative(obj PdfObject, visited map[PdfObject]struct{}) e
 			objs = append(objs, v.PdfObjectDictionary)
 		case *PdfObjectDictionary:
 			names := v.Keys()
-			for i := len(names) - 1; i >= 0; i-- {
-				child := v.Get(names[i])
+			for _, name := range slices.Backward(names) {
+				child := v.Get(name)
 				if ref, ok := child.(*PdfObjectReference); ok {
 					child = ref.Resolve()
-					v.Set(names[i], child)
+					v.Set(name, child)
 				}
 				objs = append(objs, child)
 			}
 		case *PdfObjectArray:
 			elems := v.Elements()
-			for i := len(elems) - 1; i >= 0; i-- {
-				elem := elems[i]
+			for i, elem := range slices.Backward(elems) {
+
 				if ref, ok := elem.(*PdfObjectReference); ok {
 					elem = ref.Resolve()
 					v.Set(i, elem)

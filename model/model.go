@@ -1347,7 +1347,7 @@ func NewPdfFontFromTTF(r io.ReadSeeker) (*PdfFont, error) {
 		common.Log.Debug("ERROR: loading TTF font: %v", err)
 		return nil, err
 	}
-	font := &pdfFontSimple{charWidths: make(map[textencoding.CharCode]float64), fontCommon: fontCommon{subtype: "TrueType"}}
+	font := &pdfFontSimple{charWidths: make(map[textencoding.CharCode]float64), subtype: "TrueType"}
 	font.encoder = textencoding.NewWinAnsiEncoder()
 	font.baseFont = ttfParse.PostScriptName
 	font.FirstChar = core.MakeInteger(int64(defaultFirstChar))
@@ -1587,7 +1587,7 @@ func parseDefaultAppearance(s string) (s2 string, f float64, col PdfColor) {
 		}
 		return floats, true
 	}
-	for _, field := range strings.Fields(s) {
+	for field := range strings.FieldsSeq(s) {
 		switch field {
 		case "Tf":
 			strs, ok := fn(2)
@@ -1661,7 +1661,7 @@ const (
 )
 
 func newPdfCIDFontType2FromTtf(ttf fonts.TtfType, data []byte, otf *fonts.OtfType) (PdfFont, error) {
-	font := &pdfCIDFontType2{fontCommon: fontCommon{subtype: "CIDFontType2"}, CIDToGIDMap: core.MakeName("Identity")}
+	font := &pdfCIDFontType2{subtype: "CIDFontType2", CIDToGIDMap: core.MakeName("Identity")}
 	if len(ttf.Widths) <= 0 {
 		return PdfFont{}, errors.New("ERROR: Missing required attribute (Widths)")
 	}
@@ -1695,7 +1695,7 @@ func newPdfCIDFontType2FromTtf(ttf fonts.TtfType, data []byte, otf *fonts.OtfTyp
 	} else {
 		enc = ttf.NewEncoder()
 	}
-	font2 := pdfFontType0{fontCommon: fontCommon{subtype: "Type0", baseFont: ttf.PostScriptName}, DescendantFont: &PdfFont{context: font}, Encoding: core.MakeName("Identity-H"), encoder: enc}
+	font2 := pdfFontType0{subtype: "Type0", baseFont: ttf.PostScriptName, DescendantFont: &PdfFont{context: font}, Encoding: core.MakeName("Identity-H"), encoder: enc}
 	if len(ttf.Chars) > 0 {
 		textByCode := make(map[cmap.CharCode]string, len(ttf.Chars))
 		for n, char := range ttf.Chars {
@@ -3711,7 +3711,7 @@ func (p *PdfPage) GetPageAsIndirectObject() *core.PdfIndirectObject { return p.p
 
 func newPdfFontSimpleFromStdFont(stdFont fonts.StdFont) pdfFontSimple {
 	descriptor := stdFont.Descriptor()
-	return pdfFontSimple{fontCommon: fontCommon{subtype: "Type1", baseFont: stdFont.Name()}, fontMetrics: stdFont.GetMetricsTable(), std14Descriptor: &PdfFontDescriptor{FontName: core.MakeName(string(descriptor.Name)), FontFamily: core.MakeName(descriptor.Family), FontWeight: core.MakeFloat(float64(descriptor.Weight)), Flags: core.MakeInteger(int64(descriptor.Flags)), FontBBox: core.MakeArrayFromFloats(descriptor.BBox[:]), ItalicAngle: core.MakeFloat(descriptor.ItalicAngle), Ascent: core.MakeFloat(descriptor.Ascent), Descent: core.MakeFloat(descriptor.Descent), CapHeight: core.MakeFloat(descriptor.CapHeight), XHeight: core.MakeFloat(descriptor.XHeight), StemV: core.MakeFloat(descriptor.StemV), StemH: core.MakeFloat(descriptor.StemH)}, std14Encoder: stdFont.Encoder()}
+	return pdfFontSimple{subtype: "Type1", baseFont: stdFont.Name(), fontMetrics: stdFont.GetMetricsTable(), std14Descriptor: &PdfFontDescriptor{FontName: core.MakeName(string(descriptor.Name)), FontFamily: core.MakeName(descriptor.Family), FontWeight: core.MakeFloat(float64(descriptor.Weight)), Flags: core.MakeInteger(int64(descriptor.Flags)), FontBBox: core.MakeArrayFromFloats(descriptor.BBox[:]), ItalicAngle: core.MakeFloat(descriptor.ItalicAngle), Ascent: core.MakeFloat(descriptor.Ascent), Descent: core.MakeFloat(descriptor.Descent), CapHeight: core.MakeFloat(descriptor.CapHeight), XHeight: core.MakeFloat(descriptor.XHeight), StemV: core.MakeFloat(descriptor.StemV), StemH: core.MakeFloat(descriptor.StemH)}, std14Encoder: stdFont.Encoder()}
 }
 
 // PdfAction represents an action in PDF (section 12.6 p. 412).
@@ -4436,10 +4436,8 @@ func hasAcceptableKeyUsage(cert *x509.Certificate) bool {
 		}
 	}
 	for _, unknownExtKeyUsage := range cert.UnknownExtKeyUsage {
-		for _, documentSigningEKUOID := range documentSigningEKUOIDs {
-			if unknownExtKeyUsage.Equal(documentSigningEKUOID) {
-				return true
-			}
+		if slices.ContainsFunc(documentSigningEKUOIDs, unknownExtKeyUsage.Equal) {
+			return true
 		}
 	}
 	return false
@@ -5215,8 +5213,8 @@ func (f *PdfField) FullName() (string, error) {
 		set[parent] = true
 		parent = parent.Parent
 	}
-	for i := len(strs) - 1; i >= 0; i-- {
-		buf.WriteString(strs[i])
+	for i, str := range slices.Backward(strs) {
+		buf.WriteString(str)
 		if i > 0 {
 			buf.WriteString(".")
 		}
@@ -6268,10 +6266,7 @@ func (a *PdfAnnotation) GetContext() PdfModel {
 func buildLinearizationDict(n int64, fileLength int64, hintOffset int64, count int64, firstPageEnd int64, pageCount int, xrefFirstEntryOffset int64, firstPageObjNum int64) []byte {
 	s := fmt.Sprintf("%d 0 obj\n<</Linearized 1/L %d/H[%d %d]/O %d/E %d/N %d/T %d", n, fileLength, hintOffset, count, firstPageObjNum, firstPageEnd, pageCount, xrefFirstEntryOffset)
 	s2 := fmt.Sprintf("%d 0 obj\n<</Linearized 1/L %010d/H[%010d %010d]/O %010d/E %010d/N %010d/T %010d", n, fileLength, hintOffset, count, firstPageObjNum, firstPageEnd, pageCount, xrefFirstEntryOffset)
-	num := len(s2) - len(s)
-	if num < 0 {
-		num = 0
-	}
+	num := max(len(s2)-len(s), 0)
 	var buf bytes.Buffer
 	buf.WriteString(s)
 	for i := 0; i < num; i++ {
@@ -9034,12 +9029,7 @@ func subsetTag(data []byte) string {
 func (a *PdfAnnotation) GetContainingPdfObject() core.PdfObject { return a.primitive }
 
 func hasExtKeyUsage(cert *x509.Certificate, usage x509.ExtKeyUsage) bool {
-	for _, extKeyUsage := range cert.ExtKeyUsage {
-		if extKeyUsage == usage {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(cert.ExtKeyUsage, usage)
 }
 
 type (
@@ -9383,8 +9373,8 @@ func (w *PdfWriter) setDocInfo(obj core.PdfObject) {
 			}
 		}
 	}
-	indirect := core.PdfIndirectObject{}
-	indirect.PdfObject = obj
+	indirect := core.PdfIndirectObject{
+		PdfObject: obj}
 	w.infoObj = &indirect
 	w.addObject(&indirect)
 }
@@ -10353,7 +10343,7 @@ func NewCompositePdfFont(r io.ReadSeeker) (*PdfFont, error) {
 		}
 		return &cidFontType2, nil
 	}
-	font := &pdfCIDFontType0{fontCommon: fontCommon{subtype: "CIDFontType0"}, charWidths: make(map[textencoding.CharCode]float64), CIDToGIDMap: core.MakeName("Identity")}
+	font := &pdfCIDFontType0{subtype: "CIDFontType0", charWidths: make(map[textencoding.CharCode]float64), CIDToGIDMap: core.MakeName("Identity")}
 	font.SetOtfType(&otfParse)
 	font.baseFont = otfParse.PostScriptName
 	if font.baseFont == "" {
@@ -10416,7 +10406,7 @@ func NewCompositePdfFont(r io.ReadSeeker) (*PdfFont, error) {
 		}
 	}
 	font.fontDescriptor = fontDescriptor
-	font2 := &pdfFontType0{fontCommon: fontCommon{subtype: "Type0", baseFont: otfParse.PostScriptName}, Encoding: core.MakeName("Identity-H"), encoder: otfParse.NewEncoder()}
+	font2 := &pdfFontType0{subtype: "Type0", baseFont: otfParse.PostScriptName, Encoding: core.MakeName("Identity-H"), encoder: otfParse.NewEncoder()}
 	font2.baseFont = font.baseFont + "-Identity-H"
 	if len(otfParse.Chars) > 0 {
 		font2.toUnicodeCMap = cmapFromGlyphMap(otfParse.Chars)
@@ -11072,7 +11062,7 @@ func (r *PdfReader) GetPageLabels() (core.PdfObject, error) {
 // PdfOutlineTreeNode contains common fields used by the outline and outline
 // item objects.
 type PdfOutlineTreeNode struct {
-	context interface{}
+	context any
 	First   *PdfOutlineTreeNode
 	Last    *PdfOutlineTreeNode
 }
@@ -11663,10 +11653,7 @@ func (cs *PdfColorspaceSpecialIndexed) ImageToRGB(img Image) (Image, error) {
 		} else if err2 != nil {
 			return img, err2
 		}
-		size := int(num)
-		if size > count {
-			size = count
-		}
+		size := min(int(num), count)
 		if err := w.WriteSamples(numsList[size][:]); err != nil {
 			return img, err
 		}
@@ -12582,10 +12569,8 @@ func (c *parsedCRL) covers(cert *x509.Certificate) bool {
 		if fullName.Class != asn1.ClassContextSpecific || fullName.Tag != 6 {
 			continue
 		}
-		for _, crlDistributionPoint := range cert.CRLDistributionPoints {
-			if string(fullName.Bytes) == crlDistributionPoint {
-				return true
-			}
+		if slices.Contains(cert.CRLDistributionPoints, string(fullName.Bytes)) {
+			return true
 		}
 	}
 	return false
@@ -13261,8 +13246,8 @@ func NewPdfPage() *PdfPage {
 	page.mu = &sync.Mutex{}
 	page.pageDict = core.MakeDict()
 	page.Resources = NewPdfPageResources()
-	indirect := core.PdfIndirectObject{}
-	indirect.PdfObject = page.pageDict
+	indirect := core.PdfIndirectObject{
+		PdfObject: page.pageDict}
 	page.primitive = &indirect
 	page.originalDict = page.pageDict.ShallowCopy()
 	return &page
@@ -13529,13 +13514,7 @@ func (f *PdfFunctionType0) Evaluate(x []float64) ([]float64, error) {
 		v := math.Min(math.Max(x[i], f.Domain[2*i]), f.Domain[2*i+1])
 		linearInterpolate := imageutil.LinearInterpolate(v, f.Domain[2*i], f.Domain[2*i+1], floats[2*i], floats[2*i+1])
 		val := math.Min(math.Max(linearInterpolate, 0), float64(f.Size[i]-1))
-		floor := int(math.Floor(val))
-		if floor > f.Size[i]-2 {
-			floor = f.Size[i] - 2
-		}
-		if floor < 0 {
-			floor = 0
-		}
+		floor := max(min(int(math.Floor(val)), f.Size[i]-2), 0)
 		nums3[i] = floor
 		nums4[i] = floor
 		if f.Size[i] > 1 {
@@ -18895,14 +18874,14 @@ func planLinearization(writer *PdfWriter, layout *linearizationLayout, preObjs [
 	if objStm != nil {
 		nums = append(nums, objStm.firstXrefObjNum)
 	}
-	sort.Slice(nums, func(n, count int) bool { return nums[n] < nums[count] })
+	slices.Sort(nums)
 	nums2 := append([]int64(nil), layout.mainSection...)
 	if objStm != nil {
 		nums2 = append(nums2, objStm.mainXrefObjNum)
 		nums2 = append(nums2, objStm.firstXrefObjNum)
 		nums2 = append(nums2, objStm.packedObjNums...)
 	}
-	sort.Slice(nums2, func(n, count int) bool { return nums2[n] < nums2[count] })
+	slices.Sort(nums2)
 	num := nums[len(nums)-1]
 	if len(nums2) > 0 && nums2[len(nums2)-1] > num {
 		num = nums2[len(nums2)-1]
@@ -19642,7 +19621,7 @@ func NewStandard14FontWithEncoding(basefont StdFontName, alphabet map[rune]int) 
 	for n := range glyphByNum {
 		runes = append(runes, n)
 	}
-	sort.Slice(runes, func(n, count int) bool { return runes[n] < runes[count] })
+	slices.Sort(runes)
 	glyphByCode := make(map[textencoding.CharCode]textencoding.GlyphName, len(runes))
 	for _, n := range runes {
 		code := codes3[0]
@@ -22708,10 +22687,7 @@ func cidToGIDMapFromObject(obj core.PdfObject) []uint16 {
 		common.Log.Debug("WARN: invalid CIDToGIDMap stream length %d; using Identity", len(data))
 		return nil
 	}
-	n := len(data) / 2
-	if n > 65536 {
-		n = 65536
-	}
+	n := min(len(data)/2, 65536)
 	vals := make([]uint16, n)
 	for i := 0; i < n; i++ {
 		vals[i] = uint16(data[2*i])<<8 | uint16(data[2*i+1])
@@ -26016,8 +25992,8 @@ func NewPdfWriter() PdfWriter {
 			dict.Set("ModDate", date.ToPdfObject())
 		}
 	}
-	indirect := core.PdfIndirectObject{}
-	indirect.PdfObject = dict
+	indirect := core.PdfIndirectObject{
+		PdfObject: dict}
 	writer.infoObj = &indirect
 	writer.addObject(&indirect)
 	indirect2 := core.PdfIndirectObject{}
@@ -26538,10 +26514,7 @@ func (img *Image) Resample(targetBitsPerComponent int64) {
 	clear(acquireBytes)
 	for i := 0; i < int(img.Height); i++ {
 		count := i * n
-		num := count + n
-		if num > len(samples) {
-			num = len(samples)
-		}
+		num := min(count+n, len(samples))
 		resampleUint32 := sampling.ResampleUint32(samples[count:num], int(targetBitsPerComponent), 8)
 		size := i * bytesPerLine
 		for i, length := range resampleUint32 {
@@ -27642,13 +27615,7 @@ func (img *Image) ConvertToBinary() error {
 func fieldWidgets(field *PdfField) []*PdfAnnotationWidget {
 	widgets := append([]*PdfAnnotationWidget(nil), field.Annotations...)
 	if signatureField, ok := field.GetContext().(*PdfFieldSignature); ok && signatureField.PdfAnnotationWidget != nil {
-		ok := false
-		for _, widget := range widgets {
-			if widget == signatureField.PdfAnnotationWidget {
-				ok = true
-				break
-			}
-		}
+		ok := slices.Contains(widgets, signatureField.PdfAnnotationWidget)
 		if !ok {
 			widgets = append(widgets, signatureField.PdfAnnotationWidget)
 		}

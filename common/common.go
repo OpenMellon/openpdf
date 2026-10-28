@@ -14,13 +14,13 @@ import (
 )
 
 // Info does nothing for dummy logger.
-func (DummyLogger) Info(format string, args ...interface{}) {}
+func (DummyLogger) Info(format string, args ...any) {}
 
 // ConsoleLogger is a logger that writes logs to the 'os.Stdout'
 type ConsoleLogger struct{ LogLevel LogLevel }
 
 // Trace does nothing for dummy logger.
-func (DummyLogger) Trace(format string, args ...interface{}) {}
+func (DummyLogger) Trace(format string, args ...any) {}
 
 const (
 	releaseMinute = 30
@@ -42,7 +42,7 @@ const (
 )
 
 // Debug logs debug message.
-func (l WriterLogger) Debug(format string, args ...interface{}) {
+func (l WriterLogger) Debug(format string, args ...any) {
 	if l.LogLevel >= LogLevelDebug {
 		prefix := "[DEBUG] "
 		l.logToWriter(l.Output, prefix, format, args...)
@@ -50,7 +50,7 @@ func (l WriterLogger) Debug(format string, args ...interface{}) {
 }
 
 // Warning logs warning message.
-func (l ConsoleLogger) Warning(format string, args ...interface{}) {
+func (l ConsoleLogger) Warning(format string, args ...any) {
 	if l.LogLevel >= LogLevelWarning {
 		prefix := "[WARNING] "
 		l.output(os.Stdout, prefix, format, args...)
@@ -58,7 +58,7 @@ func (l ConsoleLogger) Warning(format string, args ...interface{}) {
 }
 
 // Trace logs trace message.
-func (l ConsoleLogger) Trace(format string, args ...interface{}) {
+func (l ConsoleLogger) Trace(format string, args ...any) {
 	if l.LogLevel >= LogLevelTrace {
 		prefix := "[TRACE] "
 		l.output(os.Stdout, prefix, format, args...)
@@ -66,7 +66,7 @@ func (l ConsoleLogger) Trace(format string, args ...interface{}) {
 }
 
 // Notice does nothing for dummy logger.
-func (DummyLogger) Notice(format string, args ...interface{}) {}
+func (DummyLogger) Notice(format string, args ...any) {}
 
 // DummyLogger does nothing.
 type DummyLogger struct{}
@@ -76,7 +76,7 @@ type DummyLogger struct{}
 func (l WriterLogger) IsLogLevel(level LogLevel) bool { return l.LogLevel >= level }
 
 // Error logs error message.
-func (l WriterLogger) Error(format string, args ...interface{}) {
+func (l WriterLogger) Error(format string, args ...any) {
 	if l.LogLevel >= LogLevelError {
 		prefix := "[ERROR] "
 		l.logToWriter(l.Output, prefix, format, args...)
@@ -91,19 +91,19 @@ func (DummyLogger) IsLogLevel(level LogLevel) bool { return false }
 
 const releaseMonth = 10
 
-func (l ConsoleLogger) output(w io.Writer, prefix string, format string, args ...interface{}) {
+func (l ConsoleLogger) output(w io.Writer, prefix string, format string, args ...any) {
 	writeLog(w, prefix, format, args...)
 }
 
 // LogLevel is the verbosity level for logging.
 type LogLevel int
 
-func (l WriterLogger) logToWriter(w io.Writer, prefix string, format string, args ...interface{}) {
+func (l WriterLogger) logToWriter(w io.Writer, prefix string, format string, args ...any) {
 	writeLog(w, prefix, format, args)
 }
 
 // Info logs info message.
-func (l WriterLogger) Info(format string, args ...interface{}) {
+func (l WriterLogger) Info(format string, args ...any) {
 	if l.LogLevel >= LogLevelInfo {
 		prefix := "[INFO] "
 		l.logToWriter(l.Output, prefix, format, args...)
@@ -112,19 +112,19 @@ func (l WriterLogger) Info(format string, args ...interface{}) {
 
 // Logger is the interface used for logging in the openpdf package.
 type Logger interface {
-	Error(format string, args ...interface{})
-	Warning(format string, args ...interface{})
-	Notice(format string, args ...interface{})
-	Info(format string, args ...interface{})
-	Debug(format string, args ...interface{})
-	Trace(format string, args ...interface{})
+	Error(format string, args ...any)
+	Warning(format string, args ...any)
+	Notice(format string, args ...any)
+	Info(format string, args ...any)
+	Debug(format string, args ...any)
+	Trace(format string, args ...any)
 	IsLogLevel(level LogLevel) bool
 }
 
 const utcTimeLayout = "2 January 2006 at 15:04"
 
 // Trace logs trace message.
-func (l WriterLogger) Trace(format string, args ...interface{}) {
+func (l WriterLogger) Trace(format string, args ...any) {
 	if l.LogLevel >= LogLevelTrace {
 		prefix := "[TRACE] "
 		l.logToWriter(l.Output, prefix, format, args...)
@@ -132,7 +132,7 @@ func (l WriterLogger) Trace(format string, args ...interface{}) {
 }
 
 // Warning does nothing for dummy logger.
-func (DummyLogger) Warning(format string, args ...interface{}) {}
+func (DummyLogger) Warning(format string, args ...any) {}
 
 // WriterLogger is the logger that writes data to the Output writer
 type WriterLogger struct {
@@ -144,7 +144,7 @@ type WriterLogger struct {
 // Can be used to avoid resource intensive calls to loggers.
 func (l ConsoleLogger) IsLogLevel(level LogLevel) bool { return l.LogLevel >= level }
 
-func writeLog(w io.Writer, prefix string, format string, args ...interface{}) {
+func writeLog(w io.Writer, prefix string, format string, args ...any) {
 	_, file, line, ok := runtime.Caller(3)
 	if !ok {
 		file = "???"
@@ -157,7 +157,7 @@ func writeLog(w io.Writer, prefix string, format string, args ...interface{}) {
 }
 
 // Error logs error message.
-func (l ConsoleLogger) Error(format string, args ...interface{}) {
+func (l ConsoleLogger) Error(format string, args ...any) {
 	if l.LogLevel >= LogLevelError {
 		prefix := "[ERROR] "
 		l.output(os.Stdout, prefix, format, args...)
@@ -165,7 +165,7 @@ func (l ConsoleLogger) Error(format string, args ...interface{}) {
 }
 
 // Notice logs notice message.
-func (l WriterLogger) Notice(format string, args ...interface{}) {
+func (l WriterLogger) Notice(format string, args ...any) {
 	if l.LogLevel >= LogLevelNotice {
 		prefix := "[NOTICE] "
 		l.logToWriter(l.Output, prefix, format, args...)
@@ -175,12 +175,12 @@ func (l WriterLogger) Notice(format string, args ...interface{}) {
 var Log Logger = DummyLogger{}
 
 // Error does nothing for dummy logger.
-func (DummyLogger) Error(format string, args ...interface{}) {}
+func (DummyLogger) Error(format string, args ...any) {}
 
 const releaseDay = 18
 
 // Info logs info message.
-func (l ConsoleLogger) Info(format string, args ...interface{}) {
+func (l ConsoleLogger) Info(format string, args ...any) {
 	if l.LogLevel >= LogLevelInfo {
 		prefix := "[INFO] "
 		l.output(os.Stdout, prefix, format, args...)
@@ -197,7 +197,7 @@ func NewWriterLogger(logLevel LogLevel, writer io.Writer) *WriterLogger {
 func NewConsoleLogger(logLevel LogLevel) *ConsoleLogger { return &ConsoleLogger{LogLevel: logLevel} }
 
 // Warning logs warning message.
-func (l WriterLogger) Warning(format string, args ...interface{}) {
+func (l WriterLogger) Warning(format string, args ...any) {
 	if l.LogLevel >= LogLevelWarning {
 		prefix := "[WARNING] "
 		l.logToWriter(l.Output, prefix, format, args...)
@@ -207,7 +207,7 @@ func (l WriterLogger) Warning(format string, args ...interface{}) {
 const releaseHour = 15
 
 // Debug logs debug message.
-func (l ConsoleLogger) Debug(format string, args ...interface{}) {
+func (l ConsoleLogger) Debug(format string, args ...any) {
 	if l.LogLevel >= LogLevelDebug {
 		prefix := "[DEBUG] "
 		l.output(os.Stdout, prefix, format, args...)
@@ -215,7 +215,7 @@ func (l ConsoleLogger) Debug(format string, args ...interface{}) {
 }
 
 // Notice logs notice message.
-func (l ConsoleLogger) Notice(format string, args ...interface{}) {
+func (l ConsoleLogger) Notice(format string, args ...any) {
 	if l.LogLevel >= LogLevelNotice {
 		prefix := "[NOTICE] "
 		l.output(os.Stdout, prefix, format, args...)
@@ -223,7 +223,7 @@ func (l ConsoleLogger) Notice(format string, args ...interface{}) {
 }
 
 // Debug does nothing for dummy logger.
-func (DummyLogger) Debug(format string, args ...interface{}) {}
+func (DummyLogger) Debug(format string, args ...any) {}
 
 // SetLogger sets 'logger' to be used by the OpenPDF library.
 func SetLogger(logger Logger) { Log = logger }

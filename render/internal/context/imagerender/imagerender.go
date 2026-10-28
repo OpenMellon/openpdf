@@ -74,10 +74,7 @@ type MeshShadingSampler func(components []float64) (color2.RGBA, bool)
 
 func flattenQuadratic(x0, y0, x1, y1, x2, y2 float64) []transform.Point {
 	length := (math.Hypot(x1-x0, y1-y0) + math.Hypot(x2-x1, y2-y1))
-	n := int(length + 0.5)
-	if n < 4 {
-		n = 4
-	}
+	n := max(int(length+0.5), 4)
 	last := float64(n) - 1
 	pts := make([]transform.Point, n)
 	for i := 0; i < n; i++ {
@@ -1691,10 +1688,7 @@ func polylinesToPath(polys [][]transform.Point) raster.Path {
 
 func flattenCubic(x0, y0, x1, y1, x2, y2, x3, y3 float64) []transform.Point {
 	length := (math.Hypot(x1-x0, y1-y0) + math.Hypot(x2-x1, y2-y1) + math.Hypot(x3-x2, y3-y2))
-	n := int(length + 0.5)
-	if n < 4 {
-		n = 4
-	}
+	n := max(int(length+0.5), 4)
 	last := float64(n) - 1
 	pts := make([]transform.Point, n)
 	for i := 0; i < n; i++ {

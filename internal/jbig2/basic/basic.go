@@ -45,7 +45,7 @@ func (s *IntSlice) Copy() *IntSlice {
 	return &dup
 }
 func (m IntsMap) Add(key uint64, value int) { m[key] = append(m[key], value) }
-func (s *Stack) peek() (interface{}, bool) {
+func (s *Stack) peek() (any, bool) {
 	top := s.top()
 	if top == -1 {
 		return nil, false
@@ -67,7 +67,7 @@ func Ceil(numerator, denominator int) int {
 	return (numerator / denominator) + 1
 }
 
-func (s *Stack) Pop() (value interface{}, ok bool) {
+func (s *Stack) Pop() (value any, ok bool) {
 	value, ok = s.peek()
 	if !ok {
 		return nil, ok
@@ -85,7 +85,7 @@ func Abs(v int) int {
 func NewIntSlice(i int) *IntSlice { s := IntSlice(make([]int, i)); return &s }
 
 type Stack struct {
-	Data []interface{}
+	Data []any
 	Aux  *Stack
 }
 
@@ -110,9 +110,9 @@ func Sign(v float32) float32 {
 	}
 	return -1.0
 }
-func (s *NumSlice) Add(v float32)                   { *s = append(*s, v) }
-func (s *Stack) Peek() (value interface{}, ok bool) { return s.peek() }
-func (s *Stack) Push(v interface{})                 { s.Data = append(s.Data, v) }
+func (s *NumSlice) Add(v float32)           { *s = append(*s, v) }
+func (s *Stack) Peek() (value any, ok bool) { return s.peek() }
+func (s *Stack) Push(v any)                 { s.Data = append(s.Data, v) }
 func (s *IntSlice) Add(v int) error {
 	if s == nil {
 		return errors.Error("IntSlice.Add", "slice not defined")

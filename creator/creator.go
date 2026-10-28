@@ -15,6 +15,7 @@ import (
 	imagedraw "image/draw"
 	"io"
 	"log"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
@@ -586,7 +587,7 @@ func (t *Table) SetPos(x, y float64) {
 	t.yPos = y
 }
 
-func drawTemplate(creator *Creator, r io.Reader, data interface{}, options *TemplateOptions, renderer componentRenderer) error {
+func drawTemplate(creator *Creator, r io.Reader, data any, options *TemplateOptions, renderer componentRenderer) error {
 	if creator == nil {
 		common.Log.Error("Creator instance cannot be nil.")
 		return errInvalidCreator
@@ -612,7 +613,7 @@ func (i *Invoice) SetNumber(number string) (*InvoiceCell, *InvoiceCell) {
 
 type grayColor struct{ gray float64 }
 
-func parseChapterHeadingTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseChapterHeadingTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseChapterHeading(node)
 }
 
@@ -946,7 +947,7 @@ func (l *Line) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, error
 	return blocks, ctx, nil
 }
 
-func (tp *templateProcessor) parseRectangle(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseRectangle(node *templateNode) (any, error) {
 	rectangle := tp.creator.NewRectangle(0, 0, 0, 0)
 	if err := tp.applyAttrs(node, rectangle, rectangleAttrs); err != nil {
 		return nil, err
@@ -1899,7 +1900,7 @@ type TOC struct {
 }
 type templateTag struct {
 	allowedParents        map[string]struct{}
-	parse                 func(*templateProcessor, *templateNode) (interface{}, error)
+	parse                 func(*templateProcessor, *templateNode) (any, error)
 	attrs                 map[string]attrApplyFunc
 	singleChild           bool
 	allowMultipleChildren bool
@@ -1963,7 +1964,7 @@ func makeGrayMaskXObject(img3 *model.Image) (*model.XObjectImage, error) {
 // Cols returns the total number of columns the table has.
 func (t *Table) Cols() int { return t.cols }
 
-func parseListMarkerTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseListMarkerTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseListMarker(node)
 }
 
@@ -2222,7 +2223,7 @@ func beginTaggedContent(_bedefcd *Block, structureTagInfo *model.StructureTagInf
 	_bedefcd.addContents(contentCreator.Operations())
 }
 
-func parseListItemTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseListItemTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseListItem(node)
 }
 
@@ -2283,7 +2284,7 @@ func (m *Margins) Vertical() float64 { return m.Bottom + m.Top }
 // SetOpacity sets opacity for Image.
 func (im *Image) SetOpacity(opacity float64) { im.opacity = opacity }
 
-func templateExtendDict(templateExtendDict map[string]interface{}, vals ...interface{}) (map[string]interface{}, error) {
+func templateExtendDict(templateExtendDict map[string]any, vals ...any) (map[string]any, error) {
 	n := len(vals)
 	if n%2 != 0 {
 		return nil, core.ErrRangeError
@@ -2498,7 +2499,7 @@ func addShadingPatternResource(block *Block, pattern core.PdfObject) (core.PdfOb
 	return keyName, nil
 }
 
-func (tp *templateProcessor) parseStyledParagraph(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseStyledParagraph(node *templateNode) (any, error) {
 	styledParagraph := tp.creator.NewStyledParagraph()
 	if err := tp.applyAttrs(node, styledParagraph, styledParagraphAttrs); err != nil {
 		return nil, err
@@ -2514,7 +2515,7 @@ func (tc *TableCell) GetPosition() (row, col int) { return tc.row, tc.col }
 func (c *Creator) MoveTo(x, y float64) { c.context.X = x; c.context.Y = y }
 
 func newGraphicSVG(root *GraphicSVGElement) (*GraphicSVG, error) {
-	return &GraphicSVG{root: root, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, taggedDrawable: taggedDrawable{structType: model.StructureTypeFigure}}, nil
+	return &GraphicSVG{root: root, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, structType: model.StructureTypeFigure}, nil
 }
 
 func (rc rgbColor) ToRGB() (float64, float64, float64) {
@@ -2872,7 +2873,7 @@ func splitGraphemeClusters(s string) []graphemeCluster {
 	return graphemeClusters
 }
 
-func valueToString(i interface{}) (string, error) {
+func valueToString(i any) (string, error) {
 	if i == nil {
 		return "", nil
 	}
@@ -2892,7 +2893,7 @@ func valueToString(i interface{}) (string, error) {
 	return fmt.Sprint(valueOf.Interface()), nil
 }
 
-func parseListTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseListTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseList(node)
 }
 
@@ -3053,7 +3054,7 @@ func ColorRGBFrom8bit(r, g, b byte) Color {
 	return rgbColor{r: float64(r) / 255.0, g: float64(g) / 255.0, b: float64(b) / 255.0}
 }
 
-func (tp *templateProcessor) parseList(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseList(node *templateNode) (any, error) {
 	list := tp.creator.NewList()
 	if err := tp.applyAttrs(node, list, listAttrs); err != nil {
 		return nil, err
@@ -3135,14 +3136,14 @@ func (fc *FilledCurve) draw(block *Block, s string) ([]byte, *model.PdfRectangle
 	return creator.Bytes(), rect, nil
 }
 
-func parseRectangleTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseRectangleTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseRectangle(node)
 }
 
 // SetPositioning sets the positioning of the ellipse (absolute or relative).
 func (e *Ellipse) SetPositioning(position Positioning) { e.positioning = position }
 
-func (tp *templateProcessor) parseEllipse(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseEllipse(node *templateNode) (any, error) {
 	ellipse := tp.creator.NewEllipse(0, 0, 0, 0)
 	if err := tp.applyAttrs(node, ellipse, ellipseAttrs); err != nil {
 		return nil, err
@@ -3222,8 +3223,8 @@ func (tec *TextChunk) Wrap(width float64) ([]string, error) {
 		if value+fontSize > width*1000.0 {
 			n := -1
 			if !ok2 {
-				for i := len(rs) - 1; i >= 0; i-- {
-					if rs[i] == ' ' {
+				for i, r := range slices.Backward(rs) {
+					if r == ' ' {
 						n = i
 						break
 					}
@@ -3313,7 +3314,7 @@ func (ch *Chapter) chapterInfo() ChapterInfo {
 // `x2` is set to the right edge coordinate of the context.
 func (c *Creator) NewLine(x1, y1, x2, y2 float64) *Line { return newLine(x1, y1, x2, y2) }
 
-func firstLastTextChild(vals []interface{}) (int, int) {
+func firstLastTextChild(vals []any) (int, int) {
 	n, n2 := -1, -1
 	for i, v := range vals {
 		if hasTextChunk(v) {
@@ -3416,9 +3417,9 @@ func (i *Invoice) NewCell(value string) *InvoiceCell {
 // GetOpacity returns the cell's opacity in the range 0-1.
 func (gc *GridCell) GetOpacity() float64 { return gc.opacity }
 
-func fontAttr(i interface{}) attrApplyFunc {
+func fontAttr(i any) attrApplyFunc {
 	value2 := validateSetter("fontAttr", i, 0, pdfFontPtrType)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		if target == nil {
 			if err := proc.validateFontValue(value); err != nil {
 				if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -3451,9 +3452,9 @@ func (e *Ellipse) GetMargins() (float64, float64, float64, float64) {
 // The default value is false.
 func (t *Table) SetCompactMode(enable bool) { t.compactMode = enable }
 
-func borderRadiusAttr(i interface{}) attrApplyFunc {
+func borderRadiusAttr(i any) attrApplyFunc {
 	value2 := validateSetter("borderRadiusAttr", i, 0, float64Type, float64Type, float64Type, float64Type)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		topLeft, topRight, bottomRight, bottomLeft, err := parseBorderRadius(value)
 		if err != nil {
 			if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -3468,8 +3469,8 @@ func borderRadiusAttr(i interface{}) attrApplyFunc {
 func parseColorComponent(s string) (float64, error) {
 	s = strings.TrimSpace(s)
 	var colorComponent float64
-	if strings.HasSuffix(s, "%") {
-		float, err := strconv.ParseFloat(strings.TrimSuffix(s, "%"), 64)
+	if before, ok := strings.CutSuffix(s, "%"); ok {
+		float, err := strconv.ParseFloat(before, 64)
 		if err != nil {
 			return 0, err
 		}
@@ -3590,9 +3591,9 @@ func (tec *TextChunk) Width() float64 {
 	return value / 1000.0
 }
 
-func boolAttr(i interface{}) attrApplyFunc {
+func boolAttr(i any) attrApplyFunc {
 	value2 := validateSetter("boolAttr", i, 0, boolType)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		flag, err := parseBool(value)
 		if err != nil {
 			if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -3605,7 +3606,7 @@ func boolAttr(i interface{}) attrApplyFunc {
 	}
 }
 
-func (tp *templateProcessor) parseTable(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseTable(node *templateNode) (any, error) {
 	tableColumns, err := tp.tableColumns(node)
 	if err != nil {
 		return nil, err
@@ -3659,7 +3660,7 @@ func newTOC(text string, lineNumberStyle, style2 TextStyle) *TOC {
 	styledParagraph.SetMargins(0, 0, 0, 5)
 	chunk := styledParagraph.Append(text)
 	chunk.Style = style
-	return &TOC{heading: styledParagraph, lines: []*TOCLine{}, lineNumberStyle: lineNumberStyle, lineTitleStyle: lineNumberStyle, lineSeparatorStyle: lineNumberStyle, linePageStyle: lineNumberStyle, lineSeparator: ".", lineLevelOffset: 10, lineMargins: Margins{0, 0, 2, 2}, positioning: PositionRelative, defaultStyle: lineNumberStyle, showLinks: true, taggedDrawable: taggedDrawable{structType: model.StructureTypeTOC}}
+	return &TOC{heading: styledParagraph, lines: []*TOCLine{}, lineNumberStyle: lineNumberStyle, lineTitleStyle: lineNumberStyle, lineSeparatorStyle: lineNumberStyle, linePageStyle: lineNumberStyle, lineSeparator: ".", lineLevelOffset: 10, lineMargins: Margins{0, 0, 2, 2}, positioning: PositionRelative, defaultStyle: lineNumberStyle, showLinks: true, structType: model.StructureTypeTOC}
 }
 
 // SetDefaultFont sets the fonts used by default by creator components which
@@ -4021,9 +4022,9 @@ func (to *TOC) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, error
 // SetTitle sets the title of the invoice.
 func (i *Invoice) SetTitle(title string) { i.title = title }
 
-func intArrayAttr(i interface{}) attrApplyFunc {
+func intArrayAttr(i any) attrApplyFunc {
 	value2 := validateSetter("intArrayAttr", i, 0, int64SliceType)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		int64List, err := parseInt64List(value)
 		if err != nil {
 			if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -4039,7 +4040,7 @@ func intArrayAttr(i interface{}) attrApplyFunc {
 // without drawing anything, reporting unknown tags, invalid nesting and, in
 // strict mode, attribute errors. See ParsedTemplate for the checks it leaves to
 // RenderTemplate. The `data` parameter can be nil.
-func (c *Creator) ValidateTemplate(pt *ParsedTemplate, data interface{}) error {
+func (c *Creator) ValidateTemplate(pt *ParsedTemplate, data any) error {
 	return pt.validateWith(c, c, data)
 }
 
@@ -4193,7 +4194,7 @@ var lineAttrs = map[string]attrApplyFunc{"x1": floatAttr(func(line *Line, x1 flo
 })}
 
 func newDivision() *Division {
-	return &Division{enableBreak: true, taggedDrawable: taggedDrawable{structType: model.StructureTypeDivision}}
+	return &Division{enableBreak: true, structType: model.StructureTypeDivision}
 }
 
 func (gse *GraphicSVGElement) drawRect(cc *contentstream.ContentCreator, resources *model.PdfPageResources) {
@@ -4247,8 +4248,8 @@ func (gse *GraphicSVGElement) parseColorPoints() []*ColorPoint {
 			point := 0.0
 			for attributeKey, attribute := range graphicSVGElement.Attributes {
 				if attributeKey == "offset" {
-					if strings.HasSuffix(attribute, "%") {
-						float, err := strconv.ParseFloat(strings.TrimSuffix(attribute, "%"), 64)
+					if before, ok := strings.CutSuffix(attribute, "%"); ok {
+						float, err := strconv.ParseFloat(before, 64)
 						if err != nil {
 							continue
 						}
@@ -4276,7 +4277,7 @@ func (gse *GraphicSVGElement) parseColorPoints() []*ColorPoint {
 	return colorPoints
 }
 
-func templateNodeValue(node *templateNode) interface{} {
+func templateNodeValue(node *templateNode) any {
 	if node == nil {
 		return nil
 	}
@@ -4451,7 +4452,7 @@ func (tc *TableCell) SetOpacity(opacity float64) { tc.opacity = opacity }
 // content; subtables are split at row boundaries.
 func (t *Table) EnableRowWrap(enable bool) { t.enableRowWrap = enable }
 
-type attrApplyFunc func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error
+type attrApplyFunc func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error
 
 var chartAttrs = map[string]attrApplyFunc{"src": nil, "x": floatAttr(func(chart *Chart, x float64) { chart.SetPos(x, chart.yPos) }), "y": floatAttr(func(chart *Chart, y float64) { chart.SetPos(chart.xPos, y) }), "margin": marginAttr(func(chart *Chart, margins Margins) {
 	chart.SetMargins(margins.Left, margins.Right, margins.Top, margins.Bottom)
@@ -4478,8 +4479,8 @@ type FilledCurve struct {
 }
 
 var (
-	stringerType = reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
-	errorType    = reflect.TypeOf((*error)(nil)).Elem()
+	stringerType = reflect.TypeFor[fmt.Stringer]()
+	errorType    = reflect.TypeFor[error]()
 )
 
 // Width returns the width of the ellipse.
@@ -4574,7 +4575,7 @@ type DropCapsOptions struct {
 	Style *TextStyle
 }
 
-func (tp *templateProcessor) parseChapterHeading(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseChapterHeading(node *templateNode) (any, error) {
 	componentParent := node.componentParent()
 	if componentParent == nil {
 		tp.nodeLogError(node, "Chapter heading parent cannot be nil.")
@@ -4827,7 +4828,7 @@ func cropImageFast(img2 *model.Image, rect, rect2 image.Rectangle) *model.Image 
 	return img
 }
 func parseInt64(s string) (int64, error) { return strconv.ParseInt(s, 10, 64) }
-func (tp *templateProcessor) parseDivision(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseDivision(node *templateNode) (any, error) {
 	division := tp.creator.NewDivision()
 	if err := tp.applyAttrs(node, division, divisionAttrs); err != nil {
 		return nil, err
@@ -4972,9 +4973,9 @@ type Curve struct {
 // SetLogo sets the logo of the invoice.
 func (i *Invoice) SetLogo(logo *Image) { i.logo = logo }
 
-func floatAttr(i interface{}) attrApplyFunc {
+func floatAttr(i any) attrApplyFunc {
 	value2 := validateSetter("floatAttr", i, 0, float64Type)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		f, err := parseFloat64(value)
 		if err != nil {
 			if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -4990,7 +4991,7 @@ func floatAttr(i interface{}) attrApplyFunc {
 // ValidateTemplate checks the parsed template against the specified `data`
 // without drawing anything, reporting unknown tags, invalid nesting and, in
 // strict mode, attribute errors. The `data` parameter can be nil.
-func (b *Block) ValidateTemplate(c *Creator, pt *ParsedTemplate, data interface{}) error {
+func (b *Block) ValidateTemplate(c *Creator, pt *ParsedTemplate, data any) error {
 	return pt.validateWith(c, b, data)
 }
 
@@ -5249,9 +5250,9 @@ func (tl *TOCLine) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, e
 	return pageBlocks, ctx, nil
 }
 
-func floatArrayAttr(i interface{}) attrApplyFunc {
+func floatArrayAttr(i any) attrApplyFunc {
 	value2 := validateSetter("floatArrayAttr", i, 0, float64SliceType)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		floatArray, err := parseFloatArray(value)
 		if err != nil {
 			if _aaagcce := proc.strictErr(node, attrName, value, err); _aaagcce != nil {
@@ -5281,7 +5282,7 @@ func (c *Creator) EnableFontSubsetting(font *model.PdfFont) {
 	c.subsetFonts = append(c.subsetFonts, font)
 }
 
-func (pat *ParsedTemplate) renderInto(creator *Creator, renderer componentRenderer, data interface{}) error {
+func (pat *ParsedTemplate) renderInto(creator *Creator, renderer componentRenderer, data any) error {
 	if creator == nil {
 		common.Log.Error("Creator instance cannot be nil.")
 		return errInvalidCreator
@@ -5506,7 +5507,7 @@ const (
 	HorizontalAlignmentRight
 )
 
-func (tp *templateProcessor) nodeError(node *templateNode, format string, a ...interface{}) error {
+func (tp *templateProcessor) nodeError(node *templateNode, format string, a ...any) error {
 	return fmt.Errorf("%s", tp.getNodeErrorLocation(node, format, a...))
 }
 
@@ -5647,7 +5648,7 @@ func (im *Image) SetSoftMask(mask *model.Image) error {
 	return im.setMask(&imageMask{kind: imageMaskSoft, img: mask})
 }
 
-func (tp *templateProcessor) parseChart(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseChart(node *templateNode) (any, error) {
 	_abcbdab, _ := tp.effectiveAttrValue(node, "src")
 	if _abcbdab == "" {
 		return nil, tp.nodeError(node, "chart `src` attribute cannot be empty")
@@ -5695,8 +5696,8 @@ func wrapAsPaginationArtifact(block *Block, n int) {
 func applySVGTransform(graphicSVGElement *GraphicSVGElement, cc *contentstream.ContentCreator) {
 	attribute, ok := graphicSVGElement.Attributes["transform"]
 	if ok {
-		fields := strings.Fields(attribute)
-		for _, field := range fields {
+		fields := strings.FieldsSeq(attribute)
+		for field := range fields {
 			fieldsFunc := strings.FieldsFunc(field, isTransformSeparator)
 			if len(fieldsFunc) < 3 {
 				common.Log.Debug("can't parse transform attribute %v", attribute)
@@ -5839,11 +5840,11 @@ var ellipseAttrs = map[string]attrApplyFunc{"cx": floatAttr(func(ellipse *Ellips
 })}
 
 type templateNode struct {
-	value       interface{}
+	value       any
 	start       xml.StartElement
 	parent      *templateNode
 	children    []*templateNode
-	childValues []interface{}
+	childValues []any
 	attrs       map[string]string
 	textAttrs   map[string]string
 	hasHandler  bool
@@ -5883,7 +5884,7 @@ func (pos Positioning) IsAbsolute() bool { return pos == PositionAbsolute }
 // The second phase of processing is actually parsing the template, translating
 // it into creator components and rendering them using the provided options.
 // Both the `data` and `options` parameters can be nil.
-func (b *Block) DrawTemplate(c *Creator, r io.Reader, data interface{}, options *TemplateOptions) error {
+func (b *Block) DrawTemplate(c *Creator, r io.Reader, data any, options *TemplateOptions) error {
 	return drawTemplate(c, r, data, options, b)
 }
 func parseBool(str string) (bool, error) { return strconv.ParseBool(str) }
@@ -5907,7 +5908,7 @@ func svgStandardFont(s string) (*model.PdfFont, error) {
 // force a re-encode.
 func (im *Image) SetEncoder(encoder core.StreamEncoder) { im.encoder = encoder }
 
-func (tp *templateProcessor) parseImage(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseImage(node *templateNode) (any, error) {
 	effectiveAttrValue, _ := tp.effectiveAttrValue(node, "src")
 	image, s, err := tp.loadImageFromSrc(effectiveAttrValue)
 	if err != nil {
@@ -6144,10 +6145,10 @@ func (to *TOC) Add(number, title, page string, level uint) *TOCLine {
 }
 
 func newChart(chart chartrender.ChartRenderable) *Chart {
-	return &Chart{chart: chart, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, taggedDrawable: taggedDrawable{structType: model.StructureTypeFigure}}
+	return &Chart{chart: chart, positioning: PositionRelative, margins: Margins{Top: 10, Bottom: 10}, structType: model.StructureTypeFigure}
 }
 
-func validateSetter(s string, i interface{}, n int, types ...reflect.Type) reflect.Value {
+func validateSetter(s string, i any, n int, types ...reflect.Type) reflect.Value {
 	valueOf := reflect.ValueOf(i)
 	if !valueOf.IsValid() || valueOf.Kind() != reflect.Func {
 		panic(fmt.Sprintf("creator: %s requires a setter function, got %T", s, i))
@@ -6174,7 +6175,7 @@ func validateSetter(s string, i interface{}, n int, types ...reflect.Type) refle
 // NOTE: the returned value does not include the border width of the rectangle.
 func (r *Rectangle) Width() float64 { return r.width }
 
-func (tp *templateProcessor) parseTextChunk(node *templateNode, textChunk *TextChunk) (interface{}, error) {
+func (tp *templateProcessor) parseTextChunk(node *templateNode, textChunk *TextChunk) (any, error) {
 	if node.parent == nil {
 		tp.nodeLogError(node, "Text chunk parent cannot be nil.")
 		return nil, errInvalidParent
@@ -6334,7 +6335,7 @@ func (cha *Chart) SetPos(x, y float64) {
 // Anti alias is disabled by default.
 func (fbs *FunctionBasedShading) SetAntiAlias(enable bool) { fbs.base.SetAntiAlias(enable) }
 
-func parseTableCellTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseTableCellTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseTableCell(node)
 }
 
@@ -6443,7 +6444,7 @@ func (c *Creator) NewLinearGradientColor(colorPoints []*ColorPoint) *LinearShadi
 // DropCapsScope defines what portion of the paragraph text receives drop caps treatment.
 type DropCapsScope int
 
-func (pat *ParsedTemplate) validateWith(creator *Creator, renderer componentRenderer, data interface{}) error {
+func (pat *ParsedTemplate) validateWith(creator *Creator, renderer componentRenderer, data any) error {
 	if creator == nil {
 		common.Log.Error("Creator instance cannot be nil.")
 		return errInvalidCreator
@@ -6639,11 +6640,11 @@ func (r *Rectangle) ScaleToWidth(w float64) {
 	r.height = w * height
 }
 
-func (tp *templateProcessor) nodeLogDebug(node *templateNode, format string, a ...interface{}) {
+func (tp *templateProcessor) nodeLogDebug(node *templateNode, format string, a ...any) {
 	common.Log.Debug(tp.getNodeErrorLocation(node, format, a...))
 }
 
-func (tp *templateProcessor) nodeLogError(node *templateNode, format string, a ...interface{}) {
+func (tp *templateProcessor) nodeLogError(node *templateNode, format string, a ...any) {
 	common.Log.Error(tp.getNodeErrorLocation(node, format, a...))
 }
 
@@ -6849,9 +6850,9 @@ func (c *Creator) MoveY(y float64) { c.context.Y = y }
 // GetOpacity returns the cell's opacity in the range 0-1.
 func (tc *TableCell) GetOpacity() float64 { return tc.opacity }
 
-func colorAttr(i interface{}) attrApplyFunc {
+func colorAttr(i any) attrApplyFunc {
 	value2 := validateSetter("colorAttr", i, 0, colorType)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		color, err := proc.resolveColor(value)
 		if err != nil {
 			if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -6927,9 +6928,9 @@ func (sp *StyledParagraph) SetDropCapsWithStyle(dropType DropCapsType, scope Dro
 	sp.SetDropCaps(DropCapsOptions{Type: dropType, Scope: scope, NumLines: numLines, Gap: gap, Style: style})
 }
 
-func floatArrayAttrErr(i interface{}) attrApplyFunc {
+func floatArrayAttrErr(i any) attrApplyFunc {
 	value2 := validateSetter("floatArrayAttrErr", i, 1, float64SliceType)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		floatArray, err := parseFloatArray(value)
 		if err != nil {
 			if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -7152,7 +7153,7 @@ func (t *Table) GeneratePageBlocks(ctx DrawContext) ([]*Block, DrawContext, erro
 	return generateTablePageBlocks(table, ctx)
 }
 
-func parseStyledParagraphTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseStyledParagraphTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseStyledParagraph(node)
 }
 
@@ -7290,14 +7291,14 @@ func (l *Line) SetOpacity(opacity float64) { l.opacity = opacity }
 // PageSize represents the page size as a 2 element array representing the width and height in PDF document units (points).
 type PageSize [2]float64
 
-func enumAttr(i interface{}, i2 interface{}) attrApplyFunc {
+func enumAttr(i any, i2 any) attrApplyFunc {
 	valueOf := reflect.ValueOf(i)
 	if !valueOf.IsValid() || valueOf.Kind() != reflect.Map || valueOf.Type().Key() != stringType {
 		panic(fmt.Sprintf("creator: enumAttr requires a map[string]E value map, got %T", i))
 	}
 	elem := valueOf.Type().Elem()
 	value2 := validateSetter("enumAttr", i2, 0, elem)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		mapIndex := valueOf.MapIndex(reflect.ValueOf(value))
 		if !mapIndex.IsValid() {
 			if proc.options.Strict {
@@ -7568,7 +7569,7 @@ func (t *Table) GetPositioning() Positioning { return t.positioning }
 // SetSection sets whether this row is a header row.
 func (gr *GridRow) SetSection(role GridRowSection) { gr.section = role }
 
-func (tp *templateProcessor) parseBackground(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseBackground(node *templateNode) (any, error) {
 	background := &Background{}
 	if err := tp.applyAttrs(node, background, backgroundAttrs); err != nil {
 		return nil, err
@@ -7576,7 +7577,7 @@ func (tp *templateProcessor) parseBackground(node *templateNode) (interface{}, e
 	return background, nil
 }
 
-func parseDivisionTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseDivisionTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseDivision(node)
 }
 
@@ -7638,7 +7639,7 @@ func (b *Block) mergeBlocks(block *Block) error {
 	return nil
 }
 
-func parseImageTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseImageTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseImage(node)
 }
 
@@ -7671,8 +7672,8 @@ func (tp *templateProcessor) loadImageFromSrc(s string) (*Image, string, error) 
 		common.Log.Error("Image `src` attribute cannot be empty.")
 		return nil, "", errInvalidResource
 	}
-	strs := strings.Split(s, ",")
-	for _, s := range strs {
+	strs := strings.SplitSeq(s, ",")
+	for s := range strs {
 		s = strings.TrimSpace(s)
 		if s == "" {
 			continue
@@ -7702,7 +7703,7 @@ func (sp *StyledParagraph) SetMaxLines(maxLines int) { sp.maxLines = maxLines }
 // GetCoords returns the center coordinates of ellipse (`xc`, `yc`).
 func (e *Ellipse) GetCoords() (float64, float64) { return e.xc, e.yc }
 
-func parseTableTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseTableTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseTable(node)
 }
 
@@ -8111,7 +8112,7 @@ const (
 	AnchorBottom
 )
 
-func templateValueToString(i interface{}) (string, error) { return valueToString(i) }
+func templateValueToString(i any) (string, error) { return valueToString(i) }
 
 // SetAnchor set gradient position anchor.
 // Default to center.
@@ -8150,9 +8151,9 @@ func (tc *TableCell) GetHorizontalAlignment() CellHorizontalAlignment { return t
 
 var textChunkAttrs = map[string]attrApplyFunc{"color": colorAttr(func(chunk *TextChunk, color Color) { chunk.Style.Color = color }), "outline-color": colorAttr(func(chunk *TextChunk, outlineColor Color) { chunk.Style.OutlineColor = outlineColor }), "font": fontAttr(func(chunk *TextChunk, font *model.PdfFont) { chunk.Style.Font = font }), "font-size": floatAttr(func(chunk *TextChunk, fontSize float64) { chunk.Style.FontSize = fontSize }), "line-height": floatAttr(func(chunk *TextChunk, lineHeight float64) { chunk.Style.LineHeight = lineHeight }), "outline-size": floatAttr(func(chunk *TextChunk, outlineSize float64) { chunk.Style.OutlineSize = outlineSize }), "character-spacing": floatAttr(func(chunk *TextChunk, charSpacing float64) { chunk.Style.CharSpacing = charSpacing }), "horizontal-scaling": floatAttr(func(chunk *TextChunk, horizontalScaling float64) { chunk.Style.HorizontalScaling = horizontalScaling }), "rendering-mode": enumAttr(textRenderingModeValues, func(chunk *TextChunk, renderingMode TextRenderingMode) { chunk.Style.RenderingMode = renderingMode }), "underline": boolAttr(func(chunk *TextChunk, underline bool) { chunk.Style.Underline = underline }), "underline-color": colorAttr(func(chunk *TextChunk, color Color) { chunk.Style.UnderlineStyle.Color = color }), "underline-offset": floatAttr(func(chunk *TextChunk, offset float64) { chunk.Style.UnderlineStyle.Offset = offset }), "underline-thickness": floatAttr(func(chunk *TextChunk, thickness float64) { chunk.Style.UnderlineStyle.Thickness = thickness }), "text-rise": floatAttr(func(chunk *TextChunk, textRise float64) { chunk.Style.TextRise = textRise }), "link": nil}
 
-func marginAttr(i interface{}) attrApplyFunc {
+func marginAttr(i any) attrApplyFunc {
 	value2 := validateSetter("marginAttr", i, 0, marginsType)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		margins, err := parseMargins(value)
 		if err != nil {
 			if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -8191,7 +8192,7 @@ func (tp *templateProcessor) renderNode(node *templateNode) error {
 		tp.nodeLogDebug(node, "Invalid tag <%s>. Skipping.", local)
 		return nil
 	}
-	var renderer interface{}
+	var renderer any
 	if componentParent := node.componentParent(); componentParent != nil {
 		renderer = componentParent.value
 	} else {
@@ -8509,10 +8510,8 @@ func (t *Table) wrapRow(i2 int, ctx DrawContext, totalWidth, height float64) (bo
 // AddAnnotation adds an annotation to the current block.
 // The annotation will be added to the page the block will be rendered on.
 func (b *Block) AddAnnotation(annotation *model.PdfAnnotation) {
-	for _, annotation2 := range b.annotations {
-		if annotation2 == annotation {
-			return
-		}
+	if slices.Contains(b.annotations, annotation) {
+		return
 	}
 	b.annotations = append(b.annotations, annotation)
 }
@@ -8520,13 +8519,13 @@ func (b *Block) AddAnnotation(annotation *model.PdfAnnotation) {
 // FillOpacity returns the fill opacity of the rectangle (0-1).
 func (r *Rectangle) FillOpacity() float64 { return r.fillOpacity }
 
-func templateDict(vals ...interface{}) (map[string]interface{}, error) {
+func templateDict(vals ...any) (map[string]any, error) {
 	n := len(vals)
 	if n%2 != 0 {
 		common.Log.Error("Invalid number of parameters for creating map: %d.", n)
 		return nil, core.ErrRangeError
 	}
-	m := map[string]interface{}{}
+	m := map[string]any{}
 	for i := 0; i < n; i += 2 {
 		s, ok := vals[i].(string)
 		if !ok {
@@ -9050,7 +9049,7 @@ type Chart struct {
 // EnableWordWrap sets the paragraph word wrap flag.
 func (sp *StyledParagraph) EnableWordWrap(val bool) { sp.enableWordWrap = val }
 
-func templateXMLEscape(i interface{}) (string, error) {
+func templateXMLEscape(i any) (string, error) {
 	valueToString2, err := valueToString(i)
 	if err != nil {
 		return "", err
@@ -9060,7 +9059,7 @@ func templateXMLEscape(i interface{}) (string, error) {
 	return w.String(), nil
 }
 
-func (tp *templateProcessor) parseListItem(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseListItem(node *templateNode) (any, error) {
 	componentParent := node.componentParent()
 	if componentParent == nil {
 		tp.nodeLogError(node, "List item parent cannot be nil.")
@@ -9236,7 +9235,7 @@ func (cp *CurvePolygon) SetBorderWidth(borderWidth float64) { cp.polygon.BorderW
 // The second phase of processing is actually parsing the template, translating
 // it into creator components and rendering them using the provided options.
 // Both the `data` and `options` parameters can be nil.
-func (c *Creator) DrawTemplate(r io.Reader, data interface{}, options *TemplateOptions) error {
+func (c *Creator) DrawTemplate(r io.Reader, data any, options *TemplateOptions) error {
 	return drawTemplate(c, r, data, options, c)
 }
 
@@ -9343,7 +9342,7 @@ func isKeycapSequence(s string) bool {
 // `data`. The handle comes from ParseTemplate and can be rendered repeatedly,
 // with different data, and into different creators. The `data` parameter can be
 // nil.
-func (c *Creator) RenderTemplate(pt *ParsedTemplate, data interface{}) error {
+func (c *Creator) RenderTemplate(pt *ParsedTemplate, data any) error {
 	return pt.renderInto(c, c, data)
 }
 
@@ -9359,7 +9358,7 @@ var chapterHeadingAttrs = map[string]attrApplyFunc{"font": fontAttr(func(para *S
 func (l *Line) Style() contentdraw.LineStyle { return l.style }
 
 func newStyledParagraph(defaultStyle TextStyle) *StyledParagraph {
-	return &StyledParagraph{chunks: []*TextChunk{}, defaultStyle: defaultStyle, linkStyle: linkTextStyle(defaultStyle.Font), lineHeight: 1.0, alignment: TextAlignmentLeft, enableWrap: true, defaultWrap: true, enableWordWrap: false, angle: 0, unusedA: 1, unusedB: 1, positioning: PositionRelative, languageID: "", artifact: nil, taggedDrawable: taggedDrawable{structType: model.StructureTypeParagraph}}
+	return &StyledParagraph{chunks: []*TextChunk{}, defaultStyle: defaultStyle, linkStyle: linkTextStyle(defaultStyle.Font), lineHeight: 1.0, alignment: TextAlignmentLeft, enableWrap: true, defaultWrap: true, enableWordWrap: false, angle: 0, unusedA: 1, unusedB: 1, positioning: PositionRelative, languageID: "", artifact: nil, structType: model.StructureTypeParagraph}
 }
 
 func (tp *templateProcessor) effectiveAttrValue(node *templateNode, s string) (string, bool) {
@@ -9440,7 +9439,7 @@ func (tc *TableCell) GetSideBorderColor(side CellBorderSide) Color {
 	}
 }
 
-func (tp *templateProcessor) parseParagraph(node *templateNode, styledParagraph *StyledParagraph) (interface{}, error) {
+func (tp *templateProcessor) parseParagraph(node *templateNode, styledParagraph *StyledParagraph) (any, error) {
 	if styledParagraph == nil {
 		styledParagraph = tp.creator.NewStyledParagraph()
 	}
@@ -9491,9 +9490,9 @@ func (fbs *FunctionBasedShading) shadingModel() (*model.PdfShadingType1, error) 
 // grid.
 func (g *Grid) GetPositioning() Positioning { return g.positioning }
 
-func intAttr(i interface{}) attrApplyFunc {
+func intAttr(i any) attrApplyFunc {
 	value2 := validateSetter("intAttr", i, 0, int64Type)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		i, err := parseInt64(value)
 		if err != nil {
 			if err2 := proc.strictErr(node, attrName, value, err); err2 != nil {
@@ -9806,7 +9805,7 @@ const whitespaceChars = " \t\r\n"
 func newImage(img *model.Image) (*Image, error) {
 	width := float64(img.Width)
 	height := float64(img.Height)
-	return &Image{img: img, origWidth: width, origHeight: height, width: width, height: height, angle: 0, opacity: 1.0, positioning: PositionRelative, taggedDrawable: taggedDrawable{structType: model.StructureTypeFigure}}, nil
+	return &Image{img: img, origWidth: width, origHeight: height, width: width, height: height, angle: 0, opacity: 1.0, positioning: PositionRelative, structType: model.StructureTypeFigure}, nil
 }
 
 // NewTextStyle creates a new text style object which can be used to style
@@ -9893,7 +9892,7 @@ func parseSVGPoints(s string) ([]float64, error) {
 	return svgPoints, nil
 }
 
-func normalizeTemplateNumber(v interface{}) (interface{}, error) {
+func normalizeTemplateNumber(v any) (any, error) {
 	switch n := v.(type) {
 	case uint8:
 		return int64(n), nil
@@ -10003,7 +10002,7 @@ func newCurve(x1, y1, cx, cy, x, y float64) *Curve {
 	return curve
 }
 
-func templateAdd(v, v2 interface{}) (interface{}, error) {
+func templateAdd(v, v2 any) (any, error) {
 	v3, err := normalizeTemplateNumber(v)
 	if err != nil {
 		return nil, err
@@ -10373,7 +10372,7 @@ func (c *Creator) NewCurve(x1, y1, cx, cy, x2, y2 float64) *Curve {
 
 // NewTextChunk returns a new text chunk instance.
 func NewTextChunk(text string, style TextStyle) *TextChunk {
-	return &TextChunk{Text: text, Style: style, VerticalAlignment: TextVerticalAlignmentBaseline, annotations: []*model.PdfAnnotation{}, lineBreaks: []bool{}, taggedDrawable: taggedDrawable{structType: model.StructureTypeSpan}}
+	return &TextChunk{Text: text, Style: style, VerticalAlignment: TextVerticalAlignmentBaseline, annotations: []*model.PdfAnnotation{}, lineBreaks: []bool{}, structType: model.StructureTypeSpan}
 }
 
 // CurvePolygon represents a curve polygon shape.
@@ -10410,13 +10409,13 @@ func (e *Ellipse) ScaleToHeight(h float64) {
 	e.width = h * width
 }
 
-func parsePageBreakTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parsePageBreakTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parsePageBreak(node)
 }
 
 var newlineWhitespaceRe = regexp.MustCompile("[ \\t\\r\\n]*\\n[ \\t\\r\\n]*")
 
-func hasTextChunk(v interface{}) bool {
+func hasTextChunk(v any) bool {
 	switch templateText2 := v.(type) {
 	case *templateText:
 		return !isBlank(templateText2.text)
@@ -10427,17 +10426,15 @@ func hasTextChunk(v interface{}) bool {
 		case "text-chunk":
 			return true
 		}
-		for _, childValue := range templateText2.childValues {
-			if hasTextChunk(childValue) {
-				return true
-			}
+		if slices.ContainsFunc(templateText2.childValues, hasTextChunk) {
+			return true
 		}
 	}
 	return false
 }
 
 func newList(style TextStyle) *List {
-	return &List{marker: TextChunk{Text: "• ", Style: style}, indent: 0, defaultIndent: true, positioning: PositionRelative, textStyle: style, taggedDrawable: taggedDrawable{structType: model.StructureTypeList}}
+	return &List{marker: TextChunk{Text: "• ", Style: style}, indent: 0, defaultIndent: true, positioning: PositionRelative, textStyle: style, structType: model.StructureTypeList}
 }
 
 func (tc *TableCell) cloneProps(content VectorDrawable) *TableCell {
@@ -10669,9 +10666,9 @@ func (tec *TextChunk) Height() float64 {
 // with front-page and TOC pages counted. Chapters drawn inside a
 // CreateFrontPage or CreateTableOfContents callback are not tracked.
 func (c *Creator) ChapterForPage(pageNum int) *ChapterInfo {
-	for i := len(c.chapters) - 1; i >= 0; i-- {
-		if c.chapters[i].page <= pageNum {
-			chapterInfo := c.chapters[i].chapter.chapterInfo()
+	for _, v := range slices.Backward(c.chapters) {
+		if v.page <= pageNum {
+			chapterInfo := v.chapter.chapterInfo()
 			return &chapterInfo
 		}
 	}
@@ -11099,7 +11096,7 @@ const (
 	rawFuncName       = "raw"
 )
 
-func parseChartTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseChartTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseChart(node)
 }
 
@@ -11807,7 +11804,7 @@ func (t *Table) SetStructureType(structureType model.StructureType) {
 	}
 }
 
-func parseBackgroundTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseBackgroundTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseBackground(node)
 }
 
@@ -12895,8 +12892,8 @@ var tableCellAttrs = map[string]attrApplyFunc{"colspan": nil, "rowspan": nil, "i
 func parsePercentOrFloat(s string) (float64, error) {
 	s = strings.TrimSpace(s)
 	var percentOrFloat float64
-	if strings.HasSuffix(s, "%") {
-		float, err := strconv.ParseFloat(strings.TrimSuffix(s, "%"), 64)
+	if before, ok := strings.CutSuffix(s, "%"); ok {
+		float, err := strconv.ParseFloat(before, 64)
 		if err != nil {
 			return 0, err
 		}
@@ -12996,7 +12993,7 @@ func (tp *templateProcessor) resolveFontUncached(s string) (*model.PdfFont, erro
 		return fontRegular, nil
 	}
 	ok := false
-	for _, s2 := range strings.Split(s, ",") {
+	for s2 := range strings.SplitSeq(s, ",") {
 		s2 = strings.TrimSpace(s2)
 		if s2 == "" {
 			continue
@@ -13381,8 +13378,8 @@ func (t *Table) Width() float64 { return 0 }
 func (gse *GraphicSVGElement) getGradientAngle() float64 {
 	attribute, ok := gse.Attributes["gradientTransform"]
 	if ok {
-		fields := strings.Fields(attribute)
-		for _, field := range fields {
+		fields := strings.FieldsSeq(attribute)
+		for field := range fields {
 			fieldsFunc := strings.FieldsFunc(field, isTransformSeparator)
 			if len(fieldsFunc) < 2 {
 				continue
@@ -13399,7 +13396,7 @@ func (gse *GraphicSVGElement) getGradientAngle() float64 {
 	}
 	return 0.0
 }
-func templateArray(templateArray ...interface{}) []interface{} { return templateArray }
+func templateArray(templateArray ...any) []any { return templateArray }
 
 // FitMode returns the fit mode of the ellipse.
 func (e *Ellipse) FitMode() FitMode { return e.fitMode }
@@ -13532,7 +13529,7 @@ func (c *Creator) RotateDeg(angleDeg int64) error {
 // SetWidthTop sets border width for top.
 func (bo *border) SetWidthTop(bw float64) { bo.widthTop = bw }
 
-func (tp *templateProcessor) parseChapter(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseChapter(node *templateNode) (any, error) {
 	fn := tp.creator.NewChapter
 	if componentParent := node.componentParent(); componentParent != nil {
 		if chapter, ok := componentParent.value.(*Chapter); ok {
@@ -13601,12 +13598,8 @@ func (tp *templateProcessor) childStyle(node *templateNode) map[string]string {
 		return node.attrs
 	}
 	m := make(map[string]string, len(node.attrs)+len(nodeOwnStyle))
-	for attrKey, attr := range node.attrs {
-		m[attrKey] = attr
-	}
-	for key, s := range nodeOwnStyle {
-		m[key] = s
-	}
+	maps.Copy(m, node.attrs)
+	maps.Copy(m, nodeOwnStyle)
 	return m
 }
 
@@ -13641,9 +13634,9 @@ type containerDrawable interface {
 }
 
 func (t *Table) getLastCellFromCol(n int) (int, *TableCell) {
-	for i := len(t.cells) - 1; i >= 0; i-- {
-		if t.cells[i].col <= n && n <= t.cells[i].col+t.cells[i].colSpan {
-			return i, t.cells[i]
+	for i, v := range slices.Backward(t.cells) {
+		if v.col <= n && n <= v.col+v.colSpan {
+			return i, v
 		}
 	}
 	return 0, nil
@@ -13948,7 +13941,7 @@ func (cp *CurvePolygon) SetFillColor(color Color) {
 	cp.polygon.FillColor = toPdfColor(color)
 }
 
-func (tp *templateProcessor) applyAttrs(node *templateNode, target interface{}, m map[string]attrApplyFunc) error {
+func (tp *templateProcessor) applyAttrs(node *templateNode, target any, m map[string]attrApplyFunc) error {
 	if err := tp.checkClasses(node); err != nil {
 		return err
 	}
@@ -14393,7 +14386,7 @@ func (i *Invoice) generateTotalBlocks(ctx DrawContext) ([]*Block, DrawContext, e
 // SetAngle sets the rotation angle in degrees.
 func (b *Block) SetAngle(angleDeg float64) { b.angle = angleDeg }
 
-func (tp *templateProcessor) getNodeErrorLocation(node *templateNode, format string, a ...interface{}) string {
+func (tp *templateProcessor) getNodeErrorLocation(node *templateNode, format string, a ...any) string {
 	s := fmt.Sprintf(format, a...)
 	s2 := fmt.Sprintf("%d", node.offset)
 	if node.line != 0 {
@@ -14407,7 +14400,7 @@ func (tp *templateProcessor) getNodeErrorLocation(node *templateNode, format str
 
 var functionDomain = []float64{0, 1, 0, 1}
 
-func parseTextChunkTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseTextChunkTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseTextChunk(node, nil)
 }
 
@@ -14498,7 +14491,7 @@ func newInternalLinkAnnotation(val int64, val2, val3, val4 float64, s string) *m
 	return pdfAnnotationLink.PdfAnnotation
 }
 
-func parseLineTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseLineTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseLine(node)
 }
 
@@ -14593,9 +14586,9 @@ func (tp *templateProcessor) checkClasses(node *templateNode) error {
 	return nil
 }
 
-func encoderAttr(i interface{}) attrApplyFunc {
+func encoderAttr(i any) attrApplyFunc {
 	value2 := validateSetter("encoderAttr", i, 0, streamEncoderType)
-	return func(proc *templateProcessor, node *templateNode, attrName string, target interface{}, value string) error {
+	return func(proc *templateProcessor, node *templateNode, attrName string, target any, value string) error {
 		encoderFactory, ok := encoderFactories[value]
 		if !ok {
 			if proc.options.Strict {
@@ -14745,7 +14738,7 @@ func (tl *TOCLine) getLineLink() *model.PdfAnnotation {
 // SetColPosition sets cell column position.
 func (tc *TableCell) SetColPosition(col int) { tc.col = col }
 
-func (tp *templateProcessor) parsePageBreak(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parsePageBreak(node *templateNode) (any, error) {
 	pageBreak := newPageBreak()
 	if err := tp.applyAttrs(node, pageBreak, emptyAttrs); err != nil {
 		return nil, err
@@ -14774,7 +14767,7 @@ func (tp *templateProcessor) validateFontValue(s string) error {
 		return nil
 	}
 	ok := false
-	for _, s2 := range strings.Split(s, ",") {
+	for s2 := range strings.SplitSeq(s, ",") {
 		s2 = strings.TrimSpace(s2)
 		if s2 == "" {
 			continue
@@ -15027,8 +15020,8 @@ func (sp *StyledParagraph) wrapChunks(ok2 bool) error {
 			if value+value3 > value5 {
 				n2 := -1
 				if !ok3 {
-					for i := len(rs) - 1; i >= 0; i-- {
-						if rs[i] == ' ' {
+					for i, r := range slices.Backward(rs) {
+						if r == ' ' {
 							n2 = i
 							break
 						}
@@ -15151,8 +15144,8 @@ func parseCommands(tokens []token) ([]*Command, error) {
 		commands []*Command
 		floats   []float64
 	)
-	for i := len(tokens) - 1; i >= 0; i-- {
-		token := tokens[i]
+	for _, token := range slices.Backward(tokens) {
+
 		if token.isCommand {
 			paramCount := svgCommands.paramCounts[strings.ToLower(token.text)]
 			floatsLen := len(floats)
@@ -15370,7 +15363,7 @@ type Polygon struct {
 	fillColor     Color
 }
 
-func (pat *ParsedTemplate) execute(data interface{}) ([]byte, error) {
+func (pat *ParsedTemplate) execute(data any) ([]byte, error) {
 	buffer := bytes.NewBuffer(nil)
 	if err := pat.tmpl.Execute(buffer, data); err != nil {
 		return nil, err
@@ -15378,7 +15371,7 @@ func (pat *ParsedTemplate) execute(data interface{}) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (tp *templateProcessor) parseTableCell(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseTableCell(node *templateNode) (any, error) {
 	componentParent := node.componentParent()
 	if componentParent == nil {
 		tp.nodeLogError(node, "Table cell parent cannot be nil.")
@@ -15429,7 +15422,7 @@ func (s *shading) SetAntiAlias(enable bool) { s.antiAlias = enable }
 // MoveRight moves the drawing context right by relative displacement dx (negative goes left).
 func (c *Creator) MoveRight(dx float64) { c.context.X += dx }
 
-func parseChapterTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseChapterTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseChapter(node)
 }
 
@@ -15812,8 +15805,8 @@ func newGraphicSVGElement(startElement xml.StartElement) *GraphicSVGElement {
 		graphicSVGElement.Width = graphicSVGElement.ViewBox.W
 		graphicSVGElement.Height = graphicSVGElement.ViewBox.H
 		if s, ok := m["width"]; ok {
-			if strings.HasSuffix(s, "%") {
-				float, err := strconv.ParseFloat(strings.TrimSuffix(s, "%"), 64)
+			if before, ok0 := strings.CutSuffix(s, "%"); ok0 {
+				float, err := strconv.ParseFloat(before, 64)
 				if err != nil {
 					common.Log.Debug("Unable to parse width attribute: %v", err)
 					return nil
@@ -15832,8 +15825,8 @@ func newGraphicSVGElement(startElement xml.StartElement) *GraphicSVGElement {
 			}
 		}
 		if s, ok := m["height"]; ok {
-			if strings.HasSuffix(s, "%") {
-				float, err := strconv.ParseFloat(strings.TrimSuffix(s, "%"), 64)
+			if before, ok0 := strings.CutSuffix(s, "%"); ok0 {
+				float, err := strconv.ParseFloat(before, 64)
 				if err != nil {
 					common.Log.Debug("Unable to parse height attribute: %v", err)
 					return nil
@@ -15866,16 +15859,16 @@ func (i *Invoice) BuyerAddress() *InvoiceAddress { return i.buyerAddress }
 
 var (
 	boolType          = reflect.TypeOf(false)
-	int64Type         = reflect.TypeOf(int64(0))
-	float64Type       = reflect.TypeOf(float64(0))
-	int64SliceType    = reflect.TypeOf([]int64(nil))
-	float64SliceType  = reflect.TypeOf([]float64(nil))
-	stringType        = reflect.TypeOf("")
-	marginsType       = reflect.TypeOf(Margins{})
-	errorIfaceType    = reflect.TypeOf((*error)(nil)).Elem()
-	colorType         = reflect.TypeOf((*Color)(nil)).Elem()
-	streamEncoderType = reflect.TypeOf((*core.StreamEncoder)(nil)).Elem()
-	pdfFontPtrType    = reflect.TypeOf((*model.PdfFont)(nil))
+	int64Type         = reflect.TypeFor[int64]()
+	float64Type       = reflect.TypeFor[float64]()
+	int64SliceType    = reflect.TypeFor[[]int64]()
+	float64SliceType  = reflect.TypeFor[[]float64]()
+	stringType        = reflect.TypeFor[string]()
+	marginsType       = reflect.TypeFor[Margins]()
+	errorIfaceType    = reflect.TypeFor[error]()
+	colorType         = reflect.TypeFor[Color]()
+	streamEncoderType = reflect.TypeFor[core.StreamEncoder]()
+	pdfFontPtrType    = reflect.TypeFor[*model.PdfFont]()
 )
 
 // CellHorizontalAlignment defines the table cell's horizontal alignment.
@@ -16089,7 +16082,7 @@ func (ls *LinearShading) SetBackgroundColor(backgroundColor Color) {
 	ls.base.SetBackgroundColor(backgroundColor)
 }
 
-func (tp *templateProcessor) parseLine(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseLine(node *templateNode) (any, error) {
 	line := tp.creator.NewLine(0, 0, 0, 0)
 	if err := tp.applyAttrs(node, line, lineAttrs); err != nil {
 		return nil, err
@@ -16300,7 +16293,7 @@ func (lii *listItem) ctxHeight(width float64) float64 {
 	return height
 }
 
-func (tp *templateProcessor) parseListMarker(node *templateNode) (interface{}, error) {
+func (tp *templateProcessor) parseListMarker(node *templateNode) (any, error) {
 	componentParent := node.componentParent()
 	if componentParent == nil {
 		tp.nodeLogError(node, "List marker parent cannot be nil.")
@@ -16458,7 +16451,7 @@ func (pt *pageTransformations) transformPage(page *model.PdfPage) error {
 // RenderTemplate draws the parsed template into the block using the specified
 // creator and `data`. The handle comes from ParseTemplate and can be rendered
 // repeatedly with different data. The `data` parameter can be nil.
-func (b *Block) RenderTemplate(c *Creator, pt *ParsedTemplate, data interface{}) error {
+func (b *Block) RenderTemplate(c *Creator, pt *ParsedTemplate, data any) error {
 	return pt.renderInto(c, b, data)
 }
 
@@ -16893,7 +16886,7 @@ type Block struct {
 	background  *Background
 }
 
-func parseEllipseTag(proc *templateProcessor, node *templateNode) (interface{}, error) {
+func parseEllipseTag(proc *templateProcessor, node *templateNode) (any, error) {
 	return proc.parseEllipse(node)
 }
 
@@ -17051,7 +17044,7 @@ func (sp *StyledParagraph) SetFontColor(color Color) {
 	}
 }
 
-func callSetter(value reflect.Value, i interface{}, values2 ...reflect.Value) []reflect.Value {
+func callSetter(value reflect.Value, i any, values2 ...reflect.Value) []reflect.Value {
 	if i == nil {
 		return nil
 	}

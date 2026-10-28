@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/OpenMellon/openpdf/common"
@@ -1477,12 +1478,7 @@ func renumberObjects(objects []core.PdfObject) {
 type CombineIdenticalIndirectObjects struct{}
 
 func containsString(s string, list []string) bool {
-	for _, item := range list {
-		if s == item {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, s)
 }
 
 // Options describes PDF optimization parameters.

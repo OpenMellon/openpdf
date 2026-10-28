@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -701,7 +702,7 @@ func (fdf *Data) serialize() ([]byte, error) {
 	for num := range fdf.objects {
 		nums = append(nums, num)
 	}
-	sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
+	slices.Sort(nums)
 	var lastNum int64
 	for _, num := range nums {
 		if err := writeObject(&buf, fdf.objects[num]); err != nil {
@@ -1058,7 +1059,7 @@ func (p *fdfParser) catalog() (*fdfCatalog, error) {
 	for n := range p.objects {
 		nums = append(nums, n)
 	}
-	sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
+	slices.Sort(nums)
 	for _, num := range nums {
 		obj := p.objects[num]
 		if root, isDict := p.trace(obj).(*core.PdfObjectDictionary); isDict {
@@ -1288,11 +1289,11 @@ func (p *fdfParser) parseIndirectObject() (core.PdfObject, error) {
 						common.Log.Debug("ERROR: %v", err)
 						return nil, err
 					}
-					stream := core.PdfObjectStream{}
-					stream.Stream = data
-					stream.PdfObjectDictionary = ind.PdfObject.(*core.PdfObjectDictionary)
-					stream.ObjectNumber = ind.ObjectNumber
-					stream.GenerationNumber = ind.GenerationNumber
+					stream := core.PdfObjectStream{
+						Stream:              data,
+						PdfObjectDictionary: ind.PdfObject.(*core.PdfObjectDictionary),
+						ObjectNumber:        ind.ObjectNumber,
+						GenerationNumber:    ind.GenerationNumber}
 					p.skipSpaces()
 					p.reader.Discard(9)
 					p.skipSpaces()

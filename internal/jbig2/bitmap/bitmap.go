@@ -2395,20 +2395,21 @@ func expandBinaryReplicate(src *Bitmap, xFact, yFact int) (*Bitmap, error) {
 }
 
 func (bm *Bitmap) String() string {
-	s := "\n"
+	var s strings.Builder
+	s.WriteString("\n")
 	for y := 0; y < bm.Height; y++ {
-		var line string
+		var line strings.Builder
 		for x := 0; x < bm.Width; x++ {
 			isSet := bm.GetPixel(x, y)
 			if isSet {
-				line += "1"
+				line.WriteString("1")
 			} else {
-				line += "0"
+				line.WriteString("0")
 			}
 		}
-		s += line + "\n"
+		s.WriteString(line.String() + "\n")
 	}
-	return s
+	return s.String()
 }
 
 func expandBinaryFactor8(dest, src *Bitmap) (err error) {
@@ -4015,11 +4016,7 @@ func Blit(src *Bitmap, dst *Bitmap, x, y int, op CombinationOperator) error {
 	fitsInRows := src.Width <= ((srcEnd-srcStart)<<3)+shift
 	dstIdx := dst.GetByteIndex(x, y)
 	maxLine := startLine + dst.Height
-	if src.Height > maxLine {
-		endLine = maxLine
-	} else {
-		endLine = src.Height
-	}
+	endLine = min(src.Height, maxLine)
 	switch {
 	case !unaligned:
 		err = blitAligned(src, dst, startLine, endLine, dstIdx, srcStart, srcEnd, op)

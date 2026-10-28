@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
@@ -181,13 +182,14 @@ func (op *PSOperand) sub(stack *PSStack) error {
 type PSOperand string
 
 func (prog *PSProgram) DebugString() string {
-	s := "{ "
+	var s strings.Builder
+	s.WriteString("{ ")
 	for _, obj := range *prog {
-		s += obj.DebugString()
-		s += " "
+		s.WriteString(obj.DebugString())
+		s.WriteString(" ")
 	}
-	s += "}"
-	return s
+	s.WriteString("}")
+	return s.String()
 }
 
 func (op *PSOperand) ifCondition(stack *PSStack) error {
@@ -389,13 +391,14 @@ func NewPSProgram() *PSProgram { return &PSProgram{} }
 
 // DebugString returns a descriptive string representation of the stack - intended for debugging.
 func (stack *PSStack) DebugString() string {
-	s := "[ "
+	var s strings.Builder
+	s.WriteString("[ ")
 	for _, obj := range *stack {
-		s += obj.DebugString()
-		s += " "
+		s.WriteString(obj.DebugString())
+		s.WriteString(" ")
 	}
-	s += "]"
-	return s
+	s.WriteString("]")
+	return s.String()
 }
 func (r *PSReal) String() string { return fmt.Sprintf("%.5f", r.Val) }
 
@@ -526,13 +529,14 @@ func (op *PSOperand) exch(stack *PSStack) error {
 }
 
 func (prog *PSProgram) String() string {
-	s := "{ "
+	var s strings.Builder
+	s.WriteString("{ ")
 	for _, obj := range *prog {
-		s += obj.String()
-		s += " "
+		s.WriteString(obj.String())
+		s.WriteString(" ")
 	}
-	s += "}"
-	return s
+	s.WriteString("}")
+	return s.String()
 }
 
 // MakeBool returns a new PSBoolean object initialized with `val`.
@@ -1264,13 +1268,14 @@ func (b *PSBoolean) DebugString() string { return fmt.Sprintf("bool:%v", b.Val) 
 
 // String returns a string representation of the stack.
 func (stack *PSStack) String() string {
-	s := "[ "
+	var s strings.Builder
+	s.WriteString("[ ")
 	for _, obj := range *stack {
-		s += obj.String()
-		s += " "
+		s.WriteString(obj.String())
+		s.WriteString(" ")
 	}
-	s += "]"
-	return s
+	s.WriteString("]")
+	return s.String()
 }
 
 func (op *PSOperand) sqrt(stack *PSStack) error {

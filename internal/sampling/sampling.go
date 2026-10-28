@@ -20,10 +20,7 @@ func ResampleUint32(data []uint32, bitsPerInputSample int, bitsPerOutputSample i
 	inputIndex := 0
 	for inputIndex < len(data) {
 		if inputBitsRemaining > 0 {
-			bitsToCopy := inputBitsRemaining
-			if outputBitsRemaining < bitsToCopy {
-				bitsToCopy = outputBitsRemaining
-			}
+			bitsToCopy := min(outputBitsRemaining, inputBitsRemaining)
 			outputSample = (outputSample << uint(bitsToCopy)) | (remainingInput >> uint(bitsPerInputSample-bitsToCopy))
 			inputBitsRemaining -= bitsToCopy
 			if inputBitsRemaining > 0 {
@@ -41,10 +38,7 @@ func ResampleUint32(data []uint32, bitsPerInputSample int, bitsPerOutputSample i
 		} else {
 			inputSample := data[inputIndex]
 			inputIndex++
-			bitsToCopy := bitsPerInputSample
-			if outputBitsRemaining < bitsToCopy {
-				bitsToCopy = outputBitsRemaining
-			}
+			bitsToCopy := min(outputBitsRemaining, bitsPerInputSample)
 			inputBitsRemaining = bitsPerInputSample - bitsToCopy
 			outputSample = (outputSample << uint(bitsToCopy)) | (inputSample >> uint(inputBitsRemaining))
 			if bitsToCopy < bitsPerInputSample {
@@ -60,10 +54,7 @@ func ResampleUint32(data []uint32, bitsPerInputSample int, bitsPerOutputSample i
 		}
 	}
 	for inputBitsRemaining >= bitsPerOutputSample {
-		bitsToCopy := inputBitsRemaining
-		if outputBitsRemaining < bitsToCopy {
-			bitsToCopy = outputBitsRemaining
-		}
+		bitsToCopy := min(outputBitsRemaining, inputBitsRemaining)
 		outputSample = (outputSample << uint(bitsToCopy)) | (remainingInput >> uint(bitsPerInputSample-bitsToCopy))
 		inputBitsRemaining -= bitsToCopy
 		if inputBitsRemaining > 0 {
@@ -187,10 +178,7 @@ func ResampleBytes(data []byte, bitsPerSample int) []uint32 {
 	inputIndex := 0
 	for inputIndex < len(data) {
 		if inputBitsRemaining > 0 {
-			bitsToCopy := inputBitsRemaining
-			if outputBitsRemaining < bitsToCopy {
-				bitsToCopy = outputBitsRemaining
-			}
+			bitsToCopy := min(outputBitsRemaining, inputBitsRemaining)
 			outputSample = (outputSample << uint(bitsToCopy)) | uint32(remainingInput>>uint(8-bitsToCopy))
 			inputBitsRemaining -= bitsToCopy
 			if inputBitsRemaining > 0 {
@@ -208,10 +196,7 @@ func ResampleBytes(data []byte, bitsPerSample int) []uint32 {
 		} else {
 			inputByte := data[inputIndex]
 			inputIndex++
-			bitsToCopy := 8
-			if outputBitsRemaining < bitsToCopy {
-				bitsToCopy = outputBitsRemaining
-			}
+			bitsToCopy := min(outputBitsRemaining, 8)
 			inputBitsRemaining = 8 - bitsToCopy
 			outputSample = (outputSample << uint(bitsToCopy)) | uint32(inputByte>>uint(inputBitsRemaining))
 			if bitsToCopy < 8 {
@@ -227,10 +212,7 @@ func ResampleBytes(data []byte, bitsPerSample int) []uint32 {
 		}
 	}
 	for inputBitsRemaining >= bitsPerSample {
-		bitsToCopy := inputBitsRemaining
-		if outputBitsRemaining < bitsToCopy {
-			bitsToCopy = outputBitsRemaining
-		}
+		bitsToCopy := min(outputBitsRemaining, inputBitsRemaining)
 		outputSample = (outputSample << uint(bitsToCopy)) | uint32(remainingInput>>uint(8-bitsToCopy))
 		inputBitsRemaining -= bitsToCopy
 		if inputBitsRemaining > 0 {

@@ -15,6 +15,7 @@ import (
 	"math"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -3038,13 +3039,7 @@ func spacesForGap(gap, charW float64) string {
 	if gap <= 0 {
 		return " "
 	}
-	n := int(gap / charW)
-	if n < 1 {
-		n = 1
-	}
-	if n > maxGapSpaces {
-		n = maxGapSpaces
-	}
+	n := min(max(int(gap/charW), 1), maxGapSpaces)
 	return strings.Repeat(" ", n)
 }
 
@@ -3402,10 +3397,7 @@ func isDuplicateGridWord(words []gridWord, word *textWord) bool {
 	if utf8.RuneCountInString(word.text) < minDupRunes {
 		return false
 	}
-	from := len(words) - dupLookback
-	if from < 0 {
-		from = 0
-	}
+	from := max(len(words)-dupLookback, 0)
 	for i := from; i < len(words); i++ {
 		prev := words[i]
 		if prev.text == word.text && math.Abs(prev.llx-word.Llx) <= dupPositionTolerance && math.Abs(prev.ury-word.Ury) <= dupPositionTolerance {
@@ -3594,11 +3586,11 @@ func (ss *shapesState) moveTo(x, y float64) {
 }
 
 func marksToString(marks *TextMarkArray) string {
-	out := ""
+	var out strings.Builder
 	for _, mark := range marks.Elements() {
-		out += mark.Text
+		out.WriteString(mark.Text)
 	}
-	return out
+	return out.String()
 }
 
 func (rl rulingList) merge() *ruling {
@@ -3785,7 +3777,7 @@ func (pt *PageText) ApplyArea(bbox model.PdfRectangle) {
 		return
 	}
 	var paras paraList
-	plain := ""
+	var plain strings.Builder
 	numInArea := len(inArea)
 	for angle := 0; angle < 360 && numInArea > 0; angle += 90 {
 		angleMarks := make([]*textMark, 0, len(inArea)-numInArea)
@@ -3796,7 +3788,7 @@ func (pt *PageText) ApplyArea(bbox model.PdfRectangle) {
 		}
 		if len(angleMarks) > 0 {
 			if pt.options.mode == ExtractionModePlain {
-				plain += makeSimpleText(angleMarks, pt.pageSize)
+				plain.WriteString(makeSimpleText(angleMarks, pt.pageSize))
 			} else {
 				angleParas := makeTextPage(angleMarks, pt.pageSize, nil, nil, pt.options.mode == ExtractionModeLayoutNoBreaks)
 				paras = append(paras, angleParas...)
@@ -3805,7 +3797,7 @@ func (pt *PageText) ApplyArea(bbox model.PdfRectangle) {
 		}
 	}
 	if pt.options.mode == ExtractionModePlain {
-		pt.text = plain
+		pt.text = plain.String()
 	} else {
 		buf := new(bytes.Buffer)
 		ctx := &textContext{disableDehyphenation: pt.options.disableDehyphenation}
@@ -4468,12 +4460,9 @@ func (rl rulingList) splitSec() []rulingList {
 			if _, ok := seen[r]; ok {
 				continue
 			}
-			for _, g := range group {
-				if r.alignsSec(g) {
-					group = append(group, r)
-					seen[r] = struct{}{}
-					break
-				}
+			if slices.ContainsFunc(group, r.alignsSec) {
+				group = append(group, r)
+				seen[r] = struct{}{}
 			}
 		}
 		return group
@@ -5807,8 +5796,8 @@ func (tm *textMark) String() string {
 func (pl paraList) findTableGrid(tiling gridTiling) (*textTable, map[*textPara]struct{}) {
 	numLlx := len(tiling.llx)
 	numLly := len(tiling.lly)
-	table := textTable{exportable: true, w: numLlx, h: numLly, cells: make(map[uint64]*textPara, numLlx*numLly), compositeCells: make(map[uint64]compositeCell, numLlx*numLly)}
-	table.PdfRectangle = tiling.PdfRectangle
+	table := textTable{exportable: true, w: numLlx, h: numLly, cells: make(map[uint64]*textPara, numLlx*numLly), compositeCells: make(map[uint64]compositeCell, numLlx*numLly),
+		PdfRectangle: tiling.PdfRectangle}
 	used := make(map[*textPara]struct{})
 	maxEmpty := int((1.0 - maxEmptyFraction) * float64(numLlx*numLly))
 	numEmpty := 0
@@ -7619,10 +7608,7 @@ func spacesForOffset(offset, unit float64) string {
 	if offset <= unit {
 		return ""
 	}
-	n := int(offset/unit + 0.5)
-	if n > maxOffsetSpaces {
-		n = maxOffsetSpaces
-	}
+	n := min(int(offset/unit+0.5), maxOffsetSpaces)
 	return strings.Repeat(" ", n)
 }
 
@@ -8244,8 +8230,8 @@ func (tt *textTable) toTextTable(ctx *textContext) TextTable {
 			cells[i][j].Marks.marks = para.toTextMarks(&offset, ctx)
 		}
 	}
-	table := TextTable{W: tt.w, H: tt.h, Cells: cells}
-	table.PdfRectangle = tt.bbox()
+	table := TextTable{W: tt.w, H: tt.h, Cells: cells,
+		PdfRectangle: tt.bbox()}
 	return table
 }
 
@@ -8357,7 +8343,7 @@ func linesBetweenDepths(lines []*textLine, maxDepth, minDepth float64) []*textLi
 }
 
 func (pt *PageText) getText() string {
-	out := ""
+	var out strings.Builder
 	numMarks := len(pt.marks)
 	for i := 0; i < 360 && numMarks > 0; i += 90 {
 		angleMarks := make([]*textMark, 0, len(pt.marks)-numMarks)
@@ -8367,11 +8353,11 @@ func (pt *PageText) getText() string {
 			}
 		}
 		if len(angleMarks) > 0 {
-			out += makeSimpleText(angleMarks, pt.pageSize)
+			out.WriteString(makeSimpleText(angleMarks, pt.pageSize))
 			numMarks -= len(angleMarks)
 		}
 	}
-	return out
+	return out.String()
 }
 
 func (wb *wordBag) beginDeferredRemoval() {

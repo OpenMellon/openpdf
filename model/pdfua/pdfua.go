@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -632,8 +633,8 @@ func selectSuspectViolations(fonts []suspectFont, used map[*core.PdfObjectDictio
 func (w *contentWalker) evalContent(stack []mcFrame) {
 	state := 0
 	inArtifact := false
-	for i := len(stack) - 1; i >= 0; i-- {
-		frame := stack[i]
+	for _, frame := range slices.Backward(stack) {
+
 		if frame.artifact {
 			inArtifact = true
 			if state == 0 {
@@ -2722,12 +2723,7 @@ func containsLinkOBJR(elem *core.PdfObjectDictionary) bool {
 	}
 	kids := core.TraceToDirectObject(elem.Get("K"))
 	if arr, ok := core.GetArray(kids); ok {
-		for _, kid := range arr.Elements() {
-			if isLinkOBJR(kid) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(arr.Elements(), isLinkOBJR)
 	}
 	return isLinkOBJR(kids)
 }

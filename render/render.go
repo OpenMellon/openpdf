@@ -14,6 +14,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -2614,12 +2615,7 @@ func applyImageMask(img, mask image.Image, interp xdraw.Interpolator) image.Imag
 }
 
 func intIn(v int, set ...int) bool {
-	for _, x := range set {
-		if v == x {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(set, v)
 }
 
 func boolPairFromArray(arr *core.PdfObjectArray) (first, second bool) {

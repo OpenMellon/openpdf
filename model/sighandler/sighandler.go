@@ -597,10 +597,7 @@ type timestampInfo struct {
 }
 
 func leftPad(data []byte, size int) (padded []byte) {
-	n := len(data)
-	if n > size {
-		n = size
-	}
+	n := min(len(data), size)
 	padded = make([]byte, size)
 	copy(padded[len(padded)-n:], data)
 	return

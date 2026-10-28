@@ -92,11 +92,11 @@ func (c *pageFormClones) rewireXObjects(xobjects *core.PdfObjectDictionary, orig
 }
 
 func markArrayText(marks *extractor.TextMarkArray) string {
-	text := ""
+	var text strings.Builder
 	for _, mark := range marks.Elements() {
-		text += mark.Text
+		text.WriteString(mark.Text)
 	}
-	return text
+	return text.String()
 }
 
 type regexMatcher struct{ term RedactionTerm }
@@ -1264,10 +1264,8 @@ func findTextOperation(ops *contentstream.ContentStreamOperations, PdfObj core.P
 			if !ok {
 				continue
 			}
-			for _, el := range arr.Elements() {
-				if el == PdfObj {
-					return op, i, true
-				}
+			if slices.Contains(arr.Elements(), PdfObj) {
+				return op, i, true
 			}
 		} else if operand == "\"" {
 			if len(op.Params) < 3 {

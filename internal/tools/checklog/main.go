@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -26,12 +27,7 @@ func (f finding) String() string {
 }
 
 func (c *fileCtx) hasName(name string) bool {
-	for _, n := range c.names {
-		if n == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.names, name)
 }
 
 var levelConsts = map[string]string{"Trace": "LogLevelTrace", "Debug": "LogLevelDebug"}

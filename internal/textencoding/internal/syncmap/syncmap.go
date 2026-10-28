@@ -3,6 +3,8 @@
 
 package syncmap
 
+import "maps"
+
 import "sync"
 
 type StringsTuple struct{ Key, Value string }
@@ -47,9 +49,7 @@ func (s *StringsMap) Copy() *StringsMap {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	m := map[string]string{}
-	for k, v := range s.m {
-		m[k] = v
-	}
+	maps.Copy(m, s.m)
 	return &StringsMap{m: m}
 }
 

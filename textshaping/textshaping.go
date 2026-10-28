@@ -4,6 +4,7 @@
 package textshaping
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/OpenMellon/garabic"
@@ -28,8 +29,8 @@ func ArabicShape(text string) (string, error) {
 				reversed    = make([]rune, len(shapedRunes))
 			)
 			dst := 0
-			for src := len(shapedRunes) - 1; src >= 0; src-- {
-				reversed[dst] = shapedRunes[src]
+			for _, shapedRune := range slices.Backward(shapedRunes) {
+				reversed[dst] = shapedRune
 				dst++
 			}
 			runText = string(reversed)

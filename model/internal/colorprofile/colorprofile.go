@@ -244,8 +244,8 @@ func AssetDir(name string) ([]string, error) {
 	node := assetTree
 	if len(name) != 0 {
 		slashed := strings.ReplaceAll(name, "\\", "/")
-		parts := strings.Split(slashed, "/")
-		for _, part := range parts {
+		parts := strings.SplitSeq(slashed, "/")
+		for part := range parts {
 			node = node.Children[part]
 			if node == nil {
 				return nil, fmt.Errorf("Asset %s not found", name)
@@ -345,7 +345,7 @@ func NewSRGBv2OutputIntent(subtype model.PdfOutputIntentType) (*model.PdfOutputI
 
 var colorSpaceByHex = map[string]ColorSpace{"58595A20": ColorSpaceXYZ, "4C616220": ColorSpaceLAB, "4C757620": ColorSpaceLUV, "59436272": ColorSpaceYCBR, "59787920": ColorSpaceYXY, "52474220": ColorSpaceRGB, "47524159": ColorSpaceGRAY, "48535620": ColorSpaceHSV, "484C5320": ColorSpaceHLS, "434D594B": ColorSpaceCMYK, "434D5920": ColorSpaceCMY, "32434C52": ColorSpace2CLR, "33434C52": ColorSpace3CLR, "34434C52": ColorSpace4CLR, "35434C52": ColorSpace5CLR, "36434C52": ColorSpace6CLR, "37434C52": ColorSpace7CLR, "38434C52": ColorSpace8CLR, "39434C52": ColorSpace9CLR, "41434C52": ColorSpaceACLR, "42434C52": ColorSpaceBCLR, "43434C52": ColorSpaceCCLR, "44434C52": ColorSpaceDCLR, "45434C52": ColorSpaceECLR, "46434C52": ColorSpaceFCLR}
 
-func (fi bindataFileInfo) Sys() interface{}  { return nil }
+func (fi bindataFileInfo) Sys() any          { return nil }
 func (fi bindataFileInfo) Mode() os.FileMode { return fi.mode }
 
 type bindataFileInfo struct {

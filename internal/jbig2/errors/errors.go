@@ -48,11 +48,11 @@ func newProcessError(message, processName string) *processError {
 
 var _ xerrors.Wrapper = (*processError)(nil)
 
-func Errorf(processName, message string, arguments ...interface{}) error {
+func Errorf(processName, message string, arguments ...any) error {
 	return newProcessError(fmt.Sprintf(message, arguments...), processName)
 }
 
-func Wrapf(err error, processName, message string, arguments ...interface{}) error {
+func Wrapf(err error, processName, message string, arguments ...any) error {
 	if inner, ok := err.(*processError); ok {
 		inner.prefix = ""
 	}

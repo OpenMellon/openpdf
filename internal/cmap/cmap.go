@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -640,7 +641,7 @@ func (cmap *CMap) toBfData() string {
 	for code := range cmap.codeToUnicode {
 		codes = append(codes, code)
 	}
-	sort.Slice(codes, func(i, j int) bool { return codes[i] < codes[j] })
+	slices.Sort(codes)
 	var ranges []charRange
 	cur := charRange{codes[0], codes[0]}
 	prevText := cmap.codeToUnicode[codes[0]]
@@ -944,10 +945,7 @@ func (cmap *CMap) parseBfrange() error {
 			common.Log.Debug("ERROR: Incomplete bfrange triplet")
 			return ErrBadCMap
 		case cmapHexString:
-			high = hexToCharCode(t)
-			if high > 0xffff {
-				high = 0xffff
-			}
+			high = min(hexToCharCode(t), 0xffff)
 		default:
 			common.Log.Debug("ERROR: Unexpected type %T", o)
 			return ErrBadCMap
@@ -1234,7 +1232,7 @@ func (cmap *CMap) CharcodeToCID(code CharCode) (CharCode, bool) {
 }
 
 type (
-	cmapObject  interface{}
+	cmapObject  any
 	cmapOperand struct{ Operand string }
 	integer     struct {
 		set bool

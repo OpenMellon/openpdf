@@ -151,7 +151,7 @@ func (p *PKI) CRL(t testing.TB, tmpl *x509.RevocationList) []byte {
 	return crl
 }
 
-func (r *retryT) Errorf(format string, args ...interface{}) {
+func (r *retryT) Errorf(format string, args ...any) {
 	r.failures = append(r.failures, fmt.Sprintf(format, args...))
 }
 func (p *PKI) ECDSALeaf() (*ecdsa.PrivateKey, *x509.Certificate) { return p.ecdsaKey, p.ecdsaCert }
@@ -344,7 +344,7 @@ const (
 
 type ExtendedTestingT interface {
 	require.TestingT
-	Logf(format string, args ...interface{})
+	Logf(format string, args ...any)
 	Helper()
 }
 
@@ -714,6 +714,6 @@ func applyLeafDefaults(cert *x509.Certificate, notBefore, notAfter time.Time) {
 	cert.CRLDistributionPoints = []string{crlURL}
 }
 
-func (r *retryT) Logf(format string, args ...interface{}) {
+func (r *retryT) Logf(format string, args ...any) {
 	r.logs = append(r.logs, fmt.Sprintf(format, args...))
 }

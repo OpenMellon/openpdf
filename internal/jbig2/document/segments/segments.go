@@ -10,6 +10,7 @@ import (
 	"image"
 	"io"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -2389,11 +2390,11 @@ func (sd *SymbolDictionary) parseHeader() (err error) {
 	}
 	if sd.isCodingContextUsed {
 		rtSegments := sd.Header.RTSegments
-		for i := len(rtSegments) - 1; i >= 0; i-- {
-			if rtSegments[i].Type == 0 {
-				prevSD, ok := rtSegments[i].SegmentData.(*SymbolDictionary)
+		for _, rtSegment := range slices.Backward(rtSegments) {
+			if rtSegment.Type == 0 {
+				prevSD, ok := rtSegment.SegmentData.(*SymbolDictionary)
 				if !ok {
-					err = fmt.Errorf("related Segment: %v is not a Symbol Dictionary Segment", rtSegments[i])
+					err = fmt.Errorf("related Segment: %v is not a Symbol Dictionary Segment", rtSegment)
 					return err
 				}
 				if prevSD.isCodingContextUsed {
