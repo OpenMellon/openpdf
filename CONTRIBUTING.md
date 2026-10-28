@@ -74,6 +74,10 @@ any committed crashers; the Nightly workflow fuzzes each for five minutes. To fu
 `go test ./internal/regress -run '^$' -fuzz '^FuzzReader$' -fuzztime 1m`, and commit any file it writes under
 `internal/regress/testdata/fuzz`.
 
+Performance is checked by benchmarks over the same goldens (`go test ./internal/regress -run '^$' -bench .`). The
+Benchmarks workflow runs them on the previous commit and on yours, and fails if `benchstat` reports a significant
+slowdown of more than 25%.
+
 ## Pull requests
 
 - Fill in the pull request template, including how you verified the change and the AI disclosure.
