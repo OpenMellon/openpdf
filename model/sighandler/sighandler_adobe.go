@@ -14,7 +14,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
-	"github.com/OpenMellon/pkcs7"
+	"github.com/unidoc/pkcs7"
 )
 
 // Validate validates PdfSignature.

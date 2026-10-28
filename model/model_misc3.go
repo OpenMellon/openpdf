@@ -14,7 +14,7 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/cmap"
 	"github.com/OpenMellon/openpdf/model/internal/fonts"
-	"github.com/OpenMellon/typesetting/font/opentype"
+	"github.com/unidoc/typesetting/font/opentype"
 )
 
 // CompliancePdfReader is a wrapper over PdfReader that is used for verifying if the input Pdf document matches the

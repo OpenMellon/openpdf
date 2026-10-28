@@ -12,7 +12,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model/mdp"
-	"github.com/OpenMellon/pkcs7"
+	"github.com/unidoc/pkcs7"
 )
 
 func signatureContentsDigestHex(sig *PdfSignature) (string, error) {

@@ -11,10 +11,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/OpenMellon/freetype"
-	"github.com/OpenMellon/freetype/truetype"
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
+	"github.com/unidoc/freetype"
+	"github.com/unidoc/freetype/truetype"
 	imagefont "golang.org/x/image/font"
 )
 

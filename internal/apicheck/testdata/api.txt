@@ -1509,7 +1509,7 @@ github.com/OpenMellon/openpdf/creator field TOCLine Number github.com/OpenMellon
 github.com/OpenMellon/openpdf/creator field TOCLine Page github.com/OpenMellon/openpdf/creator.TextChunk ""
 github.com/OpenMellon/openpdf/creator field TOCLine Separator github.com/OpenMellon/openpdf/creator.TextChunk ""
 github.com/OpenMellon/openpdf/creator field TOCLine Title github.com/OpenMellon/openpdf/creator.TextChunk ""
-github.com/OpenMellon/openpdf/creator field TemplateOptions ChartMap map[string]github.com/OpenMellon/unichart/render.ChartRenderable ""
+github.com/OpenMellon/openpdf/creator field TemplateOptions ChartMap map[string]github.com/unidoc/unichart/render.ChartRenderable ""
 github.com/OpenMellon/openpdf/creator field TemplateOptions ColorMap map[string]github.com/OpenMellon/openpdf/creator.Color ""
 github.com/OpenMellon/openpdf/creator field TemplateOptions DisableAutoEscape bool ""
 github.com/OpenMellon/openpdf/creator field TemplateOptions FileName string ""
@@ -1605,7 +1605,7 @@ github.com/OpenMellon/openpdf/creator func ColorRGBFromHex func(string) github.c
 github.com/OpenMellon/openpdf/creator func New func() *github.com/OpenMellon/openpdf/creator.Creator
 github.com/OpenMellon/openpdf/creator func NewBlock func(float64, float64) *github.com/OpenMellon/openpdf/creator.Block
 github.com/OpenMellon/openpdf/creator func NewBlockFromPage func(*github.com/OpenMellon/openpdf/model.PdfPage) (*github.com/OpenMellon/openpdf/creator.Block, error)
-github.com/OpenMellon/openpdf/creator func NewChart func(github.com/OpenMellon/unichart/render.ChartRenderable) *github.com/OpenMellon/openpdf/creator.Chart
+github.com/OpenMellon/openpdf/creator func NewChart func(github.com/unidoc/unichart/render.ChartRenderable) *github.com/OpenMellon/openpdf/creator.Chart
 github.com/OpenMellon/openpdf/creator func NewColorPoint func(github.com/OpenMellon/openpdf/creator.Color, float64) *github.com/OpenMellon/openpdf/creator.ColorPoint
 github.com/OpenMellon/openpdf/creator func NewGraphicSVGFromFile func(string) (*github.com/OpenMellon/openpdf/creator.GraphicSVG, error)
 github.com/OpenMellon/openpdf/creator func NewGraphicSVGFromString func(string) (*github.com/OpenMellon/openpdf/creator.GraphicSVG, error)
@@ -3223,7 +3223,7 @@ github.com/OpenMellon/openpdf/internal/imageutil/iccextract func Extract func([]
 github.com/OpenMellon/openpdf/internal/imageutil/iccextract type Format
 github.com/OpenMellon/openpdf/internal/imageutil/iccextract underlying Format string
 github.com/OpenMellon/openpdf/internal/integrations/unichart fieldorder Renderer width,height,dpi,cc,resources,fillColor,strokeColor,strokeWidth,font,fontSize,fontColor,textRotation,fontNames
-github.com/OpenMellon/openpdf/internal/integrations/unichart func NewRenderer func(*github.com/OpenMellon/openpdf/contentstream.ContentCreator, *github.com/OpenMellon/openpdf/model.PdfPageResources) func(int, int) (github.com/OpenMellon/unichart/render.Renderer, error)
+github.com/OpenMellon/openpdf/internal/integrations/unichart func NewRenderer func(*github.com/OpenMellon/openpdf/contentstream.ContentCreator, *github.com/OpenMellon/openpdf/model.PdfPageResources) func(int, int) (github.com/unidoc/unichart/render.Renderer, error)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer ArcTo func(int, int, float64, float64, float64, float64)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer Circle func(float64, int, int)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer ClearTextRotation func()
@@ -3232,7 +3232,7 @@ github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer FillStroke func()
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer GetDPI func() float64
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer LineTo func(int, int)
-github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer MeasureText func(string) github.com/OpenMellon/unichart/render.Box
+github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer MeasureText func(string) github.com/unidoc/unichart/render.Box
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer MoveTo func(int, int)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer QuadCurveTo func(int, int, int, int)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer ResetStyle func()
@@ -3240,7 +3240,7 @@ github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer SetClassName func(string)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer SetDPI func(float64)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer SetFillColor func(image/color.Color)
-github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer SetFont func(github.com/OpenMellon/unichart/render.Font)
+github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer SetFont func(github.com/unidoc/unichart/render.Font)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer SetFontColor func(image/color.Color)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer SetFontSize func(float64)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer SetStrokeColor func(image/color.Color)
@@ -4269,7 +4269,7 @@ github.com/OpenMellon/openpdf/internal/textencoding func NewCustomSimpleTextEnco
 github.com/OpenMellon/openpdf/internal/textencoding func NewIdentityTextEncoder func(string) *github.com/OpenMellon/openpdf/internal/textencoding.IdentityEncoder
 github.com/OpenMellon/openpdf/internal/textencoding func NewMacExpertEncoder func() github.com/OpenMellon/openpdf/internal/textencoding.SimpleEncoder
 github.com/OpenMellon/openpdf/internal/textencoding func NewMacRomanEncoder func() github.com/OpenMellon/openpdf/internal/textencoding.SimpleEncoder
-github.com/OpenMellon/openpdf/internal/textencoding func NewOpenTypeFontEncoder func(*github.com/OpenMellon/typesetting/font.Face, map[rune]github.com/OpenMellon/openpdf/internal/textencoding.GID) *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder
+github.com/OpenMellon/openpdf/internal/textencoding func NewOpenTypeFontEncoder func(*github.com/unidoc/typesetting/font.Face, map[rune]github.com/OpenMellon/openpdf/internal/textencoding.GID) *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder
 github.com/OpenMellon/openpdf/internal/textencoding func NewPdfDocEncoder func() github.com/OpenMellon/openpdf/internal/textencoding.SimpleEncoder
 github.com/OpenMellon/openpdf/internal/textencoding func NewSimpleTextEncoder func(string, map[github.com/OpenMellon/openpdf/internal/textencoding.CharCode]github.com/OpenMellon/openpdf/internal/textencoding.GlyphName) (github.com/OpenMellon/openpdf/internal/textencoding.SimpleEncoder, error)
 github.com/OpenMellon/openpdf/internal/textencoding func NewStandardEncoder func() github.com/OpenMellon/openpdf/internal/textencoding.SimpleEncoder
@@ -4283,7 +4283,7 @@ github.com/OpenMellon/openpdf/internal/textencoding func NormalizeRunePresentati
 github.com/OpenMellon/openpdf/internal/textencoding func RegisterSimpleEncoding func(string, func() github.com/OpenMellon/openpdf/internal/textencoding.SimpleEncoder)
 github.com/OpenMellon/openpdf/internal/textencoding func RuneToGlyph func(rune) (github.com/OpenMellon/openpdf/internal/textencoding.GlyphName, bool)
 github.com/OpenMellon/openpdf/internal/textencoding func RuneToString func(rune) string
-github.com/OpenMellon/openpdf/internal/textencoding func ShapeTextLine func(*github.com/OpenMellon/typesetting/font.Face, string, float64) github.com/OpenMellon/typesetting/shaping.Line
+github.com/OpenMellon/openpdf/internal/textencoding func ShapeTextLine func(*github.com/unidoc/typesetting/font.Face, string, float64) github.com/unidoc/typesetting/shaping.Line
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.CMapEncoder CharcodeToRune func(github.com/OpenMellon/openpdf/internal/textencoding.CharCode) (rune, bool)
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.CMapEncoder Decode func([]byte) string
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.CMapEncoder Encode func(string) []byte
@@ -4313,7 +4313,7 @@ github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMello
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder RegisteredShapedGIDs func() []github.com/OpenMellon/openpdf/internal/textencoding.GID
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder RuneToCharcode func(rune) (github.com/OpenMellon/openpdf/internal/textencoding.CharCode, bool)
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder RuneToGID func(rune) (github.com/OpenMellon/openpdf/internal/textencoding.GID, bool)
-github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder ShapeText func(string, float64) github.com/OpenMellon/typesetting/shaping.Line
+github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder ShapeText func(string, float64) github.com/unidoc/typesetting/shaping.Line
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder String func() string
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder SubsetRegistered func()
 github.com/OpenMellon/openpdf/internal/textencoding method *github.com/OpenMellon/openpdf/internal/textencoding.OpenTypeFontEncoder ToPdfObject func() github.com/OpenMellon/openpdf/core.PdfObject
@@ -4657,12 +4657,12 @@ github.com/OpenMellon/openpdf/model field Artifact BBox *github.com/OpenMellon/o
 github.com/OpenMellon/openpdf/model field Artifact Subtype string ""
 github.com/OpenMellon/openpdf/model field Artifact Type github.com/OpenMellon/openpdf/model.ArtifactType ""
 github.com/OpenMellon/openpdf/model field ColorGlyphInfo BitmapData []byte ""
-github.com/OpenMellon/openpdf/model field ColorGlyphInfo BitmapFormat github.com/OpenMellon/typesetting/font.BitmapFormat ""
+github.com/OpenMellon/openpdf/model field ColorGlyphInfo BitmapFormat github.com/unidoc/typesetting/font.BitmapFormat ""
 github.com/OpenMellon/openpdf/model field ColorGlyphInfo BitmapHeight int ""
 github.com/OpenMellon/openpdf/model field ColorGlyphInfo BitmapWidth int ""
-github.com/OpenMellon/openpdf/model field ColorGlyphInfo GlyphID github.com/OpenMellon/typesetting/font.GID ""
+github.com/OpenMellon/openpdf/model field ColorGlyphInfo GlyphID github.com/unidoc/typesetting/font.GID ""
 github.com/OpenMellon/openpdf/model field ColorGlyphInfo GlyphType github.com/OpenMellon/openpdf/model.ColorGlyphType ""
-github.com/OpenMellon/openpdf/model field ColorGlyphInfo OutlineData github.com/OpenMellon/typesetting/font.GlyphOutline ""
+github.com/OpenMellon/openpdf/model field ColorGlyphInfo OutlineData github.com/unidoc/typesetting/font.GlyphOutline ""
 github.com/OpenMellon/openpdf/model field ColorGlyphInfo SVGData []byte ""
 github.com/OpenMellon/openpdf/model field CompliancePdfReader PdfReader *github.com/OpenMellon/openpdf/model.PdfReader ""
 github.com/OpenMellon/openpdf/model field DSS CRLs []*github.com/OpenMellon/openpdf/core.PdfObjectStream ""
@@ -5607,7 +5607,7 @@ github.com/OpenMellon/openpdf/model fieldorder XObjectImage Width,Height,ColorSp
 github.com/OpenMellon/openpdf/model func DefaultFont func() *github.com/OpenMellon/openpdf/model.PdfFont
 github.com/OpenMellon/openpdf/model func DetermineColorspaceNameFromPdfObject func(github.com/OpenMellon/openpdf/core.PdfObject) (github.com/OpenMellon/openpdf/core.PdfObjectName, error)
 github.com/OpenMellon/openpdf/model func GetAlphabet func(string) map[rune]int
-github.com/OpenMellon/openpdf/model func GetColorGlyphInfo func(*github.com/OpenMellon/openpdf/model/internal/fonts.OtfType, github.com/OpenMellon/typesetting/font.GID) (*github.com/OpenMellon/openpdf/model.ColorGlyphInfo, bool)
+github.com/OpenMellon/openpdf/model func GetColorGlyphInfo func(*github.com/OpenMellon/openpdf/model/internal/fonts.OtfType, github.com/unidoc/typesetting/font.GID) (*github.com/OpenMellon/openpdf/model.ColorGlyphInfo, bool)
 github.com/OpenMellon/openpdf/model func GetColorGlyphInfoByRune func(*github.com/OpenMellon/openpdf/model/internal/fonts.OtfType, rune) *github.com/OpenMellon/openpdf/model.ColorGlyphInfo
 github.com/OpenMellon/openpdf/model func GetColorGlyphInfoByText func(*github.com/OpenMellon/openpdf/model/internal/fonts.OtfType, string) *github.com/OpenMellon/openpdf/model.ColorGlyphInfo
 github.com/OpenMellon/openpdf/model func NewBorderStyle func() *github.com/OpenMellon/openpdf/model.PdfBorderStyle
@@ -6462,9 +6462,9 @@ github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.
 github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont GetRuneMetrics func(rune) (github.com/OpenMellon/openpdf/model.CharMetrics, bool)
 github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont IsCID func() bool
 github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont IsSimple func() bool
-github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont RegisterLigatureMapping func(github.com/OpenMellon/typesetting/shaping.Output, string) error
+github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont RegisterLigatureMapping func(github.com/unidoc/typesetting/shaping.Output, string) error
 github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont RunesToCharcodeBytes func([]rune) ([]byte, int)
-github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont ShapeText func(string, float64) github.com/OpenMellon/typesetting/shaping.Line
+github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont ShapeText func(string, float64) github.com/unidoc/typesetting/shaping.Line
 github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont String func() string
 github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont StringToCharcodeBytes func(string) ([]byte, int)
 github.com/OpenMellon/openpdf/model method *github.com/OpenMellon/openpdf/model.PdfFont SubsetRegistered func() error
@@ -7790,13 +7790,13 @@ github.com/OpenMellon/openpdf/model/internal/fonts field Descriptor StemH float6
 github.com/OpenMellon/openpdf/model/internal/fonts field Descriptor StemV float64 ""
 github.com/OpenMellon/openpdf/model/internal/fonts field Descriptor Weight github.com/OpenMellon/openpdf/model/internal/fonts.FontWeight ""
 github.com/OpenMellon/openpdf/model/internal/fonts field Descriptor XHeight float64 ""
-github.com/OpenMellon/openpdf/model/internal/fonts field OtfType CFF *github.com/OpenMellon/typesetting/font/cff.CFF ""
-github.com/OpenMellon/openpdf/model/internal/fonts field OtfType CFF2 *github.com/OpenMellon/typesetting/font/cff.CFF2 ""
-github.com/OpenMellon/openpdf/model/internal/fonts field OtfType Face *github.com/OpenMellon/typesetting/font.Face ""
-github.com/OpenMellon/openpdf/model/internal/fonts field OtfType Font *github.com/OpenMellon/typesetting/font.Font ""
-github.com/OpenMellon/openpdf/model/internal/fonts field OtfType Glyf github.com/OpenMellon/typesetting/font/opentype/tables.Glyf ""
+github.com/OpenMellon/openpdf/model/internal/fonts field OtfType CFF *github.com/unidoc/typesetting/font/cff.CFF ""
+github.com/OpenMellon/openpdf/model/internal/fonts field OtfType CFF2 *github.com/unidoc/typesetting/font/cff.CFF2 ""
+github.com/OpenMellon/openpdf/model/internal/fonts field OtfType Face *github.com/unidoc/typesetting/font.Face ""
+github.com/OpenMellon/openpdf/model/internal/fonts field OtfType Font *github.com/unidoc/typesetting/font.Font ""
+github.com/OpenMellon/openpdf/model/internal/fonts field OtfType Glyf github.com/unidoc/typesetting/font/opentype/tables.Glyf ""
 github.com/OpenMellon/openpdf/model/internal/fonts field OtfType IndexToLocFormat int16 ""
-github.com/OpenMellon/openpdf/model/internal/fonts field OtfType Loader *github.com/OpenMellon/typesetting/font/opentype.Loader ""
+github.com/OpenMellon/openpdf/model/internal/fonts field OtfType Loader *github.com/unidoc/typesetting/font/opentype.Loader ""
 github.com/OpenMellon/openpdf/model/internal/fonts field OtfType OutlineType github.com/OpenMellon/openpdf/model/internal/fonts.OTFOutlineType ""
 github.com/OpenMellon/openpdf/model/internal/fonts field OtfType RawData []byte ""
 github.com/OpenMellon/openpdf/model/internal/fonts field OtfType TtfType *github.com/OpenMellon/openpdf/model/internal/fonts.TtfType ""
@@ -7837,14 +7837,14 @@ github.com/OpenMellon/openpdf/model/internal/fonts func SubsetCFF func([]byte, [
 github.com/OpenMellon/openpdf/model/internal/fonts func TtfParse func(io.ReadSeeker) (github.com/OpenMellon/openpdf/model/internal/fonts.TtfType, error)
 github.com/OpenMellon/openpdf/model/internal/fonts func TtfParseFile func(string) (github.com/OpenMellon/openpdf/model/internal/fonts.TtfType, error)
 github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.CharMetrics String func() string
-github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType GetBitmapSizes func() []github.com/OpenMellon/typesetting/font.BitmapSize
-github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType GetGlyphAdvance func(github.com/OpenMellon/typesetting/font.GID) golang.org/x/image/math/fixed.Int26_6
-github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType GetGlyphExtents func(github.com/OpenMellon/typesetting/font.GID) (github.com/OpenMellon/typesetting/font.GlyphExtents, bool)
-github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType IsColorGlyph func(github.com/OpenMellon/typesetting/font.GID) bool
+github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType GetBitmapSizes func() []github.com/unidoc/typesetting/font.BitmapSize
+github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType GetGlyphAdvance func(github.com/unidoc/typesetting/font.GID) golang.org/x/image/math/fixed.Int26_6
+github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType GetGlyphExtents func(github.com/unidoc/typesetting/font.GID) (github.com/unidoc/typesetting/font.GlyphExtents, bool)
+github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType IsColorGlyph func(github.com/unidoc/typesetting/font.GID) bool
 github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType MakeEncoder func() (github.com/OpenMellon/openpdf/internal/textencoding.SimpleEncoder, error)
 github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType MakeToUnicode func() *github.com/OpenMellon/openpdf/internal/cmap.CMap
 github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType NewEncoder func() github.com/OpenMellon/openpdf/internal/textencoding.TextEncoder
-github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType ShapeText func(string, float64) github.com/OpenMellon/typesetting/shaping.Line
+github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType ShapeText func(string, float64) github.com/unidoc/typesetting/shaping.Line
 github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.OtfType String func() string
 github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.RuneCharSafeMap Copy func() *github.com/OpenMellon/openpdf/model/internal/fonts.RuneCharSafeMap
 github.com/OpenMellon/openpdf/model/internal/fonts method *github.com/OpenMellon/openpdf/model/internal/fonts.RuneCharSafeMap Length func() int
@@ -8292,7 +8292,7 @@ github.com/OpenMellon/openpdf/model/xmputil func LoadDocument func([]byte) (*git
 github.com/OpenMellon/openpdf/model/xmputil func NewDocument func() *github.com/OpenMellon/openpdf/model/xmputil.Document
 github.com/OpenMellon/openpdf/model/xmputil func PacketEncoding func([]byte) string
 github.com/OpenMellon/openpdf/model/xmputil method *github.com/OpenMellon/openpdf/model/xmputil.Document Encoding func() string
-github.com/OpenMellon/openpdf/model/xmputil method *github.com/OpenMellon/openpdf/model/xmputil.Document GetGoXmpDocument func() *github.com/OpenMellon/go-xmp/xmp.Document
+github.com/OpenMellon/openpdf/model/xmputil method *github.com/OpenMellon/openpdf/model/xmputil.Document GetGoXmpDocument func() *github.com/unidoc/go-xmp/xmp.Document
 github.com/OpenMellon/openpdf/model/xmputil method *github.com/OpenMellon/openpdf/model/xmputil.Document GetMediaManagement func() (*github.com/OpenMellon/openpdf/model/xmputil.MediaManagement, bool)
 github.com/OpenMellon/openpdf/model/xmputil method *github.com/OpenMellon/openpdf/model/xmputil.Document GetPdfAID func() (*github.com/OpenMellon/openpdf/model/xmputil.PdfAID, bool)
 github.com/OpenMellon/openpdf/model/xmputil method *github.com/OpenMellon/openpdf/model/xmputil.Document GetPdfInfo func() (*github.com/OpenMellon/openpdf/model/xmputil.PdfInfo, bool)
@@ -8367,41 +8367,41 @@ github.com/OpenMellon/openpdf/model/xmputil/pdfaextension fieldorder ValueType D
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func AltOfValueTypeName func(github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeName) github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeName
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func BagOfValueTypeName func(github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeName) github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeName
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func ClosedChoiceValueTypeName func(github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeName) github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeName
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func FillModel func(*github.com/OpenMellon/go-xmp/xmp.Document, *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func FillModel func(*github.com/unidoc/go-xmp/xmp.Document, *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model) error
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func GetSchema func(string) (*github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema, bool)
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func MakeModel func(*github.com/OpenMellon/go-xmp/xmp.Document) (*github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model, error)
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func NewModel func(string) github.com/OpenMellon/go-xmp/xmp.Model
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func RegisterSchema func(*github.com/OpenMellon/go-xmp/xmp.Namespace, *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema)
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func MakeModel func(*github.com/unidoc/go-xmp/xmp.Document) (*github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model, error)
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func NewModel func(string) github.com/unidoc/go-xmp/xmp.Model
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func RegisterSchema func(*github.com/unidoc/go-xmp/xmp.Namespace, *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema)
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension func SeqOfValueTypeName func(github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeName) github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeName
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model Can func(string) bool
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model CanTag func(string) bool
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model GetTag func(string) (string, error)
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model Namespaces func() github.com/OpenMellon/go-xmp/xmp.NamespaceList
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model Namespaces func() github.com/unidoc/go-xmp/xmp.NamespaceList
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model SetSchema func(string, github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema)
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model SetTag func(string, string) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model SyncFromXMP func(*github.com/OpenMellon/go-xmp/xmp.Document) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model SyncModel func(*github.com/OpenMellon/go-xmp/xmp.Document) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model SyncToXMP func(*github.com/OpenMellon/go-xmp/xmp.Document) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties MarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Encoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties Typ func() github.com/OpenMellon/go-xmp/xmp.ArrayType
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties UnmarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Decoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model SyncFromXMP func(*github.com/unidoc/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model SyncModel func(*github.com/unidoc/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Model SyncToXMP func(*github.com/unidoc/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties MarshalXMP func(*github.com/unidoc/go-xmp/xmp.Encoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties Typ func() github.com/unidoc/go-xmp/xmp.ArrayType
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties UnmarshalXMP func(*github.com/unidoc/go-xmp/xmp.Decoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.PropertyCategory MarshalText func() ([]byte, error)
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.PropertyCategory UnmarshalText func([]byte) error
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas IsZero func() bool
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas MarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Encoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas Typ func() github.com/OpenMellon/go-xmp/xmp.ArrayType
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas UnmarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Decoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes MarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Encoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes Typ func() github.com/OpenMellon/go-xmp/xmp.ArrayType
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes UnmarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Decoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties MarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Encoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties Typ func() github.com/OpenMellon/go-xmp/xmp.ArrayType
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas MarshalXMP func(*github.com/unidoc/go-xmp/xmp.Encoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas Typ func() github.com/unidoc/go-xmp/xmp.ArrayType
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas UnmarshalXMP func(*github.com/unidoc/go-xmp/xmp.Decoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes MarshalXMP func(*github.com/unidoc/go-xmp/xmp.Encoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes Typ func() github.com/unidoc/go-xmp/xmp.ArrayType
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method *github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes UnmarshalXMP func(*github.com/unidoc/go-xmp/xmp.Decoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties MarshalXMP func(*github.com/unidoc/go-xmp/xmp.Encoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Properties Typ func() github.com/unidoc/go-xmp/xmp.ArrayType
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.PropertyCategory MarshalText func() ([]byte, error)
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas IsZero func() bool
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas MarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Encoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas Typ func() github.com/OpenMellon/go-xmp/xmp.ArrayType
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes MarshalXMP func(*github.com/OpenMellon/go-xmp/xmp.Encoder, *github.com/OpenMellon/go-xmp/xmp.Node, github.com/OpenMellon/go-xmp/xmp.Model) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes Typ func() github.com/OpenMellon/go-xmp/xmp.ArrayType
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas MarshalXMP func(*github.com/unidoc/go-xmp/xmp.Encoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schemas Typ func() github.com/unidoc/go-xmp/xmp.ArrayType
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes MarshalXMP func(*github.com/unidoc/go-xmp/xmp.Encoder, *github.com/unidoc/go-xmp/xmp.Node, github.com/unidoc/go-xmp/xmp.Model) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension method github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypes Typ func() github.com/unidoc/go-xmp/xmp.ArrayType
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension type FieldValueType
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension type Model
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension type Properties
@@ -8417,50 +8417,50 @@ github.com/OpenMellon/openpdf/model/xmputil/pdfaextension underlying PropertyCat
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension underlying Schemas []github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension underlying ValueTypeName string
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension underlying ValueTypes []github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueType
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.FieldNS *github.com/OpenMellon/go-xmp/xmp.Namespace
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.FieldNS *github.com/unidoc/go-xmp/xmp.Namespace
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.FieldResourceEventSchema github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.FieldVersionSchema github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Namespace *github.com/OpenMellon/go-xmp/xmp.Namespace
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Namespace *github.com/unidoc/go-xmp/xmp.Namespace
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.PdfSchema github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.PropertyNS *github.com/OpenMellon/go-xmp/xmp.Namespace
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.SchemaNS *github.com/OpenMellon/go-xmp/xmp.Namespace
-github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeNS *github.com/OpenMellon/go-xmp/xmp.Namespace
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.PropertyNS *github.com/unidoc/go-xmp/xmp.Namespace
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.SchemaNS *github.com/unidoc/go-xmp/xmp.Namespace
+github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.ValueTypeNS *github.com/unidoc/go-xmp/xmp.Namespace
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.XmpIDQualSchema github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema
 github.com/OpenMellon/openpdf/model/xmputil/pdfaextension var github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.XmpMediaManagementSchema github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid field Model Conformance string "xmp:\"pdfaid:conformance\""
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid field Model Part int "xmp:\"pdfaid:part\""
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid field Model Rev int "xmp:\"pdfaid:rev\""
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid fieldorder Model Part,Conformance,Rev
-github.com/OpenMellon/openpdf/model/xmputil/pdfaid func MakeModel func(*github.com/OpenMellon/go-xmp/xmp.Document) (*github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model, error)
-github.com/OpenMellon/openpdf/model/xmputil/pdfaid func NewModel func(string) github.com/OpenMellon/go-xmp/xmp.Model
+github.com/OpenMellon/openpdf/model/xmputil/pdfaid func MakeModel func(*github.com/unidoc/go-xmp/xmp.Document) (*github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model, error)
+github.com/OpenMellon/openpdf/model/xmputil/pdfaid func NewModel func(string) github.com/unidoc/go-xmp/xmp.Model
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model Can func(string) bool
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model CanTag func(string) bool
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model GetTag func(string) (string, error)
-github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model Namespaces func() github.com/OpenMellon/go-xmp/xmp.NamespaceList
+github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model Namespaces func() github.com/unidoc/go-xmp/xmp.NamespaceList
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model SetTag func(string, string) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model SyncFromXMP func(*github.com/OpenMellon/go-xmp/xmp.Document) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model SyncModel func(*github.com/OpenMellon/go-xmp/xmp.Document) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model SyncToXMP func(*github.com/OpenMellon/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model SyncFromXMP func(*github.com/unidoc/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model SyncModel func(*github.com/unidoc/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Model SyncToXMP func(*github.com/unidoc/go-xmp/xmp.Document) error
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid type Model
-github.com/OpenMellon/openpdf/model/xmputil/pdfaid var github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Namespace *github.com/OpenMellon/go-xmp/xmp.Namespace
+github.com/OpenMellon/openpdf/model/xmputil/pdfaid var github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Namespace *github.com/unidoc/go-xmp/xmp.Namespace
 github.com/OpenMellon/openpdf/model/xmputil/pdfaid var github.com/OpenMellon/openpdf/model/xmputil/pdfaid.Schema github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid field Model Amd string "xmp:\"pdfuaid:amd\""
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid field Model Corr string "xmp:\"pdfuaid:corr\""
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid field Model Part int "xmp:\"pdfuaid:part\""
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid field Model Rev int "xmp:\"pdfuaid:rev\""
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid fieldorder Model Part,Amd,Corr,Rev
-github.com/OpenMellon/openpdf/model/xmputil/pdfuaid func MakeModel func(*github.com/OpenMellon/go-xmp/xmp.Document) (*github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model, error)
-github.com/OpenMellon/openpdf/model/xmputil/pdfuaid func NewModel func(string) github.com/OpenMellon/go-xmp/xmp.Model
+github.com/OpenMellon/openpdf/model/xmputil/pdfuaid func MakeModel func(*github.com/unidoc/go-xmp/xmp.Document) (*github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model, error)
+github.com/OpenMellon/openpdf/model/xmputil/pdfuaid func NewModel func(string) github.com/unidoc/go-xmp/xmp.Model
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model Can func(string) bool
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model CanTag func(string) bool
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model GetTag func(string) (string, error)
-github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model Namespaces func() github.com/OpenMellon/go-xmp/xmp.NamespaceList
+github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model Namespaces func() github.com/unidoc/go-xmp/xmp.NamespaceList
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model SetTag func(string, string) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model SyncFromXMP func(*github.com/OpenMellon/go-xmp/xmp.Document) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model SyncModel func(*github.com/OpenMellon/go-xmp/xmp.Document) error
-github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model SyncToXMP func(*github.com/OpenMellon/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model SyncFromXMP func(*github.com/unidoc/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model SyncModel func(*github.com/unidoc/go-xmp/xmp.Document) error
+github.com/OpenMellon/openpdf/model/xmputil/pdfuaid method *github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Model SyncToXMP func(*github.com/unidoc/go-xmp/xmp.Document) error
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid type Model
-github.com/OpenMellon/openpdf/model/xmputil/pdfuaid var github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Namespace *github.com/OpenMellon/go-xmp/xmp.Namespace
+github.com/OpenMellon/openpdf/model/xmputil/pdfuaid var github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Namespace *github.com/unidoc/go-xmp/xmp.Namespace
 github.com/OpenMellon/openpdf/model/xmputil/pdfuaid var github.com/OpenMellon/openpdf/model/xmputil/pdfuaid.Schema github.com/OpenMellon/openpdf/model/xmputil/pdfaextension.Schema
 github.com/OpenMellon/openpdf/ocr field OCROptions Client *net/http.Client ""
 github.com/OpenMellon/openpdf/ocr field OCROptions FileFieldName string ""

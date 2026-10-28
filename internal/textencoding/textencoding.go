@@ -13,9 +13,9 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/cmap"
 	"github.com/OpenMellon/openpdf/internal/textencoding/internal/syncmap"
-	"github.com/OpenMellon/typesetting/di"
-	"github.com/OpenMellon/typesetting/font"
-	"github.com/OpenMellon/typesetting/shaping"
+	"github.com/unidoc/typesetting/di"
+	"github.com/unidoc/typesetting/font"
+	"github.com/unidoc/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
 	encoding2 "golang.org/x/text/encoding"
 )

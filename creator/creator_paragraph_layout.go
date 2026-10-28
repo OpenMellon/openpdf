@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/OpenMellon/openpdf/core"
-	"github.com/OpenMellon/typesetting/shaping"
+	"github.com/unidoc/typesetting/shaping"
 )
 
 // dropCapsActive reports whether the paragraph renders a drop cap.

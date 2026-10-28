@@ -5,9 +5,9 @@ import (
 	color2 "image/color"
 	"math"
 
-	"github.com/OpenMellon/freetype/raster"
 	"github.com/OpenMellon/openpdf/internal/transform"
 	"github.com/OpenMellon/openpdf/render/internal/context"
+	"github.com/unidoc/freetype/raster"
 	"golang.org/x/image/draw"
 )
 

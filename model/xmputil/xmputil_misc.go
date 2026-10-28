@@ -6,8 +6,8 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/OpenMellon/go-xmp/xmp"
 	"github.com/OpenMellon/openpdf/core"
+	"github.com/unidoc/go-xmp/xmp"
 )
 
 func utf32ToUTF8(data []byte, order binary.ByteOrder) []byte {

@@ -10,7 +10,7 @@ import (
 	contentdraw "github.com/OpenMellon/openpdf/contentstream/draw"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
-	"github.com/OpenMellon/typesetting/shaping"
+	"github.com/unidoc/typesetting/shaping"
 )
 
 // paragraphDrawer holds the state needed to render the lines of a styled

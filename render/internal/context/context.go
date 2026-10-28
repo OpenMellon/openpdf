@@ -13,12 +13,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/OpenMellon/freetype/truetype"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/cmap"
 	"github.com/OpenMellon/openpdf/internal/textencoding"
 	"github.com/OpenMellon/openpdf/internal/transform"
 	"github.com/OpenMellon/openpdf/model"
+	"github.com/unidoc/freetype/truetype"
 	font2 "golang.org/x/image/font"
 )
 

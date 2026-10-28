@@ -11,7 +11,7 @@ import (
 	"github.com/OpenMellon/openpdf/internal/cmap"
 	"github.com/OpenMellon/openpdf/internal/textencoding"
 	"github.com/OpenMellon/openpdf/model/internal/fonts"
-	"github.com/OpenMellon/typesetting/shaping"
+	"github.com/unidoc/typesetting/shaping"
 )
 
 // RunesToCharcodeBytes maps the provided runes to charcode bytes and it

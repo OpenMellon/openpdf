@@ -7,7 +7,7 @@ import (
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/textencoding"
 	"github.com/OpenMellon/openpdf/model/internal/fonts"
-	typefont "github.com/OpenMellon/typesetting/font"
+	typefont "github.com/unidoc/typesetting/font"
 )
 
 // ColorGlyphInfo represents information about a color glyph.

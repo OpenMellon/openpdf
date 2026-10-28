@@ -5,17 +5,17 @@ go 1.26.0
 toolchain go1.27.3
 
 require (
-	github.com/OpenMellon/freetype v0.1.1
 	github.com/OpenMellon/garabic v0.1.1
-	github.com/OpenMellon/go-xmp v0.1.1
-	github.com/OpenMellon/pkcs7 v0.1.1
 	github.com/OpenMellon/timestamp v0.1.2
-	github.com/OpenMellon/typesetting v0.1.1
-	github.com/OpenMellon/unichart v0.1.1
 	github.com/OpenMellon/unitype v0.1.1
 	github.com/adrg/sysfont v0.1.2
 	github.com/h2non/filetype v1.1.3
 	github.com/stretchr/testify v1.12.1
+	github.com/unidoc/freetype v0.2.5
+	github.com/unidoc/go-xmp v1.1.0
+	github.com/unidoc/pkcs7 v0.4.2
+	github.com/unidoc/typesetting v0.1.1
+	github.com/unidoc/unichart v0.5.2
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.61.0
@@ -26,6 +26,7 @@ require (
 )
 
 require (
+	github.com/OpenMellon/pkcs7 v0.1.1 // indirect
 	github.com/adrg/strutil v0.3.1 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect

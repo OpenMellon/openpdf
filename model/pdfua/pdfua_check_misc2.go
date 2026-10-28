@@ -3,9 +3,9 @@ package pdfua
 import (
 	"fmt"
 
-	"github.com/OpenMellon/go-xmp/models/dc"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
+	"github.com/unidoc/go-xmp/models/dc"
 )
 
 func checkStructTreeRootAndMarkInfo(r *model.CompliancePdfReader, rules ruleNos) []ViolatedRule {

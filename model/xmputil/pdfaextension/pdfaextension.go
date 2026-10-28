@@ -10,11 +10,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/OpenMellon/go-xmp/models/dc"
-	"github.com/OpenMellon/go-xmp/models/pdf"
-	xmpbase "github.com/OpenMellon/go-xmp/models/xmp_base"
-	xmpmm "github.com/OpenMellon/go-xmp/models/xmp_mm"
-	"github.com/OpenMellon/go-xmp/xmp"
+	"github.com/unidoc/go-xmp/models/dc"
+	"github.com/unidoc/go-xmp/models/pdf"
+	xmpbase "github.com/unidoc/go-xmp/models/xmp_base"
+	xmpmm "github.com/unidoc/go-xmp/models/xmp_mm"
+	"github.com/unidoc/go-xmp/xmp"
 )
 
 // Namespaces implements xmp.Model interface.

@@ -12,7 +12,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/internal/strutils"
 	"github.com/OpenMellon/openpdf/internal/textencoding/internal/syncmap"
-	"github.com/OpenMellon/typesetting/font"
+	"github.com/unidoc/typesetting/font"
 	"golang.org/x/text/transform"
 )
 

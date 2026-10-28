@@ -313,5 +313,4 @@ limitations under the License.
 
 ## Bundled packages
 
-The following packages are derived from other projects and now live in their own repos under `github.com/OpenMellon/`, each under its own licence (see the `LICENSE` file in each repo):
-freetype, garabic, go-xmp, pkcs7, timestamp, typesetting, unichart and unitype.
+The following packages are derived from other projects and now live in their own repos, each under its own licence (see the `LICENSE` file in each repo). Under `github.com/OpenMellon/`: garabic, timestamp and unitype. Upstream under `github.com/unidoc/`: freetype, go-xmp, pkcs7, typesetting and unichart.

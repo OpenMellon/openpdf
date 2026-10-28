@@ -6,9 +6,9 @@ import (
 	"math"
 	"sort"
 
-	"github.com/OpenMellon/freetype/raster"
 	"github.com/OpenMellon/openpdf/internal/transform"
 	"github.com/OpenMellon/openpdf/render/internal/context"
+	"github.com/unidoc/freetype/raster"
 )
 
 func lerpChannel(from, to uint32, t float64) uint8 {

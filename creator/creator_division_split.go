@@ -16,7 +16,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
-	chartrender "github.com/OpenMellon/unichart/render"
+	chartrender "github.com/unidoc/unichart/render"
 )
 
 func (d *Division) split(ctx2 DrawContext, value float64) (head, tail *Division) {

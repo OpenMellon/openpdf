@@ -12,7 +12,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/openpdf/model/internal/sigattr"
-	"github.com/OpenMellon/pkcs7"
+	"github.com/unidoc/pkcs7"
 )
 
 const (

@@ -8,11 +8,11 @@ import (
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/internal/textencoding"
-	"github.com/OpenMellon/typesetting/font"
-	"github.com/OpenMellon/typesetting/font/cff"
-	"github.com/OpenMellon/typesetting/font/opentype"
-	"github.com/OpenMellon/typesetting/font/opentype/tables"
-	"github.com/OpenMellon/typesetting/shaping"
+	"github.com/unidoc/typesetting/font"
+	"github.com/unidoc/typesetting/font/cff"
+	"github.com/unidoc/typesetting/font/opentype"
+	"github.com/unidoc/typesetting/font/opentype/tables"
+	"github.com/unidoc/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
 )
 

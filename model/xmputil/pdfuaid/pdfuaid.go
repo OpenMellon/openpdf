@@ -6,8 +6,8 @@ package pdfuaid
 import (
 	"fmt"
 
-	"github.com/OpenMellon/go-xmp/xmp"
 	"github.com/OpenMellon/openpdf/model/xmputil/pdfaextension"
+	"github.com/unidoc/go-xmp/xmp"
 )
 
 // NewModel creates a new model.

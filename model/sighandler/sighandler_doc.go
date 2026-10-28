@@ -12,8 +12,8 @@ import (
 	"github.com/OpenMellon/openpdf/model"
 	"github.com/OpenMellon/openpdf/model/mdp"
 	"github.com/OpenMellon/openpdf/model/sigutil"
-	"github.com/OpenMellon/pkcs7"
 	"github.com/OpenMellon/timestamp"
+	"github.com/unidoc/pkcs7"
 )
 
 // NewDocMDPHandler returns the new DocMDP handler with the specific DocMDP restriction level.

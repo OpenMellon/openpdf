@@ -16,8 +16,8 @@ import (
 	"github.com/OpenMellon/openpdf/internal/textencoding"
 	"github.com/OpenMellon/openpdf/model/internal/docutil"
 	"github.com/OpenMellon/openpdf/model/internal/fonts"
-	"github.com/OpenMellon/typesetting/shaping"
 	"github.com/OpenMellon/unitype"
+	"github.com/unidoc/typesetting/shaping"
 )
 
 func sortedUniqueUint16(vals []uint16) []uint16 { slices.Sort(vals); return slices.Compact(vals) }

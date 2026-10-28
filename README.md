@@ -117,7 +117,7 @@ Each feature links to a runnable example, or to the package that provides it whe
 | PDF/A and PDF/UA | [model/pdfa](model/pdfa), [model/pdfua](model/pdfua) |
 | Render pages to images | [render](render) |
 | OCR integration | [ocr](ocr) |
-| Charts, Arabic shaping and complex text layout | [unichart](https://github.com/OpenMellon/unichart), [garabic](https://github.com/OpenMellon/garabic), [textshaping](textshaping), [typesetting](https://github.com/OpenMellon/typesetting) |
+| Charts, Arabic shaping and complex text layout | [unichart](https://github.com/unidoc/unichart), [garabic](https://github.com/OpenMellon/garabic), [textshaping](textshaping), [typesetting](https://github.com/unidoc/typesetting) |
 
 ## Packages
 
@@ -153,5 +153,5 @@ part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 MIT - see [LICENSE](LICENSE). OpenPDF is a derivative of UniPDF, Copyright 2020 FoxyUtils ehf., which was released
 under the MIT licence; the original copyright notices are retained in the source files and must stay with any copy.
-Packages derived from other projects, now separate modules under `github.com/OpenMellon/` (`freetype`, `garabic`, `go-xmp`, `pkcs7`, `timestamp`, `typesetting`, `unichart`, `unitype`) keep their own licences; see
+Packages derived from other projects are separate modules: `garabic`, `timestamp` and `unitype` under `github.com/OpenMellon/`, and `freetype`, `go-xmp`, `pkcs7`, `typesetting` and `unichart` upstream under `github.com/unidoc/`. Each keeps its own licence; see
 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).

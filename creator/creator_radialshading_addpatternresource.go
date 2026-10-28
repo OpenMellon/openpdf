@@ -20,7 +20,7 @@ import (
 	contentdraw "github.com/OpenMellon/openpdf/contentstream/draw"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
-	chartrender "github.com/OpenMellon/unichart/render"
+	chartrender "github.com/unidoc/unichart/render"
 )
 
 // AddPatternResource adds pattern dictionary inside the resources dictionary.

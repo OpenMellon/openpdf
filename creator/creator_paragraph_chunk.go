@@ -11,8 +11,8 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/textencoding"
 	"github.com/OpenMellon/openpdf/model"
-	"github.com/OpenMellon/typesetting/di"
-	"github.com/OpenMellon/typesetting/shaping"
+	"github.com/unidoc/typesetting/di"
+	"github.com/unidoc/typesetting/shaping"
 )
 
 // chunkRun is the state for drawing one text chunk.

@@ -10,8 +10,8 @@ import (
 
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model/internal/sigattr"
-	"github.com/OpenMellon/pkcs7"
 	"github.com/OpenMellon/timestamp"
+	"github.com/unidoc/pkcs7"
 	"golang.org/x/crypto/ocsp"
 )
 

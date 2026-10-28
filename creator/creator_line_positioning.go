@@ -15,7 +15,7 @@ import (
 	"github.com/OpenMellon/openpdf/common"
 	contentdraw "github.com/OpenMellon/openpdf/contentstream/draw"
 	"github.com/OpenMellon/openpdf/model"
-	chartrender "github.com/OpenMellon/unichart/render"
+	chartrender "github.com/unidoc/unichart/render"
 )
 
 // Positioning returns the type of positioning the line is set to use.

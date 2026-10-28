@@ -13,7 +13,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
-	chartrender "github.com/OpenMellon/unichart/render"
+	chartrender "github.com/unidoc/unichart/render"
 )
 
 // TemplateOptions contains options and resources to use when rendering

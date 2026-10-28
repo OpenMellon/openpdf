@@ -12,7 +12,7 @@ import (
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/textencoding"
 	"github.com/OpenMellon/openpdf/model/internal/fonts"
-	"github.com/OpenMellon/typesetting/shaping"
+	"github.com/unidoc/typesetting/shaping"
 )
 
 // SubsetRegistered subsets the font to only the glyphs that have been registered by the encoder.

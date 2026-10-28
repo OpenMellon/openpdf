@@ -13,7 +13,7 @@ import (
 	"github.com/OpenMellon/openpdf/contentstream"
 	contentdraw "github.com/OpenMellon/openpdf/contentstream/draw"
 	"github.com/OpenMellon/openpdf/model"
-	chartrender "github.com/OpenMellon/unichart/render"
+	chartrender "github.com/unidoc/unichart/render"
 )
 
 // SetStyleTop sets border style for top side.

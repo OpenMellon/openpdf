@@ -15,7 +15,7 @@ import (
 	"github.com/OpenMellon/openpdf/contentstream/draw"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/model"
-	"github.com/OpenMellon/unichart/render"
+	"github.com/unidoc/unichart/render"
 )
 
 func (r *Renderer) SetFont(font render.Font) {

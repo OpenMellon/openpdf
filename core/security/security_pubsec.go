@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"hash"
 
-	"github.com/OpenMellon/pkcs7"
+	"github.com/unidoc/pkcs7"
 )
 
 const pubSecAlwaysSetBits = Permissions(1) | Permissions(1<<9)
