@@ -1,0 +1,108 @@
+%PDF-1.3
+trailer << /Info 1 0 R /Root 2 0 R /Size 8 >>
+
+1 0 obj
+<< /CreationDate <elided> /Creator (OpenPDF regress) /ModDate <elided> /Producer <elided> >>
+
+2 0 obj
+<< /Outlines 7 0 R /Pages 3 0 R /Type /Catalog /Version /1.3 >>
+
+3 0 obj
+<< /Count 1 /Kids [4 0 R] /Type /Pages >>
+
+4 0 obj
+<< /Contents [6 0 R] /MediaBox [0 0 612 792] /Parent 3 0 R /Resources << /Font << /Font2 5 0 R >> >> /Type /Page >>
+
+5 0 obj
+<< /BaseFont /Helvetica /Encoding /WinAnsiEncoding /Subtype /Type1 /Type /Font >>
+
+6 0 obj
+  << /Filter /FlateDecode /Length <elided> >>
+  stream
+  q
+  1 0 0 1 61.2 720.8 cm
+  BT
+  0 0 0 rg
+  /Font2 10 Tf
+  [(Plain)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(Helvetica)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(text)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(from)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(the)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(standard)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(14)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(fonts,)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(wrapped)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(over)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(a)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(few)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(lines)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(of)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(the)] TJ
+  /Font2 10 Tf
+  [-278] TJ
+  0 0 0 rg
+  /Font2 10 Tf
+  [(page.)] TJ
+  ET
+  Q
+  endstream
+
+7 0 obj
+<< /Type /Outlines >>

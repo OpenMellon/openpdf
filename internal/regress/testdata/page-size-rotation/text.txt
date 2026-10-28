@@ -1,0 +1,6 @@
+=== page 1 ===
+A5 page
+
+
+=== page 2 ===
+Letter page rotated by 90 degrees

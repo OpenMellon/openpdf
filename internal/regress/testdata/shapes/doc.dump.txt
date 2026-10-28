@@ -1,0 +1,53 @@
+%PDF-1.3
+trailer << /Info 1 0 R /Root 2 0 R /Size 7 >>
+
+1 0 obj
+<< /CreationDate <elided> /Creator (OpenPDF regress) /ModDate <elided> /Producer <elided> >>
+
+2 0 obj
+<< /Outlines 6 0 R /Pages 3 0 R /Type /Catalog /Version /1.3 >>
+
+3 0 obj
+<< /Count 1 /Kids [4 0 R] /Type /Pages >>
+
+4 0 obj
+<< /Contents [5 0 R] /MediaBox [0 0 612 792] /Parent 3 0 R /Resources << >> /Type /Page >>
+
+5 0 obj
+  << /Filter /FlateDecode /Length <elided> >>
+  stream
+  q
+  1 0.8 0 rg
+  0 0 0 RG
+  3 w
+  60 632 m
+  260 632 l
+  260 732 l
+  60 732 l
+  60 632 l
+  h
+  B
+  Q
+  q
+  0 0 1 rg
+  1 0 0 RG
+  2 w
+  321 682 m
+  321 706.2785 356.4091 726 400 726 c
+  443.5909 726 479 706.2785 479 682 c
+  479 657.7215 443.5909 638 400 638 c
+  356.4091 638 321 657.7215 321 682 c
+  h
+  B
+  Q
+  q
+  4 w
+  1 0 0 RG
+  60 572 m
+  540 492 l
+  S
+  Q
+  endstream
+
+6 0 obj
+<< /Type /Outlines >>

@@ -1,0 +1,6 @@
+=== page 1 ===
+Sanitized page one. Account SECRET-1234 belongs to Ada Lovelace.
+
+
+=== page 2 ===
+Sanitized page two. Account SECRET-1234 belongs to Ada Lovelace.

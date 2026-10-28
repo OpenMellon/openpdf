@@ -1,0 +1,155 @@
+%PDF-1.3
+trailer << /Info 1 0 R /Root 2 0 R /Size 23 >>
+
+1 0 obj
+<< /CreationDate <elided> /Creator (OpenPDF regress) /ModDate <elided> /Producer <elided> >>
+
+2 0 obj
+<< /AcroForm 19 0 R /Pages 3 0 R /Type /Catalog /Version /1.3 >>
+
+3 0 obj
+<< /Count 1 /Kids [4 0 R] /Type /Pages >>
+
+4 0 obj
+<< /Annots [5 0 R 8 0 R 12 0 R] /MediaBox [0 0 612 792] /Parent 3 0 R /Resources << >> /Type /Page >>
+
+5 0 obj
+<< /AP << /N 6 0 R >> /F 4 /P 4 0 R /Parent 20 0 R /Rect [50 700 300 730] /Subtype /Widget /Type /Annot >>
+
+6 0 obj
+  << /BBox [0 0 250 30] /Filter /FlateDecode /Length <elided> /Resources << /Font << /Helv 7 0 R >> >> /Subtype /Form /Type /XObject >>
+  stream
+  q
+  0 0 250 30 re
+  W
+  n
+  /Tx BMC
+  q
+  BT
+  /Helv 28.5 Tf
+  2 4.7685 Td
+  (Ada Lovelace) Tj
+  ET
+  Q
+  EMC
+  Q
+  endstream
+
+7 0 obj
+<< /BaseFont /Helvetica /Encoding /WinAnsiEncoding /Subtype /Type1 /Type /Font >>
+
+8 0 obj
+<< /AP << /N << /Off 9 0 R /Yes 11 0 R >> >> /AS /Yes /F 4 /P 4 0 R /Parent 21 0 R /Rect [50 650 70 670] /Subtype /Widget /Type /Annot >>
+
+9 0 obj
+  << /BBox [0 0 20 20] /Length <elided> /Resources << /Font << /ZaDb 10 0 R >> >> /Subtype /Form /Type /XObject >>
+  stream
+  q
+  0 0 1 rg
+  BT
+  /ZaDb 12 Tf
+  0 0 Td
+  ET
+  Q
+  endstream
+
+10 0 obj
+<< /BaseFont /ZapfDingbats /Subtype /Type1 /Type /Font >>
+
+11 0 obj
+  << /BBox [0 0 20 20] /Length <elided> /Resources << /Font << /ZaDb 10 0 R >> >> /Subtype /Form /Type /XObject >>
+  stream
+  q
+  0 0 20 20 re
+  W
+  n
+  0 0 1 rg
+  1 0 0 1 0 3 cm
+  BT
+  /ZaDb 12 Tf
+  0 0 Td
+  (4) Tj
+  ET
+  Q
+  endstream
+
+12 0 obj
+<< /AP << /N << /Blue 17 0 R /Green 15 0 R /Red 13 0 R >> >> /AS /Green /F 4 /P 4 0 R /Parent 22 0 R /Rect [50 600 200 625] /Subtype /Widget /Type /Annot >>
+
+13 0 obj
+  << /BBox [0 0 150 25] /Filter /FlateDecode /Length <elided> /Resources << /Font << /Helv 14 0 R >> >> /Subtype /Form /Type /XObject >>
+  stream
+  q
+  0 0 150 25 re
+  W
+  n
+  /Tx BMC
+  q
+  BT
+  /Helv 21.85 Tf
+  2 3.075 Td
+  (Red) Tj
+  ET
+  Q
+  EMC
+  Q
+  endstream
+
+14 0 obj
+<< /BaseFont /Helvetica /Encoding /WinAnsiEncoding /Subtype /Type1 /Type /Font >>
+
+15 0 obj
+  << /BBox [0 0 150 25] /Filter /FlateDecode /Length <elided> /Resources << /Font << /Helv 16 0 R >> >> /Subtype /Form /Type /XObject >>
+  stream
+  q
+  0 0 150 25 re
+  W
+  n
+  /Tx BMC
+  q
+  BT
+  /Helv 21.85 Tf
+  2 3.075 Td
+  (Green) Tj
+  ET
+  Q
+  EMC
+  Q
+  endstream
+
+16 0 obj
+<< /BaseFont /Helvetica /Encoding /WinAnsiEncoding /Subtype /Type1 /Type /Font >>
+
+17 0 obj
+  << /BBox [0 0 150 25] /Filter /FlateDecode /Length <elided> /Resources << /Font << /Helv 18 0 R >> >> /Subtype /Form /Type /XObject >>
+  stream
+  q
+  0 0 150 25 re
+  W
+  n
+  /Tx BMC
+  q
+  BT
+  /Helv 21.85 Tf
+  2 3.075 Td
+  (Blue) Tj
+  ET
+  Q
+  EMC
+  Q
+  endstream
+
+18 0 obj
+<< /BaseFont /Helvetica /Encoding /WinAnsiEncoding /Subtype /Type1 /Type /Font >>
+
+19 0 obj
+<< /DR << /Font << /Helv 7 0 R >> >> /Fields [20 0 R 21 0 R 22 0 R] >>
+
+20 0 obj
+<< /FT /Tx /Kids [5 0 R] /T (name) /V <feff0041006400610020004c006f00760065006c006100630065> >>
+
+21 0 obj
+<< /FT /Btn /Ff 0 /Kids [8 0 R] /T (agree) /V /Yes >>
+
+22 0 obj
+<< /FT /Ch /Ff 131072 /Kids [12 0 R] /Opt [(Red) (Green) (Blue)] /T (colour) /V (Green) >>

@@ -3,6 +3,7 @@ package regress
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -25,6 +26,9 @@ type scenario struct {
 	// (encryption uses random salts and file IDs); text and pixels are still checked.
 	password string
 	noBytes  bool
+	// input names a committed PDF under testdata/inputs that is read instead of built. The file is the fixture, so
+	// there is no doc.pdf golden, but the dump, text and pixels are checked.
+	input string
 }
 
 var scenarios = []scenario{
@@ -35,11 +39,18 @@ func TestScenarios(t *testing.T) {
 	for _, sc := range scenarios {
 		t.Run(sc.name, func(t *testing.T) {
 			// Golden tests share the package-level metadata globals set in TestMain, so they never run in parallel.
-			data := sc.build(t)
+			var data []byte
+			if sc.input != "" {
+				data = readFile(t, filepath.Join("testdata", "inputs", sc.input))
+			} else {
+				data = sc.build(t)
+			}
 			g := newGoldens(t, sc.name)
 			if !sc.noBytes {
-				g.add("doc.pdf", data)
-				dump, err := dumpPDF(data)
+				if sc.input == "" {
+					g.add("doc.pdf", data)
+				}
+				dump, err := dumpPDF(data, sc.password)
 				if err != nil {
 					t.Fatalf("dump: %v", err)
 				}

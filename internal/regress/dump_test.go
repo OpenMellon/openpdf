@@ -20,10 +20,17 @@ var elided = map[core.PdfObjectName]bool{
 
 // dumpPDF returns a normalised, human-readable listing of every object in the PDF: objects in number order,
 // dictionary keys sorted, streams decoded (binary ones summarised by length and SHA-256).
-func dumpPDF(data []byte) (string, error) {
+func dumpPDF(data []byte, password string) (string, error) {
 	parser, err := core.NewParser(bytes.NewReader(data))
 	if err != nil {
 		return "", err
+	}
+	if enc, err := parser.IsEncrypted(); err != nil {
+		return "", err
+	} else if enc {
+		if ok, err := parser.Decrypt([]byte(password)); err != nil || !ok {
+			return "", fmt.Errorf("decrypt: ok=%v err=%v", ok, err)
+		}
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "%%PDF-%s\n", versionString(parser.PdfVersion()))

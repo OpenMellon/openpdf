@@ -1,0 +1,2 @@
+=== page 1 ===
+Confidential contract text under a watermark.

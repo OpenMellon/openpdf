@@ -1,0 +1,12 @@
+=== page 1 ===
+Styles and wrapping
+
+Coloured text that is long enough to wrap onto a second line when the margins are narrow.
+
+Coloured text that is long enough to wrap onto a second line when the margins are narrow.
+
+Coloured text that is long enough to wrap onto a second line when the margins are narrow.
+
+
+=== page 2 ===
+Second page, ünïcödé: café – naïve – 100% – ½
