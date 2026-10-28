@@ -4,16 +4,17 @@ repos:
     hooks:
       # Goldens are written already normalised; the hooks must never rewrite them.
       - id: end-of-file-fixer
-        exclude: ^internal/regress/testdata/
+        exclude: ^(internal/regress|internal/apicheck)/testdata/
       - id: trailing-whitespace
-        exclude: ^internal/regress/testdata/
+        exclude: ^(internal/regress|internal/apicheck)/testdata/
       - id: mixed-line-ending
         args: [--fix=lf]
-        exclude: ^internal/regress/testdata/
+        exclude: ^(internal/regress|internal/apicheck)/testdata/
       - id: check-yaml
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: check-added-large-files
+        exclude: ^internal/apicheck/testdata/api\.txt$
       - id: detect-private-key
 
   - repo: https://github.com/tekwizely/pre-commit-golang
