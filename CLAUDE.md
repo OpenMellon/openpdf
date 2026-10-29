@@ -20,3 +20,7 @@
 - Never edit `*_gen.go` files by hand. Change the generator or its input and run `go generate`. A PreToolUse hook
   (`.claude/hooks/block-gen-edits.sh`) blocks Edit/Write on them; it cannot see edits made through Bash, so don't
   use `sed` or heredocs to get round it.
+
+## Documentation vs code
+
+When a repository's documentation and its existing code disagree, follow the conventions in the existing code. In your final reply, list each inconsistency you found between the documentation and the code.
