@@ -18,6 +18,7 @@ OpenPDF is an MIT-licensed PDF library for Go (golang) for creating, reading and
 
 ## Contents
 
+- [Why OpenPDF](#why-openpdf)
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [Features](#features)
@@ -26,9 +27,15 @@ OpenPDF is an MIT-licensed PDF library for Go (golang) for creating, reading and
 - [Contributing](#contributing)
 - [License](#license)
 
+## Why OpenPDF
+
+- One module for the whole job: create, read, merge, split, fill forms, sign, redact, sanitise, render and OCR.
+- MIT licensed, pure Go, no cgo and no licence key.
+- Every feature has a testable example that `go test` runs, so the documentation cannot go stale.
+
 ## Installation
 
-Requires Go 1.27 or later.
+Requires Go 1.26 or later.
 
 ~~~
 go get github.com/OpenMellon/openpdf
