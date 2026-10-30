@@ -65,7 +65,7 @@ func NewCustomSimpleTextEncoder(encoding, differences map[CharCode]GlyphName) (S
 			common.Log.Debug("ERROR: Unknown glyph. %q", glyph)
 			continue
 		}
-		byteToRune.Write(byte(code), r)
+		byteToRune.Write(byte(code&0xff), r)
 	}
 	enc := newSimpleEncoding(customEncodingName, byteToRune)
 	if len(differences) != 0 {
