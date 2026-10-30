@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/internal/intconv"
 )
 
 func (parser *PdfParser) lookupObjectViaOS(osObjNumber int, index int, visited map[int]struct{}) (PdfObject, error) {
@@ -67,7 +68,7 @@ func (parser *PdfParser) lookupObjectViaOS(osObjNumber int, index int, visited m
 			common.Log.Trace("Parsing offset map")
 		}
 		m := map[int]int64{}
-		for i := 0; i < int(*N); i++ {
+		for i := 0; i < intconv.ClampInt(int64(*N)); i++ {
 			parser.skipSpaces(readerAtCursor)
 			number, err2 := parser.parseNumber(readerAtCursor)
 			if err2 != nil {
@@ -89,7 +90,7 @@ func (parser *PdfParser) lookupObjectViaOS(osObjNumber int, index int, visited m
 			if common.Log.IsLogLevel(common.LogLevelTrace) {
 				common.Log.Trace("obj %d offset %d", *num, *relOffset)
 			}
-			m[int(*num)] = int64(*first + *relOffset)
+			m[intconv.ClampInt(int64(*num))] = int64(*first + *relOffset)
 		}
 		objStm = objectStream{N: int(*N), data: data, offsets: m}
 		parser.objStreamMu.Lock()
@@ -341,11 +342,11 @@ func (parser *PdfParser) parseString(cursor *readerAtCursor) (*PdfObjectString, 
 				if common.Log.IsLogLevel(common.LogLevelTrace) {
 					common.Log.Trace("Numeric string \"%s\"", digits)
 				}
-				value, err := strconv.ParseUint(string(digits), 8, 32)
+				value, err := strconv.ParseUint(string(digits), 8, 16)
 				if err != nil {
 					return MakeString(buffer.String()), err
 				}
-				buffer.WriteByte(byte(value))
+				buffer.WriteByte(byte(value & 0xff))
 				continue
 			}
 			switch escaped {

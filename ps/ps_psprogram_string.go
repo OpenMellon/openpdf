@@ -18,6 +18,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/internal/intconv"
 )
 
 func (prog *PSProgram) String() string {
@@ -199,7 +200,7 @@ func (p *PSParser) parseNumber() (PSObject, error) {
 	case *core.PdfObjectFloat:
 		return MakeReal(float64(*n)), nil
 	case *core.PdfObjectInteger:
-		return MakeInteger(int(*n)), nil
+		return MakeInteger(intconv.ClampInt(int64(*n))), nil
 	}
 	return nil, fmt.Errorf("unhandled number type %T", num)
 }

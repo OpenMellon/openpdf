@@ -14,6 +14,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/internal/intconv"
 )
 
 func (cmap *CMap) parseBfrange() error {
@@ -223,7 +224,7 @@ func (cmap *CMap) parseType() error {
 				return ErrBadCMap
 			}
 		case cmapInt:
-			typ = int(t.val)
+			typ = intconv.ClampInt(t.val)
 		}
 	}
 	cmap.ctype = typ
@@ -459,11 +460,11 @@ func (p *cMapParser) parseString() (cmapString, error) {
 				if common.Log.IsLogLevel(common.LogLevelTrace) {
 					common.Log.Trace("Numeric string \"%s\"", digits)
 				}
-				n, err := strconv.ParseUint(string(digits), 8, 32)
+				n, err := strconv.ParseUint(string(digits), 8, 16)
 				if err != nil {
 					return cmapString{buf.String()}, err
 				}
-				buf.WriteByte(byte(n))
+				buf.WriteByte(byte(n & 0xff))
 				continue
 			}
 			switch c {

@@ -52,11 +52,11 @@ func (p *fdfParser) parseString() (*core.PdfObjectString, error) {
 				if common.Log.IsLogLevel(common.LogLevelTrace) {
 					common.Log.Trace("Numeric string \"%s\"", digits)
 				}
-				v, err := strconv.ParseUint(string(digits), 8, 32)
+				v, err := strconv.ParseUint(string(digits), 8, 16)
 				if err != nil {
 					return core.MakeString(buf.String()), err
 				}
-				buf.WriteByte(byte(v))
+				buf.WriteByte(byte(v & 0xff))
 				continue
 			}
 			switch c {
