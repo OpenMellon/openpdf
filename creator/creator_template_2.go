@@ -11,6 +11,7 @@ import (
 
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
+	"github.com/OpenMellon/openpdf/internal/intconv"
 	"github.com/OpenMellon/openpdf/model"
 )
 
@@ -124,7 +125,7 @@ func (tp *templateProcessor) validateTable(node *templateNode) error {
 	fn := func(s string) int {
 		effectiveAttrValue, _ := tp.effectiveAttrValue(node, s)
 		int642, _ := parseInt64(effectiveAttrValue)
-		return int(int642)
+		return intconv.ClampInt(int642)
 	}
 	return tp.setTableHeaderRows(node, &Table{}, fn("header-start-row"), fn("header-end-row"))
 }

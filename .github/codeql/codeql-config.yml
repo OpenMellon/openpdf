@@ -1,0 +1,10 @@
+name: openpdf CodeQL config
+
+# The PDF standard security handlers (R2-R6) are specified in terms of MD5, RC4, SHA-1 and AES-ECB, and the file
+# trailer /ID is conventionally an MD5 digest. Reading and writing standard-conformant files requires them, so these
+# two rules cannot be satisfied here; they are excluded rather than dismissed alert by alert.
+query-filters:
+  - exclude:
+      id: go/weak-cryptographic-algorithm
+  - exclude:
+      id: go/weak-sensitive-data-hashing

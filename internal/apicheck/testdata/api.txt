@@ -3222,6 +3222,8 @@ github.com/OpenMellon/openpdf/internal/imageutil/iccextract func Detect func([]b
 github.com/OpenMellon/openpdf/internal/imageutil/iccextract func Extract func([]byte) ([]byte, github.com/OpenMellon/openpdf/internal/imageutil/iccextract.Format)
 github.com/OpenMellon/openpdf/internal/imageutil/iccextract type Format
 github.com/OpenMellon/openpdf/internal/imageutil/iccextract underlying Format string
+github.com/OpenMellon/openpdf/internal/intconv func ClampInt func(int64) int
+github.com/OpenMellon/openpdf/internal/intconv func Uint32 func(int64) (uint32, bool)
 github.com/OpenMellon/openpdf/internal/integrations/unichart fieldorder Renderer width,height,dpi,cc,resources,fillColor,strokeColor,strokeWidth,font,fontSize,fontColor,textRotation,fontNames
 github.com/OpenMellon/openpdf/internal/integrations/unichart func NewRenderer func(*github.com/OpenMellon/openpdf/contentstream.ContentCreator, *github.com/OpenMellon/openpdf/model.PdfPageResources) func(int, int) (github.com/unidoc/unichart/render.Renderer, error)
 github.com/OpenMellon/openpdf/internal/integrations/unichart method *github.com/OpenMellon/openpdf/internal/integrations/unichart.Renderer ArcTo func(int, int, float64, float64, float64, float64)

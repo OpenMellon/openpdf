@@ -9,6 +9,7 @@ import (
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core/security"
 	"github.com/OpenMellon/openpdf/core/security/crypt"
+	"github.com/OpenMellon/openpdf/internal/intconv"
 )
 
 // PdfCrypt provides PDF encryption/decryption support.
@@ -113,7 +114,12 @@ func (crypt *PdfCrypt) Decrypt(obj PdfObject, parentObjNum, parentGenNum int64) 
 		if err != nil {
 			return err
 		}
-		key, err := crypt.makeKey(filterName, uint32(objectNumber), uint32(generationNumber), crypt.encryptionKey)
+		objNum, okObj := intconv.Uint32(objectNumber)
+		genNum, okGen := intconv.Uint32(generationNumber)
+		if !okObj || !okGen {
+			return errors.New("object or generation number out of range")
+		}
+		key, err := crypt.makeKey(filterName, objNum, genNum, crypt.encryptionKey)
 		if err != nil {
 			return err
 		}
@@ -137,7 +143,12 @@ func (crypt *PdfCrypt) Decrypt(obj PdfObject, parentObjNum, parentGenNum int64) 
 			}
 			filterName = crypt.stringFilter
 		}
-		key, err := crypt.makeKey(filterName, uint32(parentObjNum), uint32(parentGenNum), crypt.encryptionKey)
+		objNum, okObj := intconv.Uint32(parentObjNum)
+		genNum, okGen := intconv.Uint32(parentGenNum)
+		if !okObj || !okGen {
+			return errors.New("object or generation number out of range")
+		}
+		key, err := crypt.makeKey(filterName, objNum, genNum, crypt.encryptionKey)
 		if err != nil {
 			return err
 		}

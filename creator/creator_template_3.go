@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/OpenMellon/openpdf/common"
+	"github.com/OpenMellon/openpdf/internal/intconv"
 	"github.com/OpenMellon/openpdf/model"
 )
 
@@ -352,7 +353,7 @@ func (tp *templateProcessor) parseTableCell(node *templateNode) (any, error) {
 	if n2 <= 0 {
 		n2 = 1
 	}
-	multiCell := table.MultiCell(int(n2), int(n))
+	multiCell := table.MultiCell(intconv.ClampInt(n2), intconv.ClampInt(n))
 	if err := tp.applyAttrs(node, multiCell, tableCellAttrs); err != nil {
 		return nil, err
 	}
@@ -364,7 +365,7 @@ func (tp *templateProcessor) parseTable(node *templateNode) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	table := tp.creator.NewTable(int(tableColumns))
+	table := tp.creator.NewTable(intconv.ClampInt(tableColumns))
 	if err := tp.applyAttrs(node, table, tableAttrs); err != nil {
 		return nil, err
 	}

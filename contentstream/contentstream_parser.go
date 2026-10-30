@@ -144,11 +144,11 @@ func (p *ContentStreamParser) parseString() (*core.PdfObjectString, error) {
 				if common.Log.IsLogLevel(common.LogLevelTrace) {
 					common.Log.Trace("Numeric string \"%s\"", buf4)
 				}
-				v, err3 := strconv.ParseUint(string(buf4), 8, 32)
+				v, err3 := strconv.ParseUint(string(buf4), 8, 16)
 				if err3 != nil {
 					return core.MakeString(string(buf)), err3
 				}
-				buf = append(buf, byte(v))
+				buf = append(buf, byte(v&0xff))
 				continue
 			}
 			switch b {

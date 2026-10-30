@@ -179,7 +179,7 @@ func (w *PdfWriter) optimizeDocument() error {
 	return nil
 }
 
-// SetFileName sets the pdf writer file name for metered usage tracker.
+// SetFileName sets the file name associated with the writer.
 func (w *PdfWriter) SetFileName(name string) { w.fileName = name }
 
 // EncryptForRecipients encrypts the document with the public-key security

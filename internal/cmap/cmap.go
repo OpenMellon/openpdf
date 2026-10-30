@@ -17,6 +17,7 @@ import (
 	"github.com/OpenMellon/openpdf/common"
 	"github.com/OpenMellon/openpdf/core"
 	"github.com/OpenMellon/openpdf/internal/cmap/bcmaps"
+	"github.com/OpenMellon/openpdf/internal/intconv"
 )
 
 func (cmap *CMap) parseName() error {
@@ -175,7 +176,7 @@ func (cmap *CMap) parseSystemInfo() error {
 			if haveKey {
 				switch key {
 				case "Supplement":
-					info.Supplement = int(t.val)
+					info.Supplement = intconv.ClampInt(t.val)
 				}
 			}
 		}
@@ -453,7 +454,7 @@ func (cmap *CMap) parseWMode() error {
 				return ErrBadCMap
 			}
 		case cmapInt:
-			wmode = int(t.val)
+			wmode = intconv.ClampInt(t.val)
 		}
 	}
 	cmap.wmode = integer{set: true, val: wmode}

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"slices"
 	"sort"
 	"strings"
@@ -72,6 +73,9 @@ func (cmap *CMap) parseCIDRange() error {
 		}
 		cid := cidStart.val
 		for code := start; code <= end; code++ {
+			if cid > math.MaxUint32 {
+				return errors.New("invalid cid value")
+			}
 			cmap.codeToCID[code] = CharCode(cid)
 			cid++
 		}

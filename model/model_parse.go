@@ -158,7 +158,7 @@ func parseType1Encoding(s string) (map[textencoding.CharCode]textencoding.GlyphN
 			continue
 		}
 		s2, s3 := stringSubmatch[1], stringSubmatch[2]
-		atoi, err := strconv.Atoi(s2)
+		atoi, err := strconv.ParseUint(s2, 10, 16)
 		if err != nil {
 			common.Log.Debug("ERROR: Bad encoding line. %q", s)
 			return nil, core.ErrTypeError

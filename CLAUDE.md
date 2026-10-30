@@ -2,9 +2,10 @@
 
 ## Git
 
-- Commit straight to `main`. No feature branches, worktrees or PRs for this repo; this overrides the global
-  "new branch or worktree for every PR" rule. Keep commits small and focused, and run `go build ./...` and
-  `go test ./...` (what CI runs) before pushing.
+- Every change goes through a pull request; `main` is protected and cannot be pushed to directly. Branch from `main`
+  (a plain branch is fine here, no worktree needed), keep commits small and focused, and run `go build ./...` and
+  `go test ./...` (what CI runs) before pushing. Open the PR with the `dev-loop:pr-create` skill and merge only once CI
+  is green.
 
 ## Examples
 
