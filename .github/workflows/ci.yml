@@ -30,7 +30,14 @@ jobs:
         with:
           go-version-file: ${{ matrix.go-version-file }}
           go-version: ${{ matrix.go-version }}
-      - run: scripts/check-author.sh HEAD
+      # On a PR, HEAD is GitHub's synthetic merge commit, so check the PR's own commits instead.
+      - if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: scripts/check-author.sh "origin/$BASE_REF..$HEAD_SHA"
+      - if: github.event_name != 'pull_request'
+        run: scripts/check-author.sh HEAD
       - run: go build ./...
       - run: go vet -composites=false ./...
       # Failed golden comparisons write their actual and diff files here.
